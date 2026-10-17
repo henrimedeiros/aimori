@@ -104,11 +104,18 @@ AImori hilft gegen Versehen. Es ist kein vollständiges DLP-System: Desktop- und
 | Bild | Grösse | Stand |
 |---|---|---|
 | Symbol | 128 × 128 PNG | `extension/icons/icon128.png` |
-| Screenshots (1–5) | 1280 × 800 oder 640 × 400 | vorhanden: `docs/screenshots/aimori/chatgpt-*.png` (1280 × 800, Deutsch, Attrappe). **Offen:** aktuelle Bilder nach der schlanken Warnleiste, zusätzlich auf Englisch, je ein Bild für Popup und Einstellungen im Format 1280 × 800 |
-| Kleine Werbekachel | 440 × 280 PNG (Pflicht) | **offen** |
-| Grosse Werbekachel | 1400 × 560 PNG (optional) | offen |
+| Screenshots Englisch (1–4) | 1280 × 800 PNG | [Leiste beim Senden](bilder/screenshot-en-1-senden.png), [Hinweis beim Tippen](bilder/screenshot-en-2-tippen.png), [Popup](bilder/screenshot-en-3-popup.png), [Einstellungen](bilder/screenshot-en-4-einstellungen.png) |
+| Screenshots Deutsch (1–4) | 1280 × 800 PNG | [Leiste beim Senden](bilder/screenshot-de-1-senden.png), [Hinweis beim Tippen](bilder/screenshot-de-2-tippen.png), [Popup](bilder/screenshot-de-3-popup.png), [Einstellungen](bilder/screenshot-de-4-einstellungen.png) |
+| Kleine Werbekachel | 440 × 280 PNG (Pflicht) | [kachel-klein-440x280.png](bilder/kachel-klein-440x280.png) |
+| Grosse Werbekachel | 1400 × 560 PNG (optional) | [kachel-gross-1400x560.png](bilder/kachel-gross-1400x560.png) |
 
-Bilder nur aus den Attrappen der E2E-Prüfung (`E2E_BILDER`, Wegwerf-Profil, synthetische Testwerte), nie von echten Konten.
+Die englischen Bilder gehören zum Standard-Eintrag, die deutschen zum deutschen Eintrag. Alle Bilder sind 24-Bit-PNG ohne Alphakanal und ohne Text-Metadaten (geprüft von `tests/store-bilder.test.mjs`).
+
+Bilder nur aus den Attrappen der E2E-Prüfung (Wegwerf-Profil, synthetische Testwerte), nie von echten Konten. Neu erzeugen (hell, Englisch und Deutsch, Popup über der Attrappe auf 1280 × 800, Kacheln aus Signet, Wortmarke und Schriften der Erweiterung; Popup und Einstellungen zeigen den Status der lokalen KI, dafür vorher `node scripts/build-ki.mjs`):
+
+```
+E2E_BILDER=docs/store/bilder E2E_NUR=store node scripts/e2e/e2e.mjs
+```
 
 ## 3. Datenschutz-Angaben (Privacy practices)
 

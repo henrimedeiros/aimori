@@ -1043,6 +1043,148 @@ async function bilder() {
   check('Bilder geschrieben', fs.readdirSync(out).filter((f) => f.endsWith('.png')).length >= 16, out);
 }
 
+// --- Bilder fuer den Store-Eintrag (nur mit E2E_BILDER, Schritt store, Attrappe und Testwerte) ---
+// Je Sprache hell auf 1280 x 800: Leiste beim Senden, Hinweis beim Tippen, Popup ueber der Attrappe,
+// Einstellungen. Dazu die Werbekacheln 440 x 280 und 1400 x 560 aus Signet, Wortmarke und Schriften
+// der Erweiterung. Die Attrappe bekommt nur einen neutralen Kopf und einen Verlauf in der Bildsprache.
+const STORE_TEXT = {
+  en: { kopf: 'AI assistant', frage: 'Can you help me write a payment reminder?', antwort: 'Sure. Tell me briefly what it is about and which tone you would like.',
+    prompt: 'Friendly reminder: please transfer the open amount to CH93 0076 2011 6238 5295 7' },
+  de: { kopf: 'KI-Assistent', frage: 'Kannst du mir helfen, eine Zahlungserinnerung zu formulieren?', antwort: 'Gerne. Schreib mir kurz, worum es geht und wie der Ton sein soll.',
+    prompt: 'Freundliche Erinnerung: Bitte überweise den offenen Betrag auf CH93 0076 2011 6238 5295 7' },
+};
+const CLAIM_EN = 'The guardian for your AI prompts.';
+
+function kachelHtml(w, h) {
+  const font = (f) => 'data:font/woff2;base64,' + fs.readFileSync(path.join(EXT, 'fonts', f)).toString('base64');
+  const signet = fs.readFileSync(path.join(EXT, 'icons', 'signet.svg'), 'utf8').replace(/<svg /, '<svg class="signet" ');
+  const gross = w > 1000;
+  const fs1 = gross ? 132 : 64;   // Schriftgroesse der Wortmarke
+  const sig = Math.round(1.3 * 0.703 * fs1 / 0.81);   // Signethoehe ~1,3 x Versalhoehe (Zeichen fuellt 81 % der Flaeche)
+  const pills = gross ? ['Runs locally', 'No account', 'No telemetry', 'Open source'] : [];
+  return `<style>
+@font-face { font-family: "Space Grotesk"; font-weight: 300 700; src: url(${font('space-grotesk-latin-wght-normal.woff2')}) format("woff2"); }
+@font-face { font-family: "Geist"; font-weight: 100 900; src: url(${font('geist-latin-wght-normal.woff2')}) format("woff2"); }
+html, body { margin: 0; background: #0A0A0B; }
+.k { position: relative; width: ${w}px; height: ${h}px; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: ${gross ? 30 : 16}px; color: #F5F3F0; font-family: "Geist", sans-serif;
+  background: radial-gradient(${gross ? '26% 62%' : '42% 58%'} at 50% 42%, rgb(240 36 79 / 0.22), transparent 70%), radial-gradient(34% 55% at 92% 0%, rgb(255 122 61 / 0.18), transparent 70%),
+    radial-gradient(34% 55% at 6% 100%, rgb(200 137 43 / 0.16), transparent 70%), #0A0A0B; }
+/* Abstand ~1/3 der sichtbaren Signetbreite (Zeichen 58 % der Flaeche, je 21 % Rand) */
+.lockup { display: flex; align-items: center; gap: ${Math.max(0, Math.round(sig * (0.58 / 3 - 0.21)))}px; }
+.sw { position: relative; width: ${sig}px; height: ${sig}px; flex: none; }
+.sw::before { content: ""; position: absolute; left: 6%; right: 6%; top: 62%; height: 46%; background: radial-gradient(closest-side, rgb(240 36 79 / 0.45), transparent); }
+.signet { position: relative; width: 100%; height: 100%; filter: drop-shadow(0 ${gross ? 24 : 12}px ${gross ? 56 : 28}px rgb(240 36 79 / 0.45)); }
+.wm { font: 700 ${fs1}px/1 "Space Grotesk"; letter-spacing: -0.04em; color: #F5F3F0; }
+.ai { color: transparent; background: linear-gradient(90deg, #FFF1C9, #FF7A3D 40%, #F0244F); -webkit-background-clip: text; background-clip: text; }
+.ai-i { padding: 0 0.09em 0 0.145em; text-box: trim-both cap alphabetic;
+  background: linear-gradient(90deg, color-mix(in srgb, #FF7A3D 60%, #F0244F), #F0244F) 0.0835em 0 / 0.387em 0.132em no-repeat,
+    linear-gradient(90deg, color-mix(in srgb, #FF7A3D 60%, #F0244F), #F0244F) 0.0835em 100% / 0.387em 0.132em no-repeat; }
+.claim { margin: 0; font: 500 ${gross ? 34 : 18}px/1.2 "Geist"; letter-spacing: -0.01em; color: rgb(245 243 240 / 0.78); }
+.pills { display: flex; gap: 12px; margin-top: 6px; }
+.pill { padding: 9px 18px; border: 1px solid rgb(255 255 255 / 0.12); border-radius: 999px; background: rgb(255 255 255 / 0.045);
+  font: 500 14px/1 "Geist"; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(245 243 240 / 0.72); }
+</style><div class="k"><div class="lockup"><div class="sw">${signet}</div><div class="wm"><span class="ai">A<span class="ai-i">I</span></span>mori</div></div>
+<p class="claim">${CLAIM_EN}</p>${pills.length ? `<div class="pills">${pills.map((p) => `<span class="pill">${p}</span>`).join('')}</div>` : ''}</div>`;
+}
+
+async function store() {
+  const out = process.env.E2E_BILDER;
+  fs.mkdirSync(out, { recursive: true });
+  const W = 1280, H = 800;
+  const hell = { features: [{ name: 'prefers-color-scheme', value: 'light' }] };
+  const ED = `document.querySelector('.ProseMirror')`;
+  const prev = JSON.parse((await swEval(`chrome.storage.local.get('dlx.settings').then((x) => JSON.stringify(x['dlx.settings'] || {}))`)) || '{}');
+  const setLocal = (v) => swEval(`chrome.storage.local.set({ 'dlx.settings': ${JSON.stringify(v)} }).then(() => 'ok')`);
+  const attrappe = async (T, t) => {
+    await T.page.call('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+    await T.page.ev(`(() => { localStorage.removeItem('draft'); ${ED}.replaceChildren(document.createElement('p'));
+      const k = document.querySelector('.att-kopf'); k.firstChild.textContent = ${JSON.stringify(t.kopf + ' ')}; k.querySelector('small').textContent = 'Demo';
+      document.querySelector('.att-nutzer').textContent = ${JSON.stringify(t.frage)}; document.querySelector('.att-ki').textContent = ${JSON.stringify(t.antwort)};
+      document.getElementById('datei').style.display = 'none'; })()`);
+    await sleep(300);
+  };
+  const bildUrl = async (page, clip) => 'data:image/png;base64,' + (await page.call('Page.captureScreenshot', Object.assign({ format: 'png' }, clip ? { clip } : {}))).result.data;
+  const flaeche = async (html, w, h, file) => {
+    const B = await openTab('about:blank', 'document.body');
+    await B.page.call('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await B.page.ev(`(async () => { document.body.innerHTML = ${JSON.stringify(html)}; await document.fonts.ready; await Promise.all(Array.from(document.images, (i) => i.decode())); return 'ok'; })()`);
+    await sleep(300);
+    await shot(B.page, file, { x: 0, y: 0, width: w, height: h });
+    const lage = await B.page.ev(`document.documentElement.scrollWidth <= ${w} && document.documentElement.scrollHeight <= ${h}`);
+    B.close();
+    return lage;
+  };
+  // Popup und Einstellungen zeigen den KI-Status: Vorladen abwarten.
+  const kiStatus = async () => JSON.parse((await swEval(`chrome.storage.session.get('kiStatus').then((x) => JSON.stringify(x.kiStatus || {}))`)) || '{}').state;
+  for (let i = 0; i < 240 && (await kiStatus()) !== 'bereit'; i++) await sleep(500);
+  for (const l of ['en', 'de']) {
+    const t = STORE_TEXT[l];
+    await closeDialogs();
+    await setLocal(Object.assign({}, prev, { language: l }));
+    await sleep(800);
+    // 1 und 2: Hinweis beim Tippen, Leiste beim Senden
+    const T = await openTab('https://chatgpt.com/?theme=hell', ED);
+    await attrappe(T, t);
+    await T.type(t.prompt); await sleep(1500);
+    await shot(T.page, `screenshot-${l}-2-tippen.png`);
+    const hinweis = (await T.shadows()).iframe;
+    await T.enter(); await sleep(1500);
+    await shot(T.page, `screenshot-${l}-1-senden.png`);
+    const d = await dialog();
+    const dt = d ? await d.text() : '';
+    check(`Store-Bilder ${l}: Hinweis beim Tippen, Leiste beim Senden ohne Wert, nichts gesendet`, !!hinweis && !!d && /IBAN/.test(dt) && !dt.includes('CH93') && (await T.log()) === '', dt.slice(0, 160));
+    if (d) d.close();
+    await closeDialogs(); await sleep(300);
+    T.close();
+    // 3: echtes Popup auf der Attrappe, mit 2-facher Schaerfe ueber die Seite gelegt
+    const P = await openTab('https://chatgpt.com/?theme=hell', ED);
+    await attrappe(P, t);
+    await P.page.call('Page.bringToFront'); await sleep(400);
+    const grund = await bildUrl(P.page);
+    const r = await swEval(`chrome.action.openPopup().then(() => 'ok', (e) => 'fehler ' + e.message)`);
+    let pt = null;
+    for (let i = 0; i < 40 && !pt; i++) { pt = (await list()).find((x) => x.url.includes(ID + '/ui/popup.html')); if (!pt) await sleep(250); }
+    let popup = '', pw = 0, ph = 0, ptext = '';
+    if (pt) {
+      const Q = await connect(pt.webSocketDebuggerUrl);
+      await Q.call('Emulation.setEmulatedMedia', hell);
+      await Q.call('Page.reload'); await sleep(1800);
+      const m = JSON.parse((await Q.ev(`JSON.stringify({ w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight, t: document.body.innerText.replace(/\\s+/g, ' ') })`)) || '{}');
+      pw = m.w; ph = m.h; ptext = m.t || '';
+      await Q.call('Emulation.setDeviceMetricsOverride', { width: pw, height: ph, deviceScaleFactor: 2, mobile: false });
+      await sleep(400);
+      popup = await bildUrl(Q);
+      await Q.ev('window.close()');
+      Q.close();
+    }
+    P.close();
+    check(`Store-Bilder ${l}: echtes Popup erkennt die Attrappe als ChatGPT`, r === 'ok' && !!popup && /ChatGPT/.test(ptext), r + ' ' + ptext.slice(0, 160));
+    const s = Math.min(1.35, (H - 40) / ph);
+    const html = `<style>html, body { margin: 0; overflow: hidden; }</style><div style="position:relative;width:${W}px;height:${H}px;overflow:hidden">`
+      + `<img src="${grund}" style="position:absolute;inset:0;width:${W}px;height:${H}px"><div style="position:absolute;inset:0;background:rgb(20 18 16 / 0.10)"></div>`
+      + `<img src="${popup}" style="position:absolute;top:16px;right:28px;width:${Math.round(pw * s)}px;height:${Math.round(ph * s)}px;border-radius:12px;`
+      + `box-shadow:0 0 0 1px rgb(20 18 16 / 0.12),0 24px 60px -12px rgb(20 18 16 / 0.35)"></div>`;
+    check(`Store-Bilder ${l}: Popup ganz auf der Flaeche`, await flaeche(html, W, H, `screenshot-${l}-3-popup.png`) === true && ph * s <= H - 32, `${pw}x${ph} x${s.toFixed(2)}`);
+    // 4: Einstellungen, Uebersicht
+    const O = await openTab(`chrome-extension://${ID}/ui/options.html`, 'document.body');
+    await O.page.call('Emulation.setEmulatedMedia', hell);
+    await O.page.call('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+    await O.page.ev('location.reload()'); await sleep(1500);
+    await O.page.call('Emulation.setEmulatedMedia', hell);
+    await O.page.ev(`document.querySelector('[data-k=nav-uebersicht]').click()`); await sleep(400);
+    check(`Store-Bilder ${l}: Einstellungen in der Sprache`, (await O.page.ev('document.documentElement.lang')).startsWith(l), await O.page.ev('document.documentElement.lang'));
+    await shot(O.page, `screenshot-${l}-4-einstellungen.png`);
+    O.close();
+  }
+  await setLocal(prev);
+  // Werbekacheln
+  for (const [w, h, file] of [[440, 280, 'kachel-klein-440x280.png'], [1400, 560, 'kachel-gross-1400x560.png']]) {
+    check(`Store-Kachel ${w}x${h}: ganz auf der Flaeche`, await flaeche(kachelHtml(w, h), w, h, file) === true);
+  }
+  check('Store-Bilder geschrieben', fs.readdirSync(out).filter((f) => /^(screenshot-|kachel-)/.test(f)).length >= 10, out);
+}
+
 // KI-Kompetenz (Design-Review KI-Kompetenz 14.10.2026): Erklaerung in der Leiste,
 // "Mehr erfahren" oeffnet die lokale Erklaerseite, Schwaerzen zaehlt, Nachweis zeigt
 // die Zahlen, Schalter aus loescht. Nur erfundene Testwerte.
@@ -2336,7 +2478,7 @@ async function run() {
   await sleep(1500);   // Service Worker der Erweiterung starten lassen
   const only = process.env.E2E_NUR ? process.env.E2E_NUR.split(',') : null;
   const steps = { chatgpt, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, kompetenz, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, antwortquelle, versteckt, formwache, kopierwarnung, sprachedokument, tabellen, training, einstellungen, ki: kierkennung, kiseite };
-  if (process.env.E2E_BILDER) steps.bilder = bilder;
+  if (process.env.E2E_BILDER) Object.assign(steps, { bilder, store });
   if (process.env.E2E_BILDMESSUNG) steps.bildmessung = bildmessung;
   for (const [name, fn] of Object.entries(steps)) if (!only || only.includes(name)) await fn();
 }
