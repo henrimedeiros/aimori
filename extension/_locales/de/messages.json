@@ -1,0 +1,16 @@
+{
+  "extName": {
+    "message": "AImori",
+    "description": "Product name (branding)."
+  },
+  "extShortName": {
+    "message": "AImori"
+  },
+  "extDescription": {
+    "message": "Der Wächter für deine KI-Prompts. Prüft Eingaben an KI-Seiten lokal auf sensible Daten, bevor sie gesendet werden."
+  },
+  "extClaim": {
+    "message": "Der Wächter für deine KI-Prompts.",
+    "description": "Claim of the brand (AImori brand guide)."
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "hinweis": "Gepinnte Texterkennung (Design-Review Bilder 14.10.2026, Auflage 12). Jede Aenderung ist ein Abhaengigkeits-Update mit eigener Pruefung.",
+  "packages": {
+    "tesseract.js": {
+      "version": "7.0.0",
+      "integrity": "sha512-exPBkd+z+wM1BuMkx/Bjv43OeLBxhL5kKWsz/9JY+DXcXdiBjiAch0V49QR3oAJqCaL5qURE0vx9Eo+G5YE7mA=="
+    },
+    "tesseract.js-core": {
+      "version": "7.0.0",
+      "integrity": "sha512-WnNH518NzmbSq9zgTPeoF8c+xmilS8rFIl1YKbk/ptuuc7p6cLNELNuPAzcmsYw450ca6bLa8j3t0VAtq435Vw=="
+    },
+    "@tesseract.js-data/deu": {
+      "version": "1.0.0",
+      "integrity": "sha512-3ter1p2gFAiCd5CMC+PodZ9YY2UDomkKj+ytlKeeZqOUmhLx1SDnYPf5zog0g5MBbxYveW+8omI3PUflqHfZ4Q=="
+    },
+    "@tesseract.js-data/eng": {
+      "version": "1.0.0",
+      "integrity": "sha512-mbTumm6KQPUHyzTPQaF3ObXYnx0SqqfV2nabqFVQBwD6Kl7PhGSLSzOlfFTWy0P3BjghaSKA2W9GB19Jk+ZcTg=="
+    },
+    "@tesseract.js-data/fra": {
+      "version": "1.0.0",
+      "integrity": "sha512-pp58gMaoyidoBBLd5y5rnf0WW0Y1994QrGqZrYatITqIU/AReUJMykD+YY3JDgvnmgz7uAx1UmhjjuyEmV8JEA=="
+    },
+    "@tesseract.js-data/ita": {
+      "version": "1.0.0",
+      "integrity": "sha512-Sx19NVYve5VAxEBDL6CWTX+evlvzV+iAS5ejJywcHVsmir/C9Tzw2fExoh97QFc06t48tYZA8VrMobsBzMAEhA=="
+    },
+    "@tesseract.js-data/por": {
+      "version": "1.0.0",
+      "integrity": "sha512-sQ7GqYUgKaMmV0vNujYoXLlXUp2e5RGGkJxQ3L59kUOaupIugLJeb1dqhrfgyb71XQw7ltdSuXdQIoaoS/rpsQ=="
+    }
+  },
+  "files": {
+    "LICENSE-tesseract.js-core.txt": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+    "LICENSE-tesseract.js.txt": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+    "lang/deu.js": "bea5945c38509323ec0f5442cf44e69feb49a55978eafb0e42c142f434ad9b9c",
+    "lang/eng.js": "76e8ec987a0378771c0e11a628cf305f511d2f1e80c68309a5b297c30e979893",
+    "lang/fra.js": "afbc19f1ba75b21d075d33732627489013ecae9ebbb6a3da14c7b7815f0298ed",
+    "lang/ita.js": "76a5c798eba38209cfad818952baa6c6094166dc7c5c8823881e1006d37d83f8",
+    "lang/por.js": "4136922017c96ee1387b38d0a6c0e54ad0a4adc96d30a9472dd86cc2f597bf27",
+    "tesseract-core-simd-lstm.wasm.js": "c58b46a4c796c0b8afccf77591d5b875b6896b45d402bbce8caa6f5362447b38",
+    "worker.min.js": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d"
+  }
+}

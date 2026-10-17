@@ -1,0 +1,3 @@
+# Gepinnte Lizenztexte der Schriften (extension/fonts/PINS.json, SHA-256 ueber LF-Fassung):
+# nie in CRLF auschecken, sonst passt die Pruefsumme unter Windows nicht (tests/schriften.test.mjs).
+extension/fonts/*.txt text eol=lf

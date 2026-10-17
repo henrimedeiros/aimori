@@ -1,0 +1,27 @@
+{
+  "name": "dlx-extension",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Browser extension (Manifest V3) that checks prompts for sensitive data locally before they are sent to AI sites.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=8 \"tests/*.test.mjs\"",
+    "build": "node scripts/build-admx.mjs && node scripts/build-datatypes-doc.mjs && node scripts/build-aisites.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@huggingface/tokenizers": "0.2.0",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/fra": "1.0.0",
+    "@tesseract.js-data/ita": "1.0.0",
+    "@tesseract.js-data/por": "1.0.0",
+    "onnxruntime-web": "1.30.0",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
+  }
+}

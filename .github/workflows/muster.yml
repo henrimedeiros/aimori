@@ -1,0 +1,52 @@
+# Automatische Pruefung von Muster-Beitraegen (docs/muster-mitmachen.md).
+# Sicherheit (Design-Review Muster 16.10.2026, Auflagen 1 und 4):
+# - Pruefer, Engine und Fehlalarm-Korpus stammen immer aus dem Basis-Commit; aus dem PR
+#   wird nur muster/katalog.json gelesen. Ein PR kann den Pruefer nicht aendern.
+# - Bricht ab, sobald ein PR geschuetzte Pfade aendert (Schluessel, Signatur, CI, Skripte).
+# - Keine Fremd-Actions, kein Token, keine secrets, kein Cache, keine Artefakte;
+#   Abruf ohne Anmeldung (oeffentliches Repo). Trigger pull_request, nie pull_request_target.
+name: Muster pruefen
+
+on:
+  pull_request:
+    paths:
+      - 'muster/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muster-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      REPO: ${{ github.repository }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Basis-Commit und PR-Stand ohne Anmeldung holen
+        run: |
+          set -eu
+          git init -q basis
+          cd basis
+          git fetch -q --no-tags --depth=1 "https://github.com/$REPO" "$BASE_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git fetch -q --no-tags --depth=1 "https://github.com/$REPO" "$HEAD_SHA"
+      - name: Geschuetzte Pfade unveraendert
+        working-directory: basis
+        run: |
+          set -eu
+          geaendert=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "$geaendert" | grep -E '^(muster/schluessel/|muster/katalog\.sig$|\.github/|scripts/|CODEOWNERS$|extension/engine/(muster|packs-community)\.js$)' && {
+            echo "PR aendert geschuetzte Pfade (muster/schluessel/, muster/katalog.sig, .github/, scripts/, CODEOWNERS, Engine) - nur Maintainer"; exit 1; } || true
+      - name: Katalog aus dem PR mit dem Pruefer aus dem Basis-Commit pruefen
+        working-directory: basis
+        run: |
+          set -eu
+          git show "$HEAD_SHA:muster/katalog.json" > ../katalog-pr.json
+          node --version
+          node scripts/muster.mjs pruefen --katalog ../katalog-pr.json

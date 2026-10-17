@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="AImori" fill="currentColor">
+<path d="M48 18 C64 62 136 62 152 18 C128 48 72 48 48 18 Z"/>
+<path d="M42 66 Q100 50 158 66 V104 C158 142 134 166 100 180 C66 166 42 142 42 104 Z" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
+<path d="M74 112 C74 96 85 88 100 88 C115 88 126 96 126 112 Z"/>
+<path d="M66 117 H134 L140 129 H60 Z"/>
+<path d="M70 134 H130 L126 146 H74 Z"/>
+</svg>

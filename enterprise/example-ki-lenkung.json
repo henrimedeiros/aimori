@@ -1,0 +1,10 @@
+{
+  "branding": {
+    "companyName": "Example AG",
+    "aiNoticeText": "Bitte nutzen Sie den freigegebenen Firmen-Copilot."
+  },
+  "aiSiteMode": "hint",
+  "allowedAiSites": ["m365copilot"],
+  "blockedAiSites": ["deepseek"],
+  "suggestedAiSite": "m365copilot"
+}

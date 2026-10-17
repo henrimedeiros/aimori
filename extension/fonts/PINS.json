@@ -1,0 +1,41 @@
+{
+  "quelle": "npm pack --ignore-scripts, Standard-Register, Design-Review Marke 16.10.2026 Auflage 1",
+  "pakete": {
+    "@fontsource-variable/space-grotesk": {
+      "version": "5.3.0",
+      "lizenz": "OFL-1.1",
+      "integrity": "sha512-2IxmvfB08i9vnGB3Ym/AXvhRE+8XOjWMXIyDum03c+tPwH0FUoMNQfGpU8NXPxjbws0Vvss3AH0Zqt4oJBBAdw=="
+    },
+    "@fontsource-variable/geist": {
+      "version": "5.3.0",
+      "lizenz": "OFL-1.1",
+      "integrity": "sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA=="
+    }
+  },
+  "dateien": {
+    "space-grotesk-latin-wght-normal.woff2": {
+      "paket": "@fontsource-variable/space-grotesk",
+      "sha256": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d"
+    },
+    "space-grotesk-latin-ext-wght-normal.woff2": {
+      "paket": "@fontsource-variable/space-grotesk",
+      "sha256": "952dddb45d2f96f71cbf3b7f510b24379afc3c89ea02fcf89d377b45d62c0166"
+    },
+    "space-grotesk-OFL.txt": {
+      "paket": "@fontsource-variable/space-grotesk",
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    "geist-latin-wght-normal.woff2": {
+      "paket": "@fontsource-variable/geist",
+      "sha256": "19f9c92546aa300c312235e3125af1b81394d8db9a4bc4a425cd5b641d2d54e1"
+    },
+    "geist-latin-ext-wght-normal.woff2": {
+      "paket": "@fontsource-variable/geist",
+      "sha256": "824f485b5d26e2f2da3c2b236132ece1bc8e4e43373452950bb0e40548b4313f"
+    },
+    "geist-OFL.txt": {
+      "paket": "@fontsource-variable/geist",
+      "sha256": "71609cbb5c78b5870d712eab73a31d76622635c6ed034ab5cee3b9ecbda8685f"
+    }
+  }
+}

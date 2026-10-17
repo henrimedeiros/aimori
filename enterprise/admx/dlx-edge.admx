@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="dlxedge" namespace="Dlx.Policies.Edge" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_MV3" displayName="$(string.SUPPORTED_MV3)" />
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="dlx_root" displayName="$(string.cat_root)" />
+  </categories>
+  <policies>
+    <policy name="branding" class="Machine" displayName="$(string.branding)" explainText="$(string.branding_help)" presentation="$(presentation.branding)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="branding_productName" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="productName" maxLength="150000" />
+        <text id="branding_companyName" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="companyName" maxLength="150000" />
+        <text id="branding_logo" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="logo" maxLength="150000" />
+        <text id="branding_primaryColor" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="primaryColor" maxLength="150000" />
+        <text id="branding_accentColor" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="accentColor" maxLength="150000" />
+        <text id="branding_supportUrl" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="supportUrl" maxLength="150000" />
+        <text id="branding_supportText" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="supportText" maxLength="150000" />
+        <text id="branding_aiNoticeText" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="aiNoticeText" maxLength="150000" />
+        <text id="branding_aiNoticeUrl" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="aiNoticeUrl" maxLength="150000" />
+        <text id="branding_aiNoticeLinkText" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\branding" valueName="aiNoticeLinkText" maxLength="150000" />
+      </elements>
+    </policy>
+    <policy name="language" class="Machine" displayName="$(string.language)" explainText="$(string.language_help)" presentation="$(presentation.language)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="language" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="language" required="true">
+          <item displayName="$(string.language_auto)">
+            <value>
+              <string>auto</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_en)">
+            <value>
+              <string>en</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_de)">
+            <value>
+              <string>de</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_fr)">
+            <value>
+              <string>fr</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_it)">
+            <value>
+              <string>it</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_pt)">
+            <value>
+              <string>pt</string>
+            </value>
+          </item>
+          <item displayName="$(string.language_es)">
+            <value>
+              <string>es</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="countryPacks" class="Machine" displayName="$(string.countryPacks)" explainText="$(string.countryPacks_help)" presentation="$(presentation.countryPacks)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="countryPacks" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\countryPacks" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="autoCountryPacks" class="Machine" displayName="$(string.autoCountryPacks)" explainText="$(string.autoCountryPacks_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="autoCountryPacks">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="globalPacks" class="Machine" displayName="$(string.globalPacks)" explainText="$(string.globalPacks_help)" presentation="$(presentation.globalPacks)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="globalPacks" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\globalPacks" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="rules" class="Machine" displayName="$(string.rules)" explainText="$(string.rules_help)" presentation="$(presentation.rules)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="rules" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\rules" explicitValue="true" />
+      </elements>
+    </policy>
+    <policy name="allowUserOverride" class="Machine" displayName="$(string.allowUserOverride)" explainText="$(string.allowUserOverride_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="allowUserOverride">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="allowNotSensitive" class="Machine" displayName="$(string.allowNotSensitive)" explainText="$(string.allowNotSensitive_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="allowNotSensitive">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="allowPlaceholders" class="Machine" displayName="$(string.allowPlaceholders)" explainText="$(string.allowPlaceholders_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="allowPlaceholders">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="competenceRecord" class="Machine" displayName="$(string.competenceRecord)" explainText="$(string.competenceRecord_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="competenceRecord">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="imageScan" class="Machine" displayName="$(string.imageScan)" explainText="$(string.imageScan_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="imageScan">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="detection" class="Machine" displayName="$(string.detection)" explainText="$(string.detection_help)" presentation="$(presentation.detection)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="detection" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="detection" required="true">
+          <item displayName="$(string.detection_ki)">
+            <value>
+              <string>ki</string>
+            </value>
+          </item>
+          <item displayName="$(string.detection_regeln)">
+            <value>
+              <string>regeln</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="uncertainFindings" class="Machine" displayName="$(string.uncertainFindings)" explainText="$(string.uncertainFindings_help)" presentation="$(presentation.uncertainFindings)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="uncertainFindings" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="uncertainFindings" required="true">
+          <item displayName="$(string.uncertainFindings_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.uncertainFindings_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.uncertainFindings_enforce)">
+            <value>
+              <string>enforce</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="allowedSites" class="Machine" displayName="$(string.allowedSites)" explainText="$(string.allowedSites_help)" presentation="$(presentation.allowedSites)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="allowedSites" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\allowedSites" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="blockWhenInactive" class="Machine" displayName="$(string.blockWhenInactive)" explainText="$(string.blockWhenInactive_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="blockWhenInactive">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="blockUncheckedFiles" class="Machine" displayName="$(string.blockUncheckedFiles)" explainText="$(string.blockUncheckedFiles_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="blockUncheckedFiles">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="aiSiteMode" class="Machine" displayName="$(string.aiSiteMode)" explainText="$(string.aiSiteMode_help)" presentation="$(presentation.aiSiteMode)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="aiSiteMode" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="aiSiteMode" required="true">
+          <item displayName="$(string.aiSiteMode_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
+          <item displayName="$(string.aiSiteMode_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.aiSiteMode_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="allowedAiSites" class="Machine" displayName="$(string.allowedAiSites)" explainText="$(string.allowedAiSites_help)" presentation="$(presentation.allowedAiSites)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="allowedAiSites" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\allowedAiSites" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="blockedAiSites" class="Machine" displayName="$(string.blockedAiSites)" explainText="$(string.blockedAiSites_help)" presentation="$(presentation.blockedAiSites)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="blockedAiSites" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\blockedAiSites" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="suggestedAiSite" class="Machine" displayName="$(string.suggestedAiSite)" explainText="$(string.suggestedAiSite_help)" presentation="$(presentation.suggestedAiSite)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="suggestedAiSite" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="suggestedAiSite" maxLength="150000" />
+      </elements>
+    </policy>
+    <policy name="answerCheck" class="Machine" displayName="$(string.answerCheck)" explainText="$(string.answerCheck_help)" presentation="$(presentation.answerCheck)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="answerCheck" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="answerCheck" required="true">
+          <item displayName="$(string.answerCheck_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
+          <item displayName="$(string.answerCheck_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="sensitiveSources" class="Machine" displayName="$(string.sensitiveSources)" explainText="$(string.sensitiveSources_help)" presentation="$(presentation.sensitiveSources)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="sensitiveSources" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\sensitiveSources" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="sensitiveSourceAction" class="Machine" displayName="$(string.sensitiveSourceAction)" explainText="$(string.sensitiveSourceAction_help)" presentation="$(presentation.sensitiveSourceAction)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="sensitiveSourceAction" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="sensitiveSourceAction" required="true">
+          <item displayName="$(string.sensitiveSourceAction_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.sensitiveSourceAction_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="hiddenInstructionScan" class="Machine" displayName="$(string.hiddenInstructionScan)" explainText="$(string.hiddenInstructionScan_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="hiddenInstructionScan">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="hiddenInstructionAction" class="Machine" displayName="$(string.hiddenInstructionAction)" explainText="$(string.hiddenInstructionAction_help)" presentation="$(presentation.hiddenInstructionAction)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="hiddenInstructionAction" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="hiddenInstructionAction" required="true">
+          <item displayName="$(string.hiddenInstructionAction_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.hiddenInstructionAction_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="formGuardSites" class="Machine" displayName="$(string.formGuardSites)" explainText="$(string.formGuardSites_help)" presentation="$(presentation.formGuardSites)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="formGuardSites" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\formGuardSites" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="copySidebarHint" class="Machine" displayName="$(string.copySidebarHint)" explainText="$(string.copySidebarHint_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="copySidebarHint">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="voiceMode" class="Machine" displayName="$(string.voiceMode)" explainText="$(string.voiceMode_help)" presentation="$(presentation.voiceMode)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="voiceMode" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="voiceMode" required="true">
+          <item displayName="$(string.voiceMode_allow)">
+            <value>
+              <string>allow</string>
+            </value>
+          </item>
+          <item displayName="$(string.voiceMode_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.voiceMode_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="documentFingerprints" class="Machine" displayName="$(string.documentFingerprints)" explainText="$(string.documentFingerprints_help)" presentation="$(presentation.documentFingerprints)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="documentFingerprints_salt" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints" valueName="salt" maxLength="150000" />
+        <decimal id="documentFingerprints_shingle" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints" valueName="shingle" minValue="5" maxValue="16" required="true" />
+        <decimal id="documentFingerprints_sample" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints" valueName="sample" minValue="1" maxValue="64" required="true" />
+        <decimal id="documentFingerprints_minMatches" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints" valueName="minMatches" minValue="2" maxValue="50" required="true" />
+        <enum id="documentFingerprints_action" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints" valueName="action" required="true">
+          <item displayName="$(string.documentFingerprints_action_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.documentFingerprints_action_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <list id="documentFingerprints_data" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\documentFingerprints\data" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="accountRules" class="Machine" displayName="$(string.accountRules)" explainText="$(string.accountRules_help)" presentation="$(presentation.accountRules)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="accountRules_chatgpt_workspaces" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\chatgpt\workspaces" valuePrefix="" />
+        <list id="accountRules_chatgpt_markers" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\chatgpt\markers" valuePrefix="" />
+        <enum id="accountRules_chatgpt_business" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\chatgpt" valueName="business" required="true">
+          <item displayName="$(string.accountRules_chatgpt_business_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_business_allow)">
+            <value>
+              <string>allow</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_business_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_business_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_chatgpt_personal" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\chatgpt" valueName="personal" required="true">
+          <item displayName="$(string.accountRules_chatgpt_personal_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_personal_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_personal_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_chatgpt_unknown" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\chatgpt" valueName="unknown" required="true">
+          <item displayName="$(string.accountRules_chatgpt_unknown_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_unknown_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_chatgpt_unknown_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <list id="accountRules_claude_workspaces" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\claude\workspaces" valuePrefix="" />
+        <list id="accountRules_claude_markers" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\claude\markers" valuePrefix="" />
+        <enum id="accountRules_claude_business" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\claude" valueName="business" required="true">
+          <item displayName="$(string.accountRules_claude_business_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_business_allow)">
+            <value>
+              <string>allow</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_business_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_business_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_claude_personal" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\claude" valueName="personal" required="true">
+          <item displayName="$(string.accountRules_claude_personal_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_personal_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_personal_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_claude_unknown" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\claude" valueName="unknown" required="true">
+          <item displayName="$(string.accountRules_claude_unknown_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_unknown_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_unknown_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <list id="accountRules_copilot_workspaces" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\copilot\workspaces" valuePrefix="" />
+        <list id="accountRules_copilot_markers" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\copilot\markers" valuePrefix="" />
+        <enum id="accountRules_copilot_business" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\copilot" valueName="business" required="true">
+          <item displayName="$(string.accountRules_copilot_business_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_business_allow)">
+            <value>
+              <string>allow</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_business_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_business_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_copilot_personal" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\copilot" valueName="personal" required="true">
+          <item displayName="$(string.accountRules_copilot_personal_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_personal_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_personal_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_copilot_unknown" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\copilot" valueName="unknown" required="true">
+          <item displayName="$(string.accountRules_copilot_unknown_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_unknown_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_copilot_unknown_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <list id="accountRules_m365copilot_workspaces" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\m365copilot\workspaces" valuePrefix="" />
+        <list id="accountRules_m365copilot_markers" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\m365copilot\markers" valuePrefix="" />
+        <enum id="accountRules_m365copilot_business" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\m365copilot" valueName="business" required="true">
+          <item displayName="$(string.accountRules_m365copilot_business_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_business_allow)">
+            <value>
+              <string>allow</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_business_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_business_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_m365copilot_personal" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\m365copilot" valueName="personal" required="true">
+          <item displayName="$(string.accountRules_m365copilot_personal_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_personal_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_personal_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+        <enum id="accountRules_m365copilot_unknown" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\accountRules\m365copilot" valueName="unknown" required="true">
+          <item displayName="$(string.accountRules_m365copilot_unknown_normal)">
+            <value>
+              <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_unknown_hint)">
+            <value>
+              <string>hint</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_unknown_block)">
+            <value>
+              <string>block</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="dictionary" class="Machine" displayName="$(string.dictionary)" explainText="$(string.dictionary_help)" presentation="$(presentation.dictionary)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="dictionary_salt" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\dictionary" valueName="salt" maxLength="150000" />
+        <list id="dictionary_hashes" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\dictionary\hashes" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="customTerms" class="Machine" displayName="$(string.customTerms)" explainText="$(string.customTerms_help)" presentation="$(presentation.customTerms)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="customTerms_salt" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\customTerms" valueName="salt" maxLength="150000" />
+        <list id="customTerms_hashes" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\customTerms\hashes" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="customPatterns" class="Machine" displayName="$(string.customPatterns)" explainText="$(string.customPatterns_help)" presentation="$(presentation.customPatterns)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="customPatterns" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\customPatterns" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="labelNames" class="Machine" displayName="$(string.labelNames)" explainText="$(string.labelNames_help)" presentation="$(presentation.labelNames)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="labelNames" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\labelNames" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="massListMin" class="Machine" displayName="$(string.massListMin)" explainText="$(string.massListMin_help)" presentation="$(presentation.massListMin)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <decimal id="massListMin" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="massListMin" minValue="3" maxValue="1000" required="true" />
+      </elements>
+    </policy>
+    <policy name="tableScan" class="Machine" displayName="$(string.tableScan)" explainText="$(string.tableScan_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="tableScan">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="tableMinRows" class="Machine" displayName="$(string.tableMinRows)" explainText="$(string.tableMinRows_help)" presentation="$(presentation.tableMinRows)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <decimal id="tableMinRows" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="tableMinRows" minValue="3" maxValue="1000" required="true" />
+      </elements>
+    </policy>
+    <policy name="tableMinColumns" class="Machine" displayName="$(string.tableMinColumns)" explainText="$(string.tableMinColumns_help)" presentation="$(presentation.tableMinColumns)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <decimal id="tableMinColumns" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="tableMinColumns" minValue="1" maxValue="10" required="true" />
+      </elements>
+    </policy>
+    <policy name="tableRedaction" class="Machine" displayName="$(string.tableRedaction)" explainText="$(string.tableRedaction_help)" presentation="$(presentation.tableRedaction)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="tableRedaction" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="tableRedaction" required="true">
+          <item displayName="$(string.tableRedaction_columns)">
+            <value>
+              <string>columns</string>
+            </value>
+          </item>
+          <item displayName="$(string.tableRedaction_rows)">
+            <value>
+              <string>rows</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="deobfuscation" class="Machine" displayName="$(string.deobfuscation)" explainText="$(string.deobfuscation_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="deobfuscation">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="allowRephrase" class="Machine" displayName="$(string.allowRephrase)" explainText="$(string.allowRephrase_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="allowRephrase">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="identityMinParts" class="Machine" displayName="$(string.identityMinParts)" explainText="$(string.identityMinParts_help)" presentation="$(presentation.identityMinParts)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <decimal id="identityMinParts" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="identityMinParts" minValue="2" maxValue="4" required="true" />
+      </elements>
+    </policy>
+    <policy name="competenceHideSensitive" class="Machine" displayName="$(string.competenceHideSensitive)" explainText="$(string.competenceHideSensitive_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="competenceHideSensitive">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="complianceReport" class="Machine" displayName="$(string.complianceReport)" explainText="$(string.complianceReport_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="complianceReport">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="complianceFrameworks" class="Machine" displayName="$(string.complianceFrameworks)" explainText="$(string.complianceFrameworks_help)" presentation="$(presentation.complianceFrameworks)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <list id="complianceFrameworks" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy\complianceFrameworks" valuePrefix="" />
+      </elements>
+    </policy>
+    <policy name="trainingAmpel" class="Machine" displayName="$(string.trainingAmpel)" explainText="$(string.trainingAmpel_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="trainingAmpel">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="complianceReportDays" class="Machine" displayName="$(string.complianceReportDays)" explainText="$(string.complianceReportDays_help)" presentation="$(presentation.complianceReportDays)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <decimal id="complianceReportDays" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="complianceReportDays" minValue="7" maxValue="90" required="true" />
+      </elements>
+    </policy>
+    <policy name="reportingUrl" class="Machine" displayName="$(string.reportingUrl)" explainText="$(string.reportingUrl_help)" presentation="$(presentation.reportingUrl)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="reportingUrl" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\hfgcdbigpgpdoegkhfbbbnibnkpdjkbb\policy" valueName="reportingUrl" maxLength="150000" />
+      </elements>
+    </policy>
+  </policies>
+</policyDefinitions>

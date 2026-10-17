@@ -1,0 +1,16 @@
+{
+  "extName": {
+    "message": "AImori",
+    "description": "Product name (branding)."
+  },
+  "extShortName": {
+    "message": "AImori"
+  },
+  "extDescription": {
+    "message": "The guardian for your AI prompts. Checks prompts for sensitive data locally before they are sent to AI sites."
+  },
+  "extClaim": {
+    "message": "The guardian for your AI prompts.",
+    "description": "Claim of the brand (AImori brand guide)."
+  }
+}

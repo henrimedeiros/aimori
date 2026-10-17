@@ -1,0 +1,4 @@
+# Schluessel und Pakete nie einchecken (Design-Review B17)
+*.pem
+*.crx
+*.key

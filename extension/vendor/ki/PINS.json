@@ -1,0 +1,150 @@
+{
+  "hinweis": "Gepinnte lokale KI-Erkennung (Design-Review KI 16.10.2026, Auflagen 1-7). Modell, Revision und Pruefsummen aendern sich nur mit eigenem Abhaengigkeits-Review.",
+  "modell": {
+    "repo": "bardsai/eu-pii-anonimization-multilang",
+    "revision": "ce742cd63f3166ea02937de773e1803b0ee43991",
+    "lizenz": "Apache-2.0",
+    "onnx": "onnx/model_quantized.onnx",
+    "vokabular": {
+      "hinweis": "Design-Review Vokabular 16.10.2026: behalten werden Sondertoken, alle Einzelzeichen und die wahrscheinlichsten Teilwoerter dieser Unicode-Bereiche bis zur Groesse. Neue Schrift = Bereich ergaenzen, neue Sprache derselben Schrift braucht nichts; danach messen und --pins.",
+      "bereiche": {
+        "Latn": [
+          "0020-007E",
+          "00A0-024F"
+        ],
+        "Zeichen": [
+          "2010-205E",
+          "20A0-20BF"
+        ]
+      },
+      "groesse": 80000,
+      "matrix": "roberta.embeddings.word_embeddings.weight_quantized"
+    },
+    "dateien": {
+      "onnx/model_quantized.onnx": {
+        "sha256": "8c9f555c743ed14eb7e505ff9d9c7785775a1671fd14031af33f424de8bd0e7b",
+        "bytes": 278736360
+      },
+      "tokenizer.json": {
+        "sha256": "2464f9721707cb3d5edcf9a3d73454b13e8a7b3bb8fdba94b3de3d843f30e946",
+        "bytes": 16781584
+      }
+    },
+    "labels": [
+      "O",
+      "B-ACCOUNT_IDENTIFIER",
+      "B-AUTH_SECRET",
+      "B-BANK_ACCOUNT_IDENTIFIER",
+      "B-BIOMETRIC_DATA",
+      "B-CONTACT_HANDLE",
+      "B-CRIMINAL_OFFENCE_DATA",
+      "B-DATE_OF_BIRTH",
+      "B-DEVICE_IDENTIFIER",
+      "B-DOCUMENT_IDENTIFIER",
+      "B-DOCUMENT_REFERENCE",
+      "B-EMAIL_ADDRESS",
+      "B-ETHNIC_ORIGIN",
+      "B-FINANCIAL_AMOUNT",
+      "B-GEO_LOCATION",
+      "B-HEALTH_DATA",
+      "B-IDENTIFYING_LINK",
+      "B-IP_ADDRESS",
+      "B-LOCATION",
+      "B-ORGANIZATION_IDENTIFIER",
+      "B-ORGANIZATION_NAME",
+      "B-PAYMENT_CARD",
+      "B-PAYMENT_CARD_SECURITY",
+      "B-PERSON_ALIAS",
+      "B-PERSON_ATTRIBUTE",
+      "B-PERSON_IDENTIFIER",
+      "B-PERSON_NAME",
+      "B-PERSON_ROLE_OR_TITLE",
+      "B-PHONE_NUMBER",
+      "B-POLITICAL_OPINION",
+      "B-POSTAL_ADDRESS",
+      "B-PROPER_NAME",
+      "B-RELIGION_OR_BELIEF",
+      "B-SEXUAL_ORIENTATION",
+      "B-TRADE_UNION_MEMBERSHIP",
+      "B-VEHICLE_IDENTIFIER",
+      "I-ACCOUNT_IDENTIFIER",
+      "I-AUTH_SECRET",
+      "I-BANK_ACCOUNT_IDENTIFIER",
+      "I-BIOMETRIC_DATA",
+      "I-CRIMINAL_OFFENCE_DATA",
+      "I-DATE_OF_BIRTH",
+      "I-DEVICE_IDENTIFIER",
+      "I-DOCUMENT_IDENTIFIER",
+      "I-DOCUMENT_REFERENCE",
+      "I-EMAIL_ADDRESS",
+      "I-ETHNIC_ORIGIN",
+      "I-FINANCIAL_AMOUNT",
+      "I-GEO_LOCATION",
+      "I-HEALTH_DATA",
+      "I-IDENTIFYING_LINK",
+      "I-IP_ADDRESS",
+      "I-LOCATION",
+      "I-ORGANIZATION_IDENTIFIER",
+      "I-ORGANIZATION_NAME",
+      "I-PAYMENT_CARD",
+      "I-PAYMENT_CARD_SECURITY",
+      "I-PERSON_ATTRIBUTE",
+      "I-PERSON_IDENTIFIER",
+      "I-PERSON_NAME",
+      "I-PERSON_ROLE_OR_TITLE",
+      "I-PHONE_NUMBER",
+      "I-POLITICAL_OPINION",
+      "I-POSTAL_ADDRESS",
+      "I-PROPER_NAME",
+      "I-RELIGION_OR_BELIEF",
+      "I-SEXUAL_ORIENTATION",
+      "I-TRADE_UNION_MEMBERSHIP",
+      "I-VEHICLE_IDENTIFIER"
+    ],
+    "erzeugt": {
+      "konfig": "2cba5aca34333a64be59d453cfb5cb901ad4cbd49642c4b842b21bdb97cf1ed0",
+      "onnx": {
+        "sha256": "bd9e64c469b2ce379265e9cf00c994bde1db5e06739850c4a4269bfa7987750a",
+        "bytes": 148174823
+      },
+      "tokenizer": {
+        "sha256": "850cb153dc313b8a27ca38acac972215932cb295aac1adce7ae12b0caeb6c89b",
+        "bytes": 2591927
+      }
+    }
+  },
+  "packages": {
+    "onnxruntime-web": {
+      "version": "1.30.0",
+      "integrity": "sha512-q0y+JrrtukXSzsBWEMccVfqX25LRmosXHF+CaRJmg8pZClzcV7svNc4rKY3jL02Vb7QmRMDs1SigqR4CXAfKYQ=="
+    },
+    "onnxruntime-common": {
+      "version": "1.30.0",
+      "integrity": "sha512-7fdVWjAID1dVhH/G8qK3APARunV4VkBFoCQAP7qp4Wkab0mrorvmc+sqiT+mKXOzDqdjN5j+/Z9nb4gzNPWcyA=="
+    },
+    "@huggingface/tokenizers": {
+      "version": "0.2.0",
+      "integrity": "sha512-LidMHe1FpcSYH4vcSjXooda34pC0M8m1gmDOv7SQi6Iv+ib1zX7J3sHBCC9/3FPCkn2k1b55FneVqMRxrr99pg=="
+    }
+  },
+  "files": {
+    "LICENSE-modell.txt": "20d5dfb8c9a30f48645efc0b7e7599b0e5ea28d29c956ac5688f17006aaff9ff",
+    "LICENSE-onnxruntime-web.txt": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "LICENSE-tokenizers.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "daten/model-00.js": "0ba262e593b90f0e79be04fd11d099a458a544c1f735e571bee9dd7801936fad",
+    "daten/model-01.js": "334b6a815914c8ba870550f3f28bf820d08b74268d75c8c47e9066cd99a98af1",
+    "daten/model-02.js": "90647b90b6fb4d4bfbde1a9d9160032e81f1b7f61aa36507ebcadab991576511",
+    "daten/model-03.js": "f2d020e367d586681b39d4ba7110ac220a6665f44acbf87864a2fe80d34a397f",
+    "daten/model-04.js": "cdb83e53f40f7b8ccc843069bfbd5a986a077dbb3993013e78f573260349eb3b",
+    "daten/model-05.js": "ef84266003652f830b0015e0f19d9ee30c8c6e02993644095b0662f7841daafb",
+    "daten/model-06.js": "498aedb41cf6de9fd1853271f0531f7cc4b7e033853dae6f5f43c5b52dd462fb",
+    "daten/model-07.js": "5d02f49ea272158550d771d56fa1c5d2acccd89349e2809476625ddf7a277fe0",
+    "daten/model-08.js": "c6c92ef727726f0e8abd4c0919a7eedfebca770bc7bc989d2cdae15372a3f383",
+    "daten/tokenizer-00.js": "5a1de42b1a653fd7728e353555651b3571ef486f4f526e088765e00ca9ec8e5b",
+    "daten/wasm-00.js": "df458133557aeb65342bcc7c3a8b1132f9c87fbb5e162f666742683f1dc016a7",
+    "daten/wasm-01.js": "05707a566e4b4c05fff0fa61a71adfa40156327a31965102baa461b658e83286",
+    "inhalt.js": "db51ac3014eced8464cb5bb2890269e04166e05fa803e9b5a5dd22d85570702a",
+    "ort.webgpu.bundle.min.mjs": "1109a71379efc8826c3929790509a07e7f68875a35cbfbd3d6607dcf981c469d",
+    "tokenizers.min.mjs": "258e46332101335ce8d95aed7745b19ac3b46d37f3e159a89cf894c2ea9b1d3a"
+  }
+}

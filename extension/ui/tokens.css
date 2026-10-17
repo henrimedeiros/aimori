@@ -1,0 +1,119 @@
+/* Design-Tokens der Marke (Helm-Schild) fuer die Erweiterung, Kopie der Website-Datei design/tokens.css.
+   Herkunft: Markenvorgabe Helm-Schild, Stand 2026-10-17 (Commit 4360b69).
+   SHA-256 des Inhalts (LF): 583eedbfe8ba28d0c8d02edb49f1abae6ebf413f73cd68ef95bfc1120c538cd9
+   Nicht von Hand aendern: neu von der Website kopieren und SHA neu setzen (Test tests/design.test.mjs).
+   Erweiterungseigene Tokens (Haupt-Knopf, Glas, Warnleiste, deckende Flaeche) stehen in tokens-erweiterung.css. */
+/* Design-Tokens – einzige Quelle fuer Farben, Schrift, Abstaende, Radien und Bewegung.
+   Wird beim Build vor src/stil.css gesetzt. Marke (16.10.2026): Werte nach der Markenvorgabe (docs/branding.md).
+   Hell (Porzellan) und Dunkel (Nacht) definieren dieselben Tokens; Dunkel folgt dem System, ausser der Sonne/Mond-Knopf hat
+   data-theme gesetzt. Marken-Rot ist nie das einzige Fehlersignal: Fundstellen (--warn) und OK (--ok) bleiben eigene Farben. */
+:root {
+  color-scheme: light;
+  /* Marke: Urushi-Verlauf, Blattgold, Leuchten */
+  --marke-1: #FF7A3D;
+  --marke-2: #F0244F;
+  --marke-text: #D11A42;
+  --gold-1: #FFF1C9; --gold-2: #F7C25A; --gold-3: #C8892B;
+  --urushi: linear-gradient(135deg, var(--marke-1) 0%, var(--marke-2) 100%);
+  --wortmarke-ai: var(--marke-text);
+  /* Serifen-I (17.10.2026): Querstriche am I der Wortmarke, nur Farbverlaeufe, keine Bilder oder Adressen */
+  --wortmarke-ai-i: linear-gradient(var(--marke-text), var(--marke-text));
+  --glow: rgb(240 36 79 / 0.45);
+  --glow-soft: rgb(255 122 61 / 0.25);
+  --signet-schatten: drop-shadow(0 30px 70px rgb(240 36 79 / 0.32));
+  --lichtfleck: radial-gradient(closest-side, rgb(240 36 79 / 0.30), transparent);
+  --buehne: radial-gradient(40% 55% at 50% 30%, rgb(240 36 79 / 0.10), transparent 70%), radial-gradient(30% 45% at 85% 0%, rgb(255 122 61 / 0.10), transparent 70%), radial-gradient(30% 45% at 10% 100%, rgb(200 137 43 / 0.10), transparent 70%);
+
+  --bg: #F5F3F0;
+  --surface: #EEEBE6;
+  --surface-2: #E5E1DA;
+  --raised: #FFFFFF;
+  --menue: #FFFFFF;
+  --kopf-grund: rgb(245 243 240 / 0.82);
+  --line: rgb(20 18 16 / 0.12);
+  --line-stark: rgb(20 18 16 / 0.22);
+  --ink: #141210;
+  --ink-2: #3A352F;
+  --muted: #6B655C;
+  --accent: #B3163A;
+  --accent-soft: #FBE4E8;
+  --cta: linear-gradient(135deg, #FFE2B8 0%, var(--marke-1) 60%);
+  --cta-hover: linear-gradient(135deg, #FFEACB 0%, #FF8A52 60%);
+  --cta-ink: #0A0A0B;
+  --cta-glow: 0 0 28px -8px var(--marke-1);
+  --warn: #8A4A00;
+  --warn-soft: #FBEBCF;
+  --ok: #0B7A55;
+  --redact: #141210;
+  --shadow: 0 1px 2px rgb(20 18 16 / 0.06), 0 16px 40px -16px rgb(20 18 16 / 0.20);
+  --toast-glow: 0 0 0 1px var(--glow-soft), 0 20px 50px -14px var(--glow);
+
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --fs-hero: clamp(2.125rem, 1.2rem + 3.6vw, 3.75rem);
+  --fs-wortmarke: clamp(3.25rem, 1.6rem + 7vw, 7.5rem);
+  --fs-h2: clamp(1.875rem, 1.3rem + 1.8vw, 2.75rem);
+  --fs-h3: 1.1875rem;
+  --fs-lead: clamp(1.125rem, 1.05rem + 0.3vw, 1.3125rem);
+  --fs-body: 1.0625rem;
+  --fs-small: 0.875rem;
+  --fs-tiny: 0.75rem;
+
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px;
+  --r1: 10px; --r2: 14px; --r3: 24px; --r4: 28px; --pill: 999px;
+  --breite: 1200px;
+  --text: 68ch;
+  --kopf-hoehe: 64px;
+
+  --dauer-druck: 120ms;
+  --dauer-hover: 180ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Ebenen: Inhalt 1, Kopf 20, Menue 30, Download-Leiste 40 */
+  --z-kopf: 20; --z-menue: 30; --z-leiste: 40;
+
+  /* Nachzeichnungen der KI-Dienste im Abschnitt «So sieht es aus» (nur Website, 16.10.2026): angenaeherte Flaechenfarben,
+     keine Logos oder Schriften der Anbieter. Reihenfolge je Dienst: bg seite feld rand ink muted senden senden-ink blase. */
+  --nb-chatgpt-bg: #FFFFFF; --nb-chatgpt-seite: #F9F9F9; --nb-chatgpt-feld: #FFFFFF; --nb-chatgpt-rand: #E3E3E3; --nb-chatgpt-ink: #0D0D0D; --nb-chatgpt-muted: #8F8F8F; --nb-chatgpt-senden: #0D0D0D; --nb-chatgpt-senden-ink: #FFFFFF; --nb-chatgpt-blase: #F2F2F2;
+  --nb-claude-bg: #FAF9F5; --nb-claude-seite: #F3F1EA; --nb-claude-feld: #FFFFFF; --nb-claude-rand: #E6E3D8; --nb-claude-ink: #1F1E1D; --nb-claude-muted: #87867F; --nb-claude-senden: #C96442; --nb-claude-senden-ink: #FFFFFF; --nb-claude-blase: #EFECE3;
+  --nb-gemini-bg: #FFFFFF; --nb-gemini-seite: #F0F4F9; --nb-gemini-feld: #F0F4F9; --nb-gemini-rand: #F0F4F9; --nb-gemini-ink: #1F1F1F; --nb-gemini-muted: #5F6368; --nb-gemini-senden: #1F1F1F; --nb-gemini-senden-ink: #FFFFFF; --nb-gemini-blase: #E9EEF6;
+  --nb-copilot-bg: #F8F5F0; --nb-copilot-seite: #F8F5F0; --nb-copilot-feld: #FFFFFF; --nb-copilot-rand: #E7E1D8; --nb-copilot-ink: #1B1A19; --nb-copilot-muted: #6E6A64; --nb-copilot-senden: #1B1A19; --nb-copilot-senden-ink: #FFFFFF; --nb-copilot-blase: #ECE6DC;
+  --nb-gemini-gruss: linear-gradient(74deg, #4285F4 0%, #9B72CB 35%, #D96570 70%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="hell"]) {
+    color-scheme: dark;
+    --wortmarke-ai: linear-gradient(100deg, var(--gold-1) 0%, var(--marke-1) 40%, var(--marke-2) 100%);
+    --wortmarke-ai-i: linear-gradient(90deg, color-mix(in srgb, var(--marke-1) 60%, var(--marke-2)), var(--marke-2));
+    --signet-schatten: drop-shadow(0 30px 70px rgb(240 36 79 / 0.45));
+    --lichtfleck: radial-gradient(closest-side, rgb(240 36 79 / 0.45), transparent);
+    --buehne: radial-gradient(40% 55% at 50% 30%, rgb(240 36 79 / 0.24), transparent 70%), radial-gradient(30% 45% at 85% 0%, rgb(255 122 61 / 0.15), transparent 70%), radial-gradient(30% 45% at 10% 100%, rgb(200 137 43 / 0.15), transparent 70%);
+    --bg: #0A0A0B; --surface: #111113; --surface-2: #1C1C20; --raised: rgb(255 255 255 / 0.045); --menue: #1C1C20;
+    --kopf-grund: rgb(10 10 11 / 0.78); --line: rgb(255 255 255 / 0.10); --line-stark: rgb(255 255 255 / 0.18);
+    --ink: #F5F3F0; --ink-2: rgb(245 243 240 / 0.82); --muted: rgb(255 255 255 / 0.64); --accent: #FFB37A; --accent-soft: rgb(255 122 61 / 0.14);
+    --cta-ink: #0A0A0B; --warn: #F2B45F; --warn-soft: rgb(242 180 95 / 0.16); --ok: #3FCF94;
+    --redact: #F5F3F0; --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+    --nb-chatgpt-bg: #212121; --nb-chatgpt-seite: #181818; --nb-chatgpt-feld: #303030; --nb-chatgpt-rand: #303030; --nb-chatgpt-ink: #ECECEC; --nb-chatgpt-muted: #A3A3A3; --nb-chatgpt-senden: #ECECEC; --nb-chatgpt-senden-ink: #0D0D0D; --nb-chatgpt-blase: #303030;
+    --nb-claude-bg: #262624; --nb-claude-seite: #1F1E1D; --nb-claude-feld: #30302E; --nb-claude-rand: #3D3D3A; --nb-claude-ink: #F5F4EE; --nb-claude-muted: #9C9A92; --nb-claude-senden: #C96442; --nb-claude-senden-ink: #FFFFFF; --nb-claude-blase: #141413;
+    --nb-gemini-bg: #131314; --nb-gemini-seite: #1E1F20; --nb-gemini-feld: #1E1F20; --nb-gemini-rand: #1E1F20; --nb-gemini-ink: #E3E3E3; --nb-gemini-muted: #9AA0A6; --nb-gemini-senden: #E3E3E3; --nb-gemini-senden-ink: #131314; --nb-gemini-blase: #333537;
+    --nb-copilot-bg: #1E1D1B; --nb-copilot-seite: #1E1D1B; --nb-copilot-feld: #2B2A28; --nb-copilot-rand: #3A3835; --nb-copilot-ink: #F2F0ED; --nb-copilot-muted: #A39E97; --nb-copilot-senden: #F2F0ED; --nb-copilot-senden-ink: #1B1A19; --nb-copilot-blase: #34322F;
+  }
+}
+:root[data-theme="dunkel"] {
+  color-scheme: dark;
+  --wortmarke-ai: linear-gradient(100deg, var(--gold-1) 0%, var(--marke-1) 40%, var(--marke-2) 100%);
+  --wortmarke-ai-i: linear-gradient(90deg, color-mix(in srgb, var(--marke-1) 60%, var(--marke-2)), var(--marke-2));
+  --signet-schatten: drop-shadow(0 30px 70px rgb(240 36 79 / 0.45));
+  --lichtfleck: radial-gradient(closest-side, rgb(240 36 79 / 0.45), transparent);
+  --buehne: radial-gradient(40% 55% at 50% 30%, rgb(240 36 79 / 0.24), transparent 70%), radial-gradient(30% 45% at 85% 0%, rgb(255 122 61 / 0.15), transparent 70%), radial-gradient(30% 45% at 10% 100%, rgb(200 137 43 / 0.15), transparent 70%);
+  --bg: #0A0A0B; --surface: #111113; --surface-2: #1C1C20; --raised: rgb(255 255 255 / 0.045); --menue: #1C1C20;
+  --kopf-grund: rgb(10 10 11 / 0.78); --line: rgb(255 255 255 / 0.10); --line-stark: rgb(255 255 255 / 0.18);
+  --ink: #F5F3F0; --ink-2: rgb(245 243 240 / 0.82); --muted: rgb(255 255 255 / 0.64); --accent: #FFB37A; --accent-soft: rgb(255 122 61 / 0.14);
+  --cta-ink: #0A0A0B; --warn: #F2B45F; --warn-soft: rgb(242 180 95 / 0.16); --ok: #3FCF94;
+  --redact: #F5F3F0; --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+  --nb-chatgpt-bg: #212121; --nb-chatgpt-seite: #181818; --nb-chatgpt-feld: #303030; --nb-chatgpt-rand: #303030; --nb-chatgpt-ink: #ECECEC; --nb-chatgpt-muted: #A3A3A3; --nb-chatgpt-senden: #ECECEC; --nb-chatgpt-senden-ink: #0D0D0D; --nb-chatgpt-blase: #303030;
+  --nb-claude-bg: #262624; --nb-claude-seite: #1F1E1D; --nb-claude-feld: #30302E; --nb-claude-rand: #3D3D3A; --nb-claude-ink: #F5F4EE; --nb-claude-muted: #9C9A92; --nb-claude-senden: #C96442; --nb-claude-senden-ink: #FFFFFF; --nb-claude-blase: #141413;
+  --nb-gemini-bg: #131314; --nb-gemini-seite: #1E1F20; --nb-gemini-feld: #1E1F20; --nb-gemini-rand: #1E1F20; --nb-gemini-ink: #E3E3E3; --nb-gemini-muted: #9AA0A6; --nb-gemini-senden: #E3E3E3; --nb-gemini-senden-ink: #131314; --nb-gemini-blase: #333537;
+  --nb-copilot-bg: #1E1D1B; --nb-copilot-seite: #1E1D1B; --nb-copilot-feld: #2B2A28; --nb-copilot-rand: #3A3835; --nb-copilot-ink: #F2F0ED; --nb-copilot-muted: #A39E97; --nb-copilot-senden: #F2F0ED; --nb-copilot-senden-ink: #1B1A19; --nb-copilot-blase: #34322F;
+}

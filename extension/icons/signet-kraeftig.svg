@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="AImori">
+<defs>
+<linearGradient id="sk-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1C9"/><stop offset="0.5" stop-color="#F7C25A"/><stop offset="1" stop-color="#C8892B"/></linearGradient>
+<linearGradient id="sk-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF7A3D"/><stop offset="1" stop-color="#F0244F"/></linearGradient>
+<linearGradient id="sk-ring" gradientUnits="userSpaceOnUse" x1="40" y1="40" x2="160" y2="180"><stop offset="0" stop-color="#FF7A3D"/><stop offset="1" stop-color="#F0244F"/></linearGradient>
+</defs>
+<path d="M44 16 C62 66 138 66 156 16 C130 52 70 52 44 16 Z" fill="url(#sk-gold)"/>
+<path d="M42 70 Q100 54 158 70 V106 C158 142 134 166 100 180 C66 166 42 142 42 106 Z" fill="none" stroke="url(#sk-ring)" stroke-width="14" stroke-linejoin="round"/>
+<path d="M70 116 C70 98 83 88 100 88 C117 88 130 98 130 116 Z" fill="url(#sk-body)"/>
+<path d="M66 122 H134 L128 142 H72 Z" fill="url(#sk-body)"/>
+</svg>

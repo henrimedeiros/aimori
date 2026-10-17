@@ -1,0 +1,8 @@
+# Vertrauensanker und Pruefer nur durch Maintainer (docs/muster-mitmachen.md).
+# Ergaenzt die CI-Sperre in .github/workflows/muster.yml; ersetzt keinen Branch-Schutz.
+/muster/schluessel/    @<GITHUB-KONTO>
+/muster/katalog.sig    @<GITHUB-KONTO>
+/scripts/              @<GITHUB-KONTO>
+/.github/              @<GITHUB-KONTO>
+/extension/engine/muster.js           @<GITHUB-KONTO>
+/extension/engine/packs-community.js  @<GITHUB-KONTO>

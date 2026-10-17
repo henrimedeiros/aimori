@@ -1,0 +1,60 @@
+{
+  "$kommentar": "Beispiel mit drei erfundenen Kunden (Namen, Domains und Logos sind ausgedacht). Erzeugen: node scripts/mandanten.mjs enterprise/mandanten/beispiel.json",
+  "erweiterung": {
+    "edge": { "id": "hfgcdbigpgpdoegkhfbbbnibnkpdjkbb", "updateUrl": "https://updates.example.com/aimori/edge.xml" },
+    "chrome": { "id": "hfgcdbigpgpdoegkhfbbbnibnkpdjkbb", "updateUrl": "https://updates.example.com/aimori/chrome.xml" }
+  },
+  "basis": {
+    "branding": {
+      "supportText": "Fragen zur KI-Nutzung: Ihr IT-Partner hilft weiter."
+    },
+    "language": "auto",
+    "globalPacks": ["finance", "secrets", "contact", "travel"],
+    "rules": {
+      "iban": "redact",
+      "pem_private": "block",
+      "email": "warn"
+    },
+    "allowUserOverride": true,
+    "aiSiteMode": "hint",
+    "allowedAiSites": ["m365copilot", "chatgpt"]
+  },
+  "kunden": [
+    {
+      "id": "alpenbau",
+      "name": "Alpenbau Muster AG",
+      "logo": "logos/alpenbau.png",
+      "richtlinie": {
+        "branding": {
+          "primaryColor": "#b4461e",
+          "supportUrl": "https://support.alpenbau.example.com/ki"
+        },
+        "countryPacks": ["CH", "EU"],
+        "rules": { "ch_ahv": "block" }
+      }
+    },
+    {
+      "id": "seeblick-treuhand",
+      "name": "Seeblick Treuhand GmbH",
+      "logo": "logos/seeblick-treuhand.png",
+      "richtlinie": {
+        "branding": { "primaryColor": "#14508c", "aiNoticeText": "Bitte nutzen Sie den freigegebenen Firmen-Copilot." },
+        "allowUserOverride": false,
+        "aiSiteMode": "block",
+        "allowedAiSites": ["m365copilot"],
+        "blockUncheckedFiles": true
+      }
+    },
+    {
+      "id": "praxis-lindenhof",
+      "name": "Praxis Lindenhof (Beispiel)",
+      "logo": "logos/praxis-lindenhof.svg",
+      "richtlinie": {
+        "branding": { "primaryColor": "#2e7d4f" },
+        "language": "fr",
+        "rules": { "email": "redact", "iban": "block" },
+        "imageScan": true
+      }
+    }
+  ]
+}

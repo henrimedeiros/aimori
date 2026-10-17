@@ -1,0 +1,44 @@
+/* Erweiterungseigene Tokens (17.10.2026): nur Werte, die die Website-Datei tokens.css nicht hat.
+   Ueberschreibt kein Token aus tokens.css und kein --dlx-* (Whitelabel setzt common/dom.js), nur
+   Variablen in denselben Selektoren wie tokens.css (Design-Review Token-Abgleich 17.10.2026, Auflagen 3, 4, 7).
+   --flaeche ist immer deckend: Karten in Rahmen auf Gastseiten lassen die Seite nie durchscheinen.
+   Hauptknopf (17.10.2026): auf Hell satter Urushi-Verlauf mit weisser Schrift (Kontrast >= 4,79:1 an jedem
+   Verlaufsstopp, Test tests/design.test.mjs), feine Innenkante und enger Schatten statt Glow; auf Dunkel
+   der Premium-Look mit hellem Verlauf, dunkler Schrift und Glow in der Whitelabel-Farbe (--dlx-brand). */
+:root {
+  --haupt-verlauf: linear-gradient(135deg, #d4381f, #c2183f);
+  --haupt-ink: #ffffff;
+  --haupt-glow: 0 1px 2px rgb(20 18 16 / 0.2);
+  --haupt-kante: inset 0 0 0 1px rgb(20 18 16 / 0.16), inset 0 1px 0 rgb(255 255 255 / 0.22);
+  --haupt-schatten: var(--haupt-kante), 0 1px 2px rgb(20 18 16 / 0.2);
+  --haupt-schatten-hover: var(--haupt-kante), 0 3px 8px -2px rgb(20 18 16 / 0.3);
+  --ai-farbe: var(--marke-text);
+  --ai-verlauf: none;
+  --ai-i-farbe: linear-gradient(var(--marke-text), var(--marke-text));
+  --flaeche: #ffffff;
+  --glas: var(--raised);
+  --glas-rand: #e0dbd3;
+  --knopf-rand: #d3cdc3;
+  --leiste: rgb(255 255 255 / 0.96);
+  --leiste-rand: #e0dbd3;
+  --leiste-glow: inset 0 0 0 1px #ff7a3d40, 0 20px 50px -14px #f0244f73;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="hell"]) {
+    --ai-farbe: transparent; --ai-verlauf: linear-gradient(90deg, #fff1c9, #ff7a3d 40%, #f0244f);
+    --ai-i-farbe: linear-gradient(90deg, color-mix(in srgb, #ff7a3d 60%, #f0244f), #f0244f);
+    --flaeche: #141416; --glas-rand: var(--line); --knopf-rand: var(--line-stark);
+    --leiste: rgb(28 28 32 / 0.95); --leiste-rand: rgb(255 255 255 / 0.12);
+    --haupt-verlauf: linear-gradient(135deg, #ffe2b8, #ff7a3d); --haupt-ink: var(--cta-ink); --haupt-glow: var(--cta-glow);
+    --haupt-kante: 0 0 #0000; --haupt-schatten: 0 0 28px -8px var(--dlx-brand); --haupt-schatten-hover: 0 0 32px -6px var(--dlx-brand);
+  }
+}
+:root[data-theme="dunkel"] {
+  --ai-farbe: transparent; --ai-verlauf: linear-gradient(90deg, #fff1c9, #ff7a3d 40%, #f0244f);
+  --ai-i-farbe: linear-gradient(90deg, color-mix(in srgb, #ff7a3d 60%, #f0244f), #f0244f);
+  --flaeche: #141416; --glas-rand: var(--line); --knopf-rand: var(--line-stark);
+  --leiste: rgb(28 28 32 / 0.95); --leiste-rand: rgb(255 255 255 / 0.12);
+  --haupt-verlauf: linear-gradient(135deg, #ffe2b8, #ff7a3d); --haupt-ink: var(--cta-ink); --haupt-glow: var(--cta-glow);
+  --haupt-kante: 0 0 #0000; --haupt-schatten: 0 0 28px -8px var(--dlx-brand); --haupt-schatten-hover: 0 0 32px -6px var(--dlx-brand);
+}

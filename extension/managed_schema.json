@@ -1,0 +1,569 @@
+{
+  "type": "object",
+  "properties": {
+    "branding": {
+      "title": "Branding",
+      "description": "White-label appearance shown in the popup, options page and warning dialog.",
+      "type": "object",
+      "properties": {
+        "productName": { "title": "Product name", "description": "Name shown instead of the default product name (1-40 characters).", "type": "string" },
+        "companyName": { "title": "Company name", "description": "Organisation shown as the managing company (max. 80 characters).", "type": "string" },
+        "logo": { "title": "Logo", "description": "Logo as data URI (data:image/png;base64,... or data:image/svg+xml;base64,...), max. 100 KB. URLs are not supported because the extension has no network access.", "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/]+=*$" },
+        "primaryColor": { "title": "Primary colour", "description": "Hex colour #rrggbb for headers and buttons.", "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accentColor": { "title": "Accent colour", "description": "Hex colour #rrggbb for highlights.", "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "supportUrl": { "title": "Support link", "description": "https link to the internal support page (opened only when the user clicks it).", "type": "string", "pattern": "^https://" },
+        "supportText": { "title": "Support text", "description": "Short support note shown in the dialog (max. 200 characters).", "type": "string" },
+        "aiNoticeText": { "title": "AI site notice text", "description": "Text on AI sites that are not approved (aiSiteMode), e.g. \"Please use our company Copilot.\" Max. 200 characters, shown as plain text.", "type": "string" },
+        "aiNoticeUrl": { "title": "AI site notice link", "description": "https link to the approved AI tool (no user name or password in the URL, max. 2000 characters). Opened only when the user clicks it.", "type": "string", "pattern": "^https://" },
+        "aiNoticeLinkText": { "title": "AI site notice link text", "description": "Button text for the link (max. 60 characters). Default: Open approved AI tool.", "type": "string" }
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "User interface language. auto = browser language.",
+      "type": "string",
+      "enum": ["auto", "en", "de", "fr", "it", "pt", "es"]
+    },
+    "countryPacks": {
+      "title": "Country packs",
+      "description": "Country and region detection packs. If set, always takes precedence and switches off automatic selection. Default: automatic (time zone and language region, local only).",
+      "type": "array",
+      "items": { "type": "string", "enum": ["CH", "DE", "AT", "FR", "IT", "BE", "NL", "US", "BR", "LI", "ES", "PT", "LU", "SE", "DK", "NO", "FI", "IS", "IE", "GB", "PL", "CZ", "SK", "HU", "RO", "BG", "HR", "SI", "GR", "CY", "MT", "EE", "LT", "LV", "CA", "MX", "AR", "CL", "CO", "IN", "CN", "JP", "KR", "SG", "AU", "NZ", "ZA", "TR", "IL", "AE", "SA", "NG", "EU"] }
+    },
+    "autoCountryPacks": {
+      "title": "Automatic country packs",
+      "description": "true: country packs follow the local time zone and language regions (no network, no location access); users cannot switch to manual. false: no automatic selection, users choose the packs. Ignored if countryPacks is set. Default: automatic, users may change it.",
+      "type": "boolean"
+    },
+    "globalPacks": {
+      "title": "Global packs",
+      "description": "Global detection packs (finance, secrets, contact, travel, marker = confidentiality markings and sensitivity labels, context = context risks: identity combinations, health/HR/beliefs of a person, customer lists, community = community patterns from the signed catalog shipped with the extension). Default: all.",
+      "type": "array",
+      "items": { "type": "string", "enum": ["finance", "secrets", "contact", "travel", "marker", "context", "community"] }
+    },
+    "rules": {
+      "title": "Rules per data type",
+      "description": "Action per data type ID (see docs/datentypen.md): off, warn, redact or block.",
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9_]{2,40}$": { "type": "string", "enum": ["off", "warn", "redact", "block"] }
+      }
+    },
+    "allowUserOverride": {
+      "title": "Allow 'send anyway'",
+      "description": "If false, users cannot send or paste detected data anyway (only redact or cancel). Default: true.",
+      "type": "boolean"
+    },
+    "allowNotSensitive": {
+      "title": "Allow 'not sensitive'",
+      "description": "If false, users cannot mark detected values as not sensitive and the local list is deleted. Only effective together with allowUserOverride. Default: true.",
+      "type": "boolean"
+    },
+    "allowPlaceholders": {
+      "title": "Allow placeholders",
+      "description": "If false, users cannot replace detected values with placeholders such as [IBAN_1] and cannot view AI answers with the real values; the in-memory mapping is discarded. The AI site learns the type and number of replaced values. Default: true.",
+      "type": "boolean"
+    },
+    "competenceRecord": {
+      "title": "AI literacy record",
+      "description": "If true, the extension explains each warning and counts locally, per data type group and month, how many explanations were seen and how often values were redacted, sending was cancelled or data was sent anyway (numbers only, 13 months, never leaves the device). Users can print a self-declared record. If false, nothing is counted and the local counters are deleted. Default: true (users may switch it off).",
+      "type": "boolean"
+    },
+    "imageScan": {
+      "title": "Check images",
+      "description": "If true, pasted, dropped or uploaded PNG, JPEG and WebP images (e.g. screenshots) are read locally with text recognition and checked like text; the AI site only receives the image after the check (original, redacted copy or nothing). Images that cannot be checked in time or are too large show a message instead of passing silently. If false, images are handled like other files (blockUncheckedFiles). Default: true.",
+      "type": "boolean"
+    },
+    "detection": {
+      "title": "Detection",
+      "description": "ki = rules plus a local AI model for names, companies, addresses and health data (runs on the device, nothing is sent; falls back to rules on errors); regeln = rules only. Rules always apply. Default: ki.",
+      "type": "string",
+      "enum": ["ki", "regeln"]
+    },
+    "uncertainFindings": {
+      "title": "Uncertain findings",
+      "description": "Findings without a context word or with an ambiguous format (e.g. phone numbers, unformatted card numbers): hint = subtle hint while typing only, never stops sending; warn = dialog with at most warn; enforce = rules apply as for certain findings. Default: hint.",
+      "type": "string",
+      "enum": ["hint", "warn", "enforce"]
+    },
+    "allowedSites": {
+      "title": "Allowed AI sites",
+      "description": "Which of the supported AI sites may be used. Input on the other supported sites is blocked. Default: all.",
+      "type": "array",
+      "items": { "type": "string", "enum": ["chatgpt", "claude", "gemini", "copilot", "m365copilot"] }
+    },
+    "blockWhenInactive": {
+      "title": "Block when protection is inactive",
+      "description": "If the input field of a supported site cannot be recognised (site redesign), block sending and pasting. Default: false.",
+      "type": "boolean"
+    },
+    "blockUncheckedFiles": {
+      "title": "Block unchecked files",
+      "description": "Files other than PNG, JPEG and WebP images cannot be checked (images: see imageScan; with true, images that cannot be checked only offer Cancel). If true, file uploads, drops and file pastes on supported AI sites are blocked. Default: false.",
+      "type": "boolean"
+    },
+    "aiSiteMode": {
+      "title": "AI site control",
+      "description": "Known AI sites (see docs/ki-seiten-liste.md) that are not in allowedAiSites: off = no control; hint = notice bar with text and link from branding; block = the page is replaced by a block page. The block page is an overlay only; for a hard block also use the browser policy URLBlocklist. On sites other than the supported AI sites, users must allow access once in the extension settings (optional host permissions). If any AI site field is set by policy, local settings for AI sites are ignored. Default: off.",
+      "type": "string",
+      "enum": ["off", "hint", "block"]
+    },
+    "allowedAiSites": {
+      "title": "Approved AI sites",
+      "description": "IDs of approved AI sites from the list (e.g. m365copilot, chatgpt). No notice and no block there. Unknown IDs are ignored. Max. 500 entries.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]{1,30}$" }
+    },
+    "blockedAiSites": {
+      "title": "Blocked AI sites",
+      "description": "IDs of AI sites that are always blocked while aiSiteMode is not off, even in hint mode. Takes precedence over allowedAiSites. Unknown IDs are ignored. Max. 500 entries.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]{1,30}$" }
+    },
+    "suggestedAiSite": {
+      "title": "Suggested approved AI site",
+      "description": "ID of the approved AI site that users are pointed to (e.g. m365copilot; list: docs/ki-seiten-liste.md). Counts as approved. On AI sites that are not approved (aiSiteMode hint = warn or block) the notice or block page shows a button 'Switch to <name>' that opens the start page of this site from the built-in list (click only). branding.aiNoticeUrl takes precedence. Unknown IDs and IDs in blockedAiSites are ignored. Only effective as policy; without policy nothing happens. Default: none.",
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,30}$"
+    },
+    "answerCheck": {
+      "title": "Check AI answers",
+      "description": "off = AI answers are not checked; hint = the latest answer on the supported AI sites is checked locally with the rules and catalogue; sensitive data (keys, personal data, ...) is underlined subtly and named in a notice bar (type and count only, before copying and again after copying). Copying is never blocked, nothing is sent, stored or counted. An invalid value counts as hint. Default: hint.",
+      "type": "string",
+      "enum": ["off", "hint"]
+    },
+    "sensitiveSources": {
+      "title": "Confidential sources (clipboard)",
+      "description": "Host names of confidential sources, e.g. bank.example.com or *.hr.example.com (only https, no path or port, at most one leading *., at least two labels, no AI sites, no IP addresses). Text copied there gets a temporary mark (salted checksum only, 30 minutes, browser memory only, no content). Pasting the same text into an AI site shows a clear warning (see sensitiveSourceAction). Users must allow access to these sites once in the extension settings (optional host permissions; managed installs do not get them in advance). If set by policy, users cannot add or remove sources. Max. 100 entries. Default: empty.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(\\*\\.)?[a-z0-9.-]{3,253}$" }
+    },
+    "sensitiveSourceAction": {
+      "title": "Paste from confidential sources",
+      "description": "warn = clear warning, users can discard or paste anyway (only with allowUserOverride); block = pasting into AI sites is stopped. An invalid value in the policy counts as block. Default: warn.",
+      "type": "string",
+      "enum": ["warn", "block"]
+    },
+    "hiddenInstructionScan": {
+      "title": "Check for hidden instructions",
+      "description": "If true, pasted text (plain and HTML) and uploaded text documents (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, max. 2 MB) on supported AI sites are checked locally for signs of hidden instructions: invisible characters (zero-width, bidi controls, Unicode tag characters; emoji, flag, RTL and Indic sequences and a leading BOM excepted), hidden text in pasted HTML (display:none, visibility:hidden, hidden, opacity 0, tiny font, text in the background colour, far off-screen) and typical override phrases in 6 languages. Heuristic only: not every manipulation is found. The message shows type and count, never excerpts. Nothing is stored. Default: true.",
+      "type": "boolean"
+    },
+    "hiddenInstructionAction": {
+      "title": "Action on hidden instructions",
+      "description": "warn = message, users can discard or continue (only with allowUserOverride); block = pasting or uploading is stopped. Text or documents beyond the limits (2 MB, time budget) count as a finding. An invalid value in the policy counts as block. Default: warn.",
+      "type": "string",
+      "enum": ["warn", "block"]
+    },
+    "formGuardSites": {
+      "title": "Form guard sites",
+      "description": "Host names of sites whose forms are checked when submitted, e.g. portal.example.com or *.hr.example.com (only https, no path or port, at most one leading *., at least two labels, no AI sites, no IP addresses). On submit, text fields, text areas and editable areas of the form (not password, file or hidden fields) are checked locally with the same detection as on AI sites, whether a person or an AI agent filled them in. If something is found, submitting is stopped and a separate extension window asks Do not send / Allow sending once (only with allowUserOverride). Not covered: pages that send data with scripts instead of a form submission, form.submit(), hidden fields. Users must allow access to these sites once in the extension settings (optional host permissions). If set by policy, users cannot add or remove sites. Max. 20 entries. Default: empty.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(\\*\\.)?[a-z0-9.-]{3,253}$" }
+    },
+    "copySidebarHint": {
+      "title": "Hint when copying sensitive data (AI side panels)",
+      "description": "If true, copying text that contains sensitive data on any https page shows a small notice that AI side panels and AI extensions (e.g. Copilot in Edge, Gemini in Chrome, Claude in Chrome) are not checked. Only works after the user has granted the optional access to all https sites in the settings; a policy cannot grant it. The selected text is checked locally and discarded; nothing is stored or sent. Not covered: http pages, iframes, copying in other programs. Default: true.",
+      "type": "boolean"
+    },
+    "voiceMode": {
+      "title": "Voice mode on AI sites",
+      "description": "Voice mode (ChatGPT Voice, Gemini Live, Copilot voice, Claude voice mode) sends speech straight to the AI without text in the input field, so it cannot be checked. Dictation into the input field is checked like typed text, independent of this policy. allow = no message; warn = message when the voice-mode button is pressed, users can start it once per page load (only with allowUserOverride, otherwise like block); block = the button is stopped. Detected via fixed selectors per site: buttons that change after a site update, keyboard shortcuts, desktop and mobile apps are not covered (docs/sprache-und-diktat.md). Invalid value counts as block. Default: warn.",
+      "type": "string",
+      "enum": ["allow", "warn", "block"]
+    },
+    "documentFingerprints": {
+      "title": "Company document fingerprints",
+      "description": "Detects when larger parts of confidential company documents are pasted, sent or uploaded as text documents on AI sites. Create with scripts/dokumente-fingerabdruck.mjs from the documents (local, no network): only salted values cut to 32 bits of SHA-256(salt + newline + 8 normalised words), sampled, sorted, base64; no clear text, no file names, no order. Salt and values are readable by local users: a guessed text can be confirmed, so do not include documents whose mere wording is secret. Not a DLP replacement: rewording, translation or images bypass it. One invalid field discards the whole policy. Message shows only the type, never which document or passage. Max. 100000 values (tested path via GPO/Intune: up to 50000).",
+      "type": "object",
+      "properties": {
+        "salt": { "title": "Salt", "description": "Exactly 64 hex characters (32 random bytes). A new salt invalidates all values.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "shingle": { "title": "Words per fingerprint", "description": "5-16, default 8. Must match the tool.", "type": "integer", "minimum": 5, "maximum": 16 },
+        "sample": { "title": "Sampling", "description": "1-64, default 4: only values divisible by this number are kept. Must match the tool.", "type": "integer", "minimum": 1, "maximum": 64 },
+        "minMatches": { "title": "Minimum matches", "description": "2-50, default 4: distinct matching values from which a text counts as part of a company document (about 30-40 words in a row with the defaults).", "type": "integer", "minimum": 2, "maximum": 50 },
+        "action": { "title": "Action", "description": "warn (default) = message, users can continue only with allowUserOverride; block = paste, send or upload is stopped.", "type": "string", "enum": ["warn", "block"] },
+        "data": {
+          "title": "Fingerprint data",
+          "description": "Base64 parts from the tool (each up to 8192 characters, up to 200 parts), in the given order.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9+/]+={0,2}$" }
+        }
+      }
+    },
+    "accountRules": {
+      "title": "Account rules",
+      "description": "Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.",
+      "type": "object",
+      "properties": {
+        "chatgpt": {
+          "title": "ChatGPT",
+          "description": "Account rules for ChatGPT.",
+          "type": "object",
+          "properties": {
+            "workspaces": {
+              "title": "ChatGPT: workspace names",
+              "description": "Names of your company workspace as shown in the account area of the page (whole name, max. 20 entries, 1-80 characters each). Compared case-insensitively after Unicode normalisation.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[^\\r\\n]{1,80}$"
+              }
+            },
+            "markers": {
+              "title": "ChatGPT: markers",
+              "description": "Optional visible markers that also count as business account: plan. plan = plan label Team/Enterprise/Business/Edu in the account area (any company, at most hint); shield = enterprise data protection shield (at most hint); host = Microsoft 365 Copilot host.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "plan"
+                ]
+              }
+            },
+            "business": {
+              "title": "ChatGPT: business account",
+              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "type": "string",
+              "enum": [
+                "normal",
+                "allow",
+                "hint",
+                "block"
+              ]
+            },
+            "personal": {
+              "title": "ChatGPT: personal account",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            },
+            "unknown": {
+              "title": "ChatGPT: account not detected",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            }
+          }
+        },
+        "claude": {
+          "title": "Claude",
+          "description": "Account rules for Claude.",
+          "type": "object",
+          "properties": {
+            "workspaces": {
+              "title": "Claude: workspace names",
+              "description": "Names of your company workspace as shown in the account area of the page (whole name, max. 20 entries, 1-80 characters each). Compared case-insensitively after Unicode normalisation.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[^\\r\\n]{1,80}$"
+              }
+            },
+            "markers": {
+              "title": "Claude: markers",
+              "description": "Optional visible markers that also count as business account: plan. plan = plan label Team/Enterprise/Business/Edu in the account area (any company, at most hint); shield = enterprise data protection shield (at most hint); host = Microsoft 365 Copilot host.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "plan"
+                ]
+              }
+            },
+            "business": {
+              "title": "Claude: business account",
+              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "type": "string",
+              "enum": [
+                "normal",
+                "allow",
+                "hint",
+                "block"
+              ]
+            },
+            "personal": {
+              "title": "Claude: personal account",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            },
+            "unknown": {
+              "title": "Claude: account not detected",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            }
+          }
+        },
+        "copilot": {
+          "title": "Microsoft Copilot (copilot.com)",
+          "description": "Account rules for Microsoft Copilot (copilot.com).",
+          "type": "object",
+          "properties": {
+            "workspaces": {
+              "title": "Microsoft Copilot (copilot.com): workspace names",
+              "description": "Names of your company workspace as shown in the account area of the page (whole name, max. 20 entries, 1-80 characters each). Compared case-insensitively after Unicode normalisation.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[^\\r\\n]{1,80}$"
+              }
+            },
+            "markers": {
+              "title": "Microsoft Copilot (copilot.com): markers",
+              "description": "Optional visible markers that also count as business account: shield. plan = plan label Team/Enterprise/Business/Edu in the account area (any company, at most hint); shield = enterprise data protection shield (at most hint); host = Microsoft 365 Copilot host.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "shield"
+                ]
+              }
+            },
+            "business": {
+              "title": "Microsoft Copilot (copilot.com): business account",
+              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "type": "string",
+              "enum": [
+                "normal",
+                "allow",
+                "hint",
+                "block"
+              ]
+            },
+            "personal": {
+              "title": "Microsoft Copilot (copilot.com): personal account",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            },
+            "unknown": {
+              "title": "Microsoft Copilot (copilot.com): account not detected",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            }
+          }
+        },
+        "m365copilot": {
+          "title": "Microsoft 365 Copilot",
+          "description": "Account rules for Microsoft 365 Copilot.",
+          "type": "object",
+          "properties": {
+            "workspaces": {
+              "title": "Microsoft 365 Copilot: workspace names",
+              "description": "Names of your company workspace as shown in the account area of the page (whole name, max. 20 entries, 1-80 characters each). Compared case-insensitively after Unicode normalisation.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[^\\r\\n]{1,80}$"
+              }
+            },
+            "markers": {
+              "title": "Microsoft 365 Copilot: markers",
+              "description": "Optional visible markers that also count as business account: host, shield. plan = plan label Team/Enterprise/Business/Edu in the account area (any company, at most hint); shield = enterprise data protection shield (at most hint); host = Microsoft 365 Copilot host.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "host",
+                  "shield"
+                ]
+              }
+            },
+            "business": {
+              "title": "Microsoft 365 Copilot: business account",
+              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "type": "string",
+              "enum": [
+                "normal",
+                "allow",
+                "hint",
+                "block"
+              ]
+            },
+            "personal": {
+              "title": "Microsoft 365 Copilot: personal account",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            },
+            "unknown": {
+              "title": "Microsoft 365 Copilot: account not detected",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "type": "string",
+              "enum": [
+                "normal",
+                "hint",
+                "block"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "dictionary": {
+      "title": "Company dictionary",
+      "description": "Company terms as SHA-256 checksums: lowercase hex of SHA-256(salt + normalised term). Protects against casual reading only.",
+      "type": "object",
+      "properties": {
+        "salt": { "title": "Salt", "description": "Company-specific salt (max. 128 characters).", "type": "string" },
+        "hashes": {
+          "title": "Term checksums",
+          "description": "Up to 20000 SHA-256 hex values.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "customTerms": {
+      "title": "Custom terms",
+      "description": "Own terms (customer names, project code names, internal domains, initials) as salted SHA-256 checksums only, never as clear text: lowercase hex of SHA-256(UTF-8(salt + normalised term)). Create with scripts/begriffe-hashen.mjs. Normalisation: NFKC, lowercase, ae/oe/ue/ss for umlauts, accents removed; spaces, hyphens, dots and other separators split words; 1-5 words, whole words only. The salt is readable by users: protects against casual reading only. Findings use data type custom_term (rules).",
+      "type": "object",
+      "properties": {
+        "salt": { "title": "Salt", "description": "Exactly 64 hex characters (32 random bytes), one per organisation. Changing it invalidates all checksums.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "hashes": {
+          "title": "Term checksums",
+          "description": "Up to 20000 SHA-256 hex values.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "customPatterns": {
+      "title": "Own detection patterns",
+      "description": "Own regular expressions of your organisation, reported as data type 'Own pattern (organisation)' (the pattern itself is never shown). Policy only (users cannot set it). Max. 50 entries; each entry is a JSON object: id (org_ + 2-40 of a-z 0-9 _), regex (JavaScript source, max. 300 characters, only bounded quantifiers {n,m} up to 64, no * + {n,}, no backreferences or lookarounds, match length 3-256), flags ('' or 'i'), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; default firma), context (max. 20 words of 1-40 characters), requireContext (true = only near a context word), action (warn, redact or block; default warn). One invalid entry discards the whole list. See docs/muster-mitmachen.md.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^org_[a-z0-9_]{2,40}$" },
+          "regex": { "type": "string" },
+          "flags": { "type": "string", "enum": ["", "i"] },
+          "category": { "type": "string", "enum": ["person", "finanz", "sozial", "gesundheit", "firma", "kontakt", "steuer", "technik", "reise", "id-national"] },
+          "context": { "type": "array", "items": { "type": "string" } },
+          "requireContext": { "type": "boolean" },
+          "action": { "type": "string", "enum": ["warn", "redact", "block"] }
+        }
+      }
+    },
+    "labelNames": {
+      "title": "Own sensitivity label names",
+      "description": "Names of your organisation's own sensitivity labels (e.g. Microsoft Purview labels) that appear as text in copied documents; reported as data type conf_label (pack marker). Only label names belong here, never customer or project names - use customTerms (checksums) for those. Clear text, policy only (users cannot set it), not shown anywhere. Matched case-insensitively as whole words. Built-in markings (Confidential, Internal, Vertraulich, Streng vertraulich ...) need no entry. Max. 50 names of 2-64 characters (letters, digits, space . - _ ( ) & \\ /); one invalid entry discards the whole list.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[^\\r\\n]{2,64}$" }
+    },
+    "massListMin": {
+      "title": "Customer list threshold",
+      "description": "Minimum number of distinct entries (e-mail addresses, phone numbers, IBANs or rows of a table with a first/last name column) from which a text counts as a customer list / export (data type mass_list, pack context). Duplicates count once. Allowed 3-1000, default 10; values outside the range keep the default.",
+      "type": "integer",
+      "minimum": 3,
+      "maximum": 1000
+    },
+    "tableScan": {
+      "title": "Table detection",
+      "description": "If true (default), pasted or uploaded tables (TSV/CSV, Markdown, HTML, JSON, XLSX) with many rows of personal data count as a mass leak, even without individual numbers (column headers and value shapes; data types mass_list and mass_table, pack context). Uploaded XLSX files are only read (sheets, shared strings, comments), never executed; unusual or oversized files count as not checkable.",
+      "type": "boolean"
+    },
+    "tableMinRows": {
+      "title": "Tables: minimum number of rows",
+      "description": "Number of data rows from which a table with personal data counts as a mass leak. Allowed 3-1000, default 10; values outside the range keep the default.",
+      "type": "integer",
+      "minimum": 3,
+      "maximum": 1000
+    },
+    "tableMinColumns": {
+      "title": "Tables: minimum number of sensitive columns",
+      "description": "Number of sensitive columns (name, e-mail, phone, date of birth, address, salary, diagnosis ...) a table needs, at least one of them identifying. Allowed 1-10, default 2; values outside the range keep the default.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "tableRedaction": {
+      "title": "Tables: redaction",
+      "description": "columns (default) = Redact replaces only the cells of the sensitive columns; rows = additionally keeps only the header and 3 rows (their sensitive cells redacted too) and replaces the rest with the number of removed rows.",
+      "type": "string",
+      "enum": ["columns", "rows"]
+    },
+    "deobfuscation": {
+      "title": "Detect obfuscated data",
+      "description": "If true (default), the extension also checks variants of the text: invisible characters, full-width and look-alike letters, separators between digits, digits written as words, reversed text, Base64/hex/URL encoding, and parts spread over several messages in the same chat (kept only in memory for 10 minutes, never stored). Only checksum-validated values, secrets, e-mail addresses and IBANs count in variants.",
+      "type": "boolean"
+    },
+    "allowRephrase": {
+      "title": "Allow \"Rephrase safely\"",
+      "description": "If true (default), the notice offers \"Rephrase safely\": sensitive details are replaced locally with generic descriptions (e.g. a patient of middle age with a chronic condition) while the question stays the same. The result is shown in the input field as a preview and can be undone; sending checks it again. Not offered when the action is Block.",
+      "type": "boolean"
+    },
+    "identityMinParts": {
+      "title": "Identity combination: required parts",
+      "description": "Number of parts from which name + date of birth count as an identity (data type identity_combo, pack context): 2 = name and date of birth, 3 = plus address, phone, e-mail or ID number (default), 4 = plus two of them. Allowed 2-4; values outside the range keep the default.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 4
+    },
+    "competenceHideSensitive": {
+      "title": "AI literacy record: always hide sensitive groups",
+      "description": "If true, the AI literacy record never shows the groups health, personal data and national ID (users cannot show them). Counts per user about health or beliefs could otherwise allow employee monitoring. Default: false (users decide).",
+      "type": "boolean"
+    },
+    "complianceReport": {
+      "title": "Compliance report",
+      "description": "If true (default), users can open a local report with numbers only (detections by data type, AI site and action, active rules) and its mapping to laws and standards, print it or download it as an HTML file. The extension never stores files by itself; collect exported files only with your own tools, merge them with scripts/bericht-sammeln.mjs, delete the single files afterwards, use the numbers for evidence only (not for performance or behaviour monitoring) and inform employees beforehand. False: the report page only shows a notice.",
+      "type": "boolean"
+    },
+    "complianceFrameworks": {
+      "title": "Compliance report: frameworks",
+      "description": "Mapping templates shown in the report, fixed for users: revdsg (Swiss FADP), dsgvo (EU GDPR), hipaa (US HIPAA), euaiact (EU AI Act Art. 4), iso27001 (ISO/IEC 27001:2022 Annex A). Unknown values discard the list (default: all).",
+      "type": "array",
+      "items": { "type": "string", "enum": ["revdsg", "dsgvo", "hipaa", "euaiact", "iso27001"] }
+    },
+    "trainingAmpel": {
+      "title": "AI training traffic light",
+      "description": "If true (default), the toolbar icon shows on known AI sites whether inputs are used to train the models by default (green = no, yellow = partly or unclear, red = yes), taking the account type from accountRules into account, and the popup explains it and links to the vendor's opt-out setting. The data ships with the extension (vendor source and date per site), nothing is downloaded. False: no traffic light and no popup section.",
+      "type": "boolean"
+    },
+    "complianceReportDays": {
+      "title": "Compliance report: period in days",
+      "description": "Period of the report, fixed for users: 7, 30 or 90 days. Other values keep the default 30.",
+      "type": "integer",
+      "enum": [7, 30, 90],
+      "minimum": 7,
+      "maximum": 90
+    },
+    "reportingUrl": {
+      "title": "Reporting URL (reserved)",
+      "description": "Reserved for a future reporting endpoint (e.g. CIPP). Not used by this version; the extension has no network access.",
+      "type": "string",
+      "pattern": "^https://"
+    }
+  }
+}

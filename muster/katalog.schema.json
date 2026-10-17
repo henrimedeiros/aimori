@@ -1,0 +1,42 @@
+{
+  "title": "Gemeinschafts-Muster-Katalog",
+  "description": "Format von muster/katalog.json (Teilmenge JSON Schema, geprueft mit scripts/lib/schema.mjs). Weitere Regeln (Pflichtfelder, Regex-Sicherheit, Tests, Fehlalarme) prueft scripts/muster.mjs pruefen. Doku: docs/muster-mitmachen.md.",
+  "type": "object",
+  "properties": {
+    "format": { "type": "integer", "minimum": 1, "maximum": 1, "description": "Formatversion, immer 1." },
+    "version": { "type": "string", "pattern": "^20\\d{2}\\.\\d{2}\\.\\d{2}-\\d{1,3}$", "description": "Katalogversion JJJJ.MM.TT-n; bei jeder Aenderung erhoehen." },
+    "muster": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^cm_[a-z0-9_]{2,40}$", "description": "Eindeutige Id mit Praefix cm_ (Regeln per rules)." },
+          "name": {
+            "type": "object",
+            "properties": {
+              "de": { "type": "string", "description": "Anzeigename deutsch, 1-60 druckbare Zeichen." },
+              "en": { "type": "string", "description": "Display name English, 1-60 printable characters." }
+            }
+          },
+          "cat": { "type": "string", "enum": ["person", "finanz", "sozial", "gesundheit", "firma", "kontakt", "steuer", "technik", "reise", "id-national"] },
+          "cls": { "type": "string", "enum": ["hoch", "mittel", "tief"], "description": "Schutzklasse; tief = standardmaessig aus." },
+          "regex": { "type": "string", "description": "JavaScript-Regex-Quelle ohne Schraegstriche, max. 300 Zeichen, nur begrenzte Quantoren (safeRegex)." },
+          "flags": { "type": "string", "enum": ["", "i", "u", "iu"] },
+          "validator": { "type": "string", "enum": ["keiner", "luhn", "mod97", "ean13", "iso7064_11_10"] },
+          "ctx": { "type": "array", "items": { "type": "string" }, "description": "Kontextwoerter, max. 20 zu je 40 Zeichen." },
+          "needsCtx": { "type": "boolean", "description": "Nur melden, wenn ein Kontextwort in der Naehe steht." },
+          "ohneKontextSicher": { "type": "boolean", "description": "Ohne Pruefziffer trotzdem sicher melden (nur mit unverwechselbarem Praefix; Fehlalarm-Pruefung entscheidet)." },
+          "lizenz": { "type": "string", "enum": ["Apache-2.0", "MIT", "BSD-2-Clause", "BSD-3-Clause"] },
+          "quelle": { "type": "string", "description": "Spezifikation oder 'eigene Arbeit', max. 200 Zeichen, ohne Personendaten." },
+          "tests": {
+            "type": "object",
+            "properties": {
+              "positiv": { "type": "array", "items": { "type": "string" }, "description": "3-30 synthetische Texte, die das Muster finden muss." },
+              "negativ": { "type": "array", "items": { "type": "string" }, "description": "3-30 synthetische Texte, die es nicht finden darf." }
+            }
+          }
+        }
+      }
+    }
+  }
+}

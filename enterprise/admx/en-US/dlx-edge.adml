@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>AImori</displayName>
+  <description>Browser extension policies</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_MV3">Microsoft Edge with Manifest V3 extensions (version 110 or later)</string>
+      <string id="cat_root">AImori (Microsoft Edge)</string>
+      <string id="branding">Branding</string>
+      <string id="branding_help">White-label appearance shown in the popup, options page and warning dialog.</string>
+      <string id="language">Language</string>
+      <string id="language_help">User interface language. auto = browser language.</string>
+      <string id="language_auto">auto</string>
+      <string id="language_en">en</string>
+      <string id="language_de">de</string>
+      <string id="language_fr">fr</string>
+      <string id="language_it">it</string>
+      <string id="language_pt">pt</string>
+      <string id="language_es">es</string>
+      <string id="countryPacks">Country packs</string>
+      <string id="countryPacks_help">Country and region detection packs. If set, always takes precedence and switches off automatic selection. Default: automatic (time zone and language region, local only).</string>
+      <string id="autoCountryPacks">Automatic country packs</string>
+      <string id="autoCountryPacks_help">true: country packs follow the local time zone and language regions (no network, no location access); users cannot switch to manual. false: no automatic selection, users choose the packs. Ignored if countryPacks is set. Default: automatic, users may change it.</string>
+      <string id="globalPacks">Global packs</string>
+      <string id="globalPacks_help">Global detection packs (finance, secrets, contact, travel, marker = confidentiality markings and sensitivity labels, context = context risks: identity combinations, health/HR/beliefs of a person, customer lists, community = community patterns from the signed catalog shipped with the extension). Default: all.</string>
+      <string id="rules">Rules per data type</string>
+      <string id="rules_help">Action per data type ID (see docs/datentypen.md): off, warn, redact or block.</string>
+      <string id="allowUserOverride">Allow &apos;send anyway&apos;</string>
+      <string id="allowUserOverride_help">If false, users cannot send or paste detected data anyway (only redact or cancel). Default: true.</string>
+      <string id="allowNotSensitive">Allow &apos;not sensitive&apos;</string>
+      <string id="allowNotSensitive_help">If false, users cannot mark detected values as not sensitive and the local list is deleted. Only effective together with allowUserOverride. Default: true.</string>
+      <string id="allowPlaceholders">Allow placeholders</string>
+      <string id="allowPlaceholders_help">If false, users cannot replace detected values with placeholders such as [IBAN_1] and cannot view AI answers with the real values; the in-memory mapping is discarded. The AI site learns the type and number of replaced values. Default: true.</string>
+      <string id="competenceRecord">AI literacy record</string>
+      <string id="competenceRecord_help">If true, the extension explains each warning and counts locally, per data type group and month, how many explanations were seen and how often values were redacted, sending was cancelled or data was sent anyway (numbers only, 13 months, never leaves the device). Users can print a self-declared record. If false, nothing is counted and the local counters are deleted. Default: true (users may switch it off).</string>
+      <string id="imageScan">Check images</string>
+      <string id="imageScan_help">If true, pasted, dropped or uploaded PNG, JPEG and WebP images (e.g. screenshots) are read locally with text recognition and checked like text; the AI site only receives the image after the check (original, redacted copy or nothing). Images that cannot be checked in time or are too large show a message instead of passing silently. If false, images are handled like other files (blockUncheckedFiles). Default: true.</string>
+      <string id="detection">Detection</string>
+      <string id="detection_help">ki = rules plus a local AI model for names, companies, addresses and health data (runs on the device, nothing is sent; falls back to rules on errors); regeln = rules only. Rules always apply. Default: ki.</string>
+      <string id="detection_ki">ki</string>
+      <string id="detection_regeln">regeln</string>
+      <string id="uncertainFindings">Uncertain findings</string>
+      <string id="uncertainFindings_help">Findings without a context word or with an ambiguous format (e.g. phone numbers, unformatted card numbers): hint = subtle hint while typing only, never stops sending; warn = dialog with at most warn; enforce = rules apply as for certain findings. Default: hint.</string>
+      <string id="uncertainFindings_hint">hint</string>
+      <string id="uncertainFindings_warn">warn</string>
+      <string id="uncertainFindings_enforce">enforce</string>
+      <string id="allowedSites">Allowed AI sites</string>
+      <string id="allowedSites_help">Which of the supported AI sites may be used. Input on the other supported sites is blocked. Default: all.</string>
+      <string id="blockWhenInactive">Block when protection is inactive</string>
+      <string id="blockWhenInactive_help">If the input field of a supported site cannot be recognised (site redesign), block sending and pasting. Default: false.</string>
+      <string id="blockUncheckedFiles">Block unchecked files</string>
+      <string id="blockUncheckedFiles_help">Files other than PNG, JPEG and WebP images cannot be checked (images: see imageScan; with true, images that cannot be checked only offer Cancel). If true, file uploads, drops and file pastes on supported AI sites are blocked. Default: false.</string>
+      <string id="aiSiteMode">AI site control</string>
+      <string id="aiSiteMode_help">Known AI sites (see docs/ki-seiten-liste.md) that are not in allowedAiSites: off = no control; hint = notice bar with text and link from branding; block = the page is replaced by a block page. The block page is an overlay only; for a hard block also use the browser policy URLBlocklist. On sites other than the supported AI sites, users must allow access once in the extension settings (optional host permissions). If any AI site field is set by policy, local settings for AI sites are ignored. Default: off.</string>
+      <string id="aiSiteMode_off">off</string>
+      <string id="aiSiteMode_hint">hint</string>
+      <string id="aiSiteMode_block">block</string>
+      <string id="allowedAiSites">Approved AI sites</string>
+      <string id="allowedAiSites_help">IDs of approved AI sites from the list (e.g. m365copilot, chatgpt). No notice and no block there. Unknown IDs are ignored. Max. 500 entries.</string>
+      <string id="blockedAiSites">Blocked AI sites</string>
+      <string id="blockedAiSites_help">IDs of AI sites that are always blocked while aiSiteMode is not off, even in hint mode. Takes precedence over allowedAiSites. Unknown IDs are ignored. Max. 500 entries.</string>
+      <string id="suggestedAiSite">Suggested approved AI site</string>
+      <string id="suggestedAiSite_help">ID of the approved AI site that users are pointed to (e.g. m365copilot; list: docs/ki-seiten-liste.md). Counts as approved. On AI sites that are not approved (aiSiteMode hint = warn or block) the notice or block page shows a button &apos;Switch to &lt;name&gt;&apos; that opens the start page of this site from the built-in list (click only). branding.aiNoticeUrl takes precedence. Unknown IDs and IDs in blockedAiSites are ignored. Only effective as policy; without policy nothing happens. Default: none. Valid IDs: chatgpt, claude, gemini, copilot, m365copilot, perplexity, mistral, deepseek, grok, poe, characterai, you, huggingchat, metaai, qwen, kimi, zai, doubao, ernie, pi, duckai, aistudio, notebooklm, jules, githubcopilot, phind, v0, bolt, lovable, replit, genspark, manus, felo, openrouter, lmarena, deepl, jasper, copyai, writesonic, gamma, midjourney, firefly, designer, leonardo, ideogram, dreamstudio, sora, runway, heygen, synthesia, suno, elevenlabs.</string>
+      <string id="answerCheck">Check AI answers</string>
+      <string id="answerCheck_help">off = AI answers are not checked; hint = the latest answer on the supported AI sites is checked locally with the rules and catalogue; sensitive data (keys, personal data, ...) is underlined subtly and named in a notice bar (type and count only, before copying and again after copying). Copying is never blocked, nothing is sent, stored or counted. An invalid value counts as hint. Default: hint.</string>
+      <string id="answerCheck_off">off</string>
+      <string id="answerCheck_hint">hint</string>
+      <string id="sensitiveSources">Confidential sources (clipboard)</string>
+      <string id="sensitiveSources_help">Host names of confidential sources, e.g. bank.example.com or *.hr.example.com (only https, no path or port, at most one leading *., at least two labels, no AI sites, no IP addresses). Text copied there gets a temporary mark (salted checksum only, 30 minutes, browser memory only, no content). Pasting the same text into an AI site shows a clear warning (see sensitiveSourceAction). Users must allow access to these sites once in the extension settings (optional host permissions; managed installs do not get them in advance). If set by policy, users cannot add or remove sources. Max. 100 entries. Default: empty.</string>
+      <string id="sensitiveSourceAction">Paste from confidential sources</string>
+      <string id="sensitiveSourceAction_help">warn = clear warning, users can discard or paste anyway (only with allowUserOverride); block = pasting into AI sites is stopped. An invalid value in the policy counts as block. Default: warn.</string>
+      <string id="sensitiveSourceAction_warn">warn</string>
+      <string id="sensitiveSourceAction_block">block</string>
+      <string id="hiddenInstructionScan">Check for hidden instructions</string>
+      <string id="hiddenInstructionScan_help">If true, pasted text (plain and HTML) and uploaded text documents (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, max. 2 MB) on supported AI sites are checked locally for signs of hidden instructions: invisible characters (zero-width, bidi controls, Unicode tag characters; emoji, flag, RTL and Indic sequences and a leading BOM excepted), hidden text in pasted HTML (display:none, visibility:hidden, hidden, opacity 0, tiny font, text in the background colour, far off-screen) and typical override phrases in 6 languages. Heuristic only: not every manipulation is found. The message shows type and count, never excerpts. Nothing is stored. Default: true.</string>
+      <string id="hiddenInstructionAction">Action on hidden instructions</string>
+      <string id="hiddenInstructionAction_help">warn = message, users can discard or continue (only with allowUserOverride); block = pasting or uploading is stopped. Text or documents beyond the limits (2 MB, time budget) count as a finding. An invalid value in the policy counts as block. Default: warn.</string>
+      <string id="hiddenInstructionAction_warn">warn</string>
+      <string id="hiddenInstructionAction_block">block</string>
+      <string id="formGuardSites">Form guard sites</string>
+      <string id="formGuardSites_help">Host names of sites whose forms are checked when submitted, e.g. portal.example.com or *.hr.example.com (only https, no path or port, at most one leading *., at least two labels, no AI sites, no IP addresses). On submit, text fields, text areas and editable areas of the form (not password, file or hidden fields) are checked locally with the same detection as on AI sites, whether a person or an AI agent filled them in. If something is found, submitting is stopped and a separate extension window asks Do not send / Allow sending once (only with allowUserOverride). Not covered: pages that send data with scripts instead of a form submission, form.submit(), hidden fields. Users must allow access to these sites once in the extension settings (optional host permissions). If set by policy, users cannot add or remove sites. Max. 20 entries. Default: empty.</string>
+      <string id="copySidebarHint">Hint when copying sensitive data (AI side panels)</string>
+      <string id="copySidebarHint_help">If true, copying text that contains sensitive data on any https page shows a small notice that AI side panels and AI extensions (e.g. Copilot in Edge, Gemini in Chrome, Claude in Chrome) are not checked. Only works after the user has granted the optional access to all https sites in the settings; a policy cannot grant it. The selected text is checked locally and discarded; nothing is stored or sent. Not covered: http pages, iframes, copying in other programs. Default: true.</string>
+      <string id="voiceMode">Voice mode on AI sites</string>
+      <string id="voiceMode_help">Voice mode (ChatGPT Voice, Gemini Live, Copilot voice, Claude voice mode) sends speech straight to the AI without text in the input field, so it cannot be checked. Dictation into the input field is checked like typed text, independent of this policy. allow = no message; warn = message when the voice-mode button is pressed, users can start it once per page load (only with allowUserOverride, otherwise like block); block = the button is stopped. Detected via fixed selectors per site: buttons that change after a site update, keyboard shortcuts, desktop and mobile apps are not covered (docs/sprache-und-diktat.md). Invalid value counts as block. Default: warn.</string>
+      <string id="voiceMode_allow">allow</string>
+      <string id="voiceMode_warn">warn</string>
+      <string id="voiceMode_block">block</string>
+      <string id="documentFingerprints">Company document fingerprints</string>
+      <string id="documentFingerprints_help">Detects when larger parts of confidential company documents are pasted, sent or uploaded as text documents on AI sites. Create with scripts/dokumente-fingerabdruck.mjs from the documents (local, no network): only salted values cut to 32 bits of SHA-256(salt + newline + 8 normalised words), sampled, sorted, base64; no clear text, no file names, no order. Salt and values are readable by local users: a guessed text can be confirmed, so do not include documents whose mere wording is secret. Not a DLP replacement: rewording, translation or images bypass it. One invalid field discards the whole policy. Message shows only the type, never which document or passage. Max. 100000 values (tested path via GPO/Intune: up to 50000).</string>
+      <string id="documentFingerprints_action_warn">warn</string>
+      <string id="documentFingerprints_action_block">block</string>
+      <string id="accountRules">Account rules</string>
+      <string id="accountRules_help">Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.</string>
+      <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_allow">allow</string>
+      <string id="accountRules_chatgpt_business_hint">hint</string>
+      <string id="accountRules_chatgpt_business_block">block</string>
+      <string id="accountRules_chatgpt_personal_normal">normal</string>
+      <string id="accountRules_chatgpt_personal_hint">hint</string>
+      <string id="accountRules_chatgpt_personal_block">block</string>
+      <string id="accountRules_chatgpt_unknown_normal">normal</string>
+      <string id="accountRules_chatgpt_unknown_hint">hint</string>
+      <string id="accountRules_chatgpt_unknown_block">block</string>
+      <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_allow">allow</string>
+      <string id="accountRules_claude_business_hint">hint</string>
+      <string id="accountRules_claude_business_block">block</string>
+      <string id="accountRules_claude_personal_normal">normal</string>
+      <string id="accountRules_claude_personal_hint">hint</string>
+      <string id="accountRules_claude_personal_block">block</string>
+      <string id="accountRules_claude_unknown_normal">normal</string>
+      <string id="accountRules_claude_unknown_hint">hint</string>
+      <string id="accountRules_claude_unknown_block">block</string>
+      <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_allow">allow</string>
+      <string id="accountRules_copilot_business_hint">hint</string>
+      <string id="accountRules_copilot_business_block">block</string>
+      <string id="accountRules_copilot_personal_normal">normal</string>
+      <string id="accountRules_copilot_personal_hint">hint</string>
+      <string id="accountRules_copilot_personal_block">block</string>
+      <string id="accountRules_copilot_unknown_normal">normal</string>
+      <string id="accountRules_copilot_unknown_hint">hint</string>
+      <string id="accountRules_copilot_unknown_block">block</string>
+      <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_allow">allow</string>
+      <string id="accountRules_m365copilot_business_hint">hint</string>
+      <string id="accountRules_m365copilot_business_block">block</string>
+      <string id="accountRules_m365copilot_personal_normal">normal</string>
+      <string id="accountRules_m365copilot_personal_hint">hint</string>
+      <string id="accountRules_m365copilot_personal_block">block</string>
+      <string id="accountRules_m365copilot_unknown_normal">normal</string>
+      <string id="accountRules_m365copilot_unknown_hint">hint</string>
+      <string id="accountRules_m365copilot_unknown_block">block</string>
+      <string id="dictionary">Company dictionary</string>
+      <string id="dictionary_help">Company terms as SHA-256 checksums: lowercase hex of SHA-256(salt + normalised term). Protects against casual reading only.</string>
+      <string id="customTerms">Custom terms</string>
+      <string id="customTerms_help">Own terms (customer names, project code names, internal domains, initials) as salted SHA-256 checksums only, never as clear text: lowercase hex of SHA-256(UTF-8(salt + normalised term)). Create with scripts/begriffe-hashen.mjs. Normalisation: NFKC, lowercase, ae/oe/ue/ss for umlauts, accents removed; spaces, hyphens, dots and other separators split words; 1-5 words, whole words only. The salt is readable by users: protects against casual reading only. Findings use data type custom_term (rules).</string>
+      <string id="customPatterns">Own detection patterns</string>
+      <string id="customPatterns_help">Own regular expressions of your organisation, reported as data type &apos;Own pattern (organisation)&apos; (the pattern itself is never shown). Policy only (users cannot set it). Max. 50 entries; each entry is a JSON object: id (org_ + 2-40 of a-z 0-9 _), regex (JavaScript source, max. 300 characters, only bounded quantifiers {n,m} up to 64, no * + {n,}, no backreferences or lookarounds, match length 3-256), flags (&apos;&apos; or &apos;i&apos;), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; default firma), context (max. 20 words of 1-40 characters), requireContext (true = only near a context word), action (warn, redact or block; default warn). One invalid entry discards the whole list. See docs/muster-mitmachen.md.</string>
+      <string id="labelNames">Own sensitivity label names</string>
+      <string id="labelNames_help">Names of your organisation&apos;s own sensitivity labels (e.g. Microsoft Purview labels) that appear as text in copied documents; reported as data type conf_label (pack marker). Only label names belong here, never customer or project names - use customTerms (checksums) for those. Clear text, policy only (users cannot set it), not shown anywhere. Matched case-insensitively as whole words. Built-in markings (Confidential, Internal, Vertraulich, Streng vertraulich ...) need no entry. Max. 50 names of 2-64 characters (letters, digits, space . - _ ( ) &amp; \ /); one invalid entry discards the whole list.</string>
+      <string id="massListMin">Customer list threshold</string>
+      <string id="massListMin_help">Minimum number of distinct entries (e-mail addresses, phone numbers, IBANs or rows of a table with a first/last name column) from which a text counts as a customer list / export (data type mass_list, pack context). Duplicates count once. Allowed 3-1000, default 10; values outside the range keep the default.</string>
+      <string id="tableScan">Table detection</string>
+      <string id="tableScan_help">If true (default), pasted or uploaded tables (TSV/CSV, Markdown, HTML, JSON, XLSX) with many rows of personal data count as a mass leak, even without individual numbers (column headers and value shapes; data types mass_list and mass_table, pack context). Uploaded XLSX files are only read (sheets, shared strings, comments), never executed; unusual or oversized files count as not checkable.</string>
+      <string id="tableMinRows">Tables: minimum number of rows</string>
+      <string id="tableMinRows_help">Number of data rows from which a table with personal data counts as a mass leak. Allowed 3-1000, default 10; values outside the range keep the default.</string>
+      <string id="tableMinColumns">Tables: minimum number of sensitive columns</string>
+      <string id="tableMinColumns_help">Number of sensitive columns (name, e-mail, phone, date of birth, address, salary, diagnosis ...) a table needs, at least one of them identifying. Allowed 1-10, default 2; values outside the range keep the default.</string>
+      <string id="tableRedaction">Tables: redaction</string>
+      <string id="tableRedaction_help">columns (default) = Redact replaces only the cells of the sensitive columns; rows = additionally keeps only the header and 3 rows (their sensitive cells redacted too) and replaces the rest with the number of removed rows.</string>
+      <string id="tableRedaction_columns">columns</string>
+      <string id="tableRedaction_rows">rows</string>
+      <string id="deobfuscation">Detect obfuscated data</string>
+      <string id="deobfuscation_help">If true (default), the extension also checks variants of the text: invisible characters, full-width and look-alike letters, separators between digits, digits written as words, reversed text, Base64/hex/URL encoding, and parts spread over several messages in the same chat (kept only in memory for 10 minutes, never stored). Only checksum-validated values, secrets, e-mail addresses and IBANs count in variants.</string>
+      <string id="allowRephrase">Allow &quot;Rephrase safely&quot;</string>
+      <string id="allowRephrase_help">If true (default), the notice offers &quot;Rephrase safely&quot;: sensitive details are replaced locally with generic descriptions (e.g. a patient of middle age with a chronic condition) while the question stays the same. The result is shown in the input field as a preview and can be undone; sending checks it again. Not offered when the action is Block.</string>
+      <string id="identityMinParts">Identity combination: required parts</string>
+      <string id="identityMinParts_help">Number of parts from which name + date of birth count as an identity (data type identity_combo, pack context): 2 = name and date of birth, 3 = plus address, phone, e-mail or ID number (default), 4 = plus two of them. Allowed 2-4; values outside the range keep the default.</string>
+      <string id="competenceHideSensitive">AI literacy record: always hide sensitive groups</string>
+      <string id="competenceHideSensitive_help">If true, the AI literacy record never shows the groups health, personal data and national ID (users cannot show them). Counts per user about health or beliefs could otherwise allow employee monitoring. Default: false (users decide).</string>
+      <string id="complianceReport">Compliance report</string>
+      <string id="complianceReport_help">If true (default), users can open a local report with numbers only (detections by data type, AI site and action, active rules) and its mapping to laws and standards, print it or download it as an HTML file. The extension never stores files by itself; collect exported files only with your own tools, merge them with scripts/bericht-sammeln.mjs, delete the single files afterwards, use the numbers for evidence only (not for performance or behaviour monitoring) and inform employees beforehand. False: the report page only shows a notice.</string>
+      <string id="complianceFrameworks">Compliance report: frameworks</string>
+      <string id="complianceFrameworks_help">Mapping templates shown in the report, fixed for users: revdsg (Swiss FADP), dsgvo (EU GDPR), hipaa (US HIPAA), euaiact (EU AI Act Art. 4), iso27001 (ISO/IEC 27001:2022 Annex A). Unknown values discard the list (default: all).</string>
+      <string id="trainingAmpel">AI training traffic light</string>
+      <string id="trainingAmpel_help">If true (default), the toolbar icon shows on known AI sites whether inputs are used to train the models by default (green = no, yellow = partly or unclear, red = yes), taking the account type from accountRules into account, and the popup explains it and links to the vendor&apos;s opt-out setting. The data ships with the extension (vendor source and date per site), nothing is downloaded. False: no traffic light and no popup section.</string>
+      <string id="complianceReportDays">Compliance report: period in days</string>
+      <string id="complianceReportDays_help">Period of the report, fixed for users: 7, 30 or 90 days. Other values keep the default 30.</string>
+      <string id="reportingUrl">Reporting URL (reserved)</string>
+      <string id="reportingUrl_help">Reserved for a future reporting endpoint (e.g. CIPP). Not used by this version; the extension has no network access.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="branding">
+        <textBox refId="branding_productName">
+          <label>Product name</label>
+        </textBox>
+        <textBox refId="branding_companyName">
+          <label>Company name</label>
+        </textBox>
+        <textBox refId="branding_logo">
+          <label>Logo</label>
+        </textBox>
+        <textBox refId="branding_primaryColor">
+          <label>Primary colour</label>
+        </textBox>
+        <textBox refId="branding_accentColor">
+          <label>Accent colour</label>
+        </textBox>
+        <textBox refId="branding_supportUrl">
+          <label>Support link</label>
+        </textBox>
+        <textBox refId="branding_supportText">
+          <label>Support text</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeText">
+          <label>AI site notice text</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeUrl">
+          <label>AI site notice link</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeLinkText">
+          <label>AI site notice link text</label>
+        </textBox>
+      </presentation>
+      <presentation id="language">
+        <dropdownList refId="language" noSort="true">Language</dropdownList>
+      </presentation>
+      <presentation id="countryPacks">
+        <listBox refId="countryPacks">Country packs</listBox>
+      </presentation>
+      <presentation id="globalPacks">
+        <listBox refId="globalPacks">Global packs</listBox>
+      </presentation>
+      <presentation id="rules">
+        <listBox refId="rules">Rules per data type</listBox>
+      </presentation>
+      <presentation id="detection">
+        <dropdownList refId="detection" noSort="true">Detection</dropdownList>
+      </presentation>
+      <presentation id="uncertainFindings">
+        <dropdownList refId="uncertainFindings" noSort="true">Uncertain findings</dropdownList>
+      </presentation>
+      <presentation id="allowedSites">
+        <listBox refId="allowedSites">Allowed AI sites</listBox>
+      </presentation>
+      <presentation id="aiSiteMode">
+        <dropdownList refId="aiSiteMode" noSort="true">AI site control</dropdownList>
+      </presentation>
+      <presentation id="allowedAiSites">
+        <listBox refId="allowedAiSites">Approved AI sites</listBox>
+      </presentation>
+      <presentation id="blockedAiSites">
+        <listBox refId="blockedAiSites">Blocked AI sites</listBox>
+      </presentation>
+      <presentation id="suggestedAiSite">
+        <textBox refId="suggestedAiSite">
+          <label>Suggested approved AI site</label>
+        </textBox>
+      </presentation>
+      <presentation id="answerCheck">
+        <dropdownList refId="answerCheck" noSort="true">Check AI answers</dropdownList>
+      </presentation>
+      <presentation id="sensitiveSources">
+        <listBox refId="sensitiveSources">Confidential sources (clipboard)</listBox>
+      </presentation>
+      <presentation id="sensitiveSourceAction">
+        <dropdownList refId="sensitiveSourceAction" noSort="true">Paste from confidential sources</dropdownList>
+      </presentation>
+      <presentation id="hiddenInstructionAction">
+        <dropdownList refId="hiddenInstructionAction" noSort="true">Action on hidden instructions</dropdownList>
+      </presentation>
+      <presentation id="formGuardSites">
+        <listBox refId="formGuardSites">Form guard sites</listBox>
+      </presentation>
+      <presentation id="voiceMode">
+        <dropdownList refId="voiceMode" noSort="true">Voice mode on AI sites</dropdownList>
+      </presentation>
+      <presentation id="documentFingerprints">
+        <textBox refId="documentFingerprints_salt">
+          <label>Salt</label>
+        </textBox>
+        <decimalTextBox refId="documentFingerprints_shingle" defaultValue="8">Words per fingerprint</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_sample" defaultValue="4">Sampling</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_minMatches" defaultValue="4">Minimum matches</decimalTextBox>
+        <dropdownList refId="documentFingerprints_action" noSort="true">Action</dropdownList>
+        <listBox refId="documentFingerprints_data">Fingerprint data</listBox>
+      </presentation>
+      <presentation id="accountRules">
+        <listBox refId="accountRules_chatgpt_workspaces">ChatGPT: workspace names</listBox>
+        <listBox refId="accountRules_chatgpt_markers">ChatGPT: markers</listBox>
+        <dropdownList refId="accountRules_chatgpt_business" noSort="true">ChatGPT: business account</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_personal" noSort="true">ChatGPT: personal account</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_unknown" noSort="true">ChatGPT: account not detected</dropdownList>
+        <listBox refId="accountRules_claude_workspaces">Claude: workspace names</listBox>
+        <listBox refId="accountRules_claude_markers">Claude: markers</listBox>
+        <dropdownList refId="accountRules_claude_business" noSort="true">Claude: business account</dropdownList>
+        <dropdownList refId="accountRules_claude_personal" noSort="true">Claude: personal account</dropdownList>
+        <dropdownList refId="accountRules_claude_unknown" noSort="true">Claude: account not detected</dropdownList>
+        <listBox refId="accountRules_copilot_workspaces">Microsoft Copilot (copilot.com): workspace names</listBox>
+        <listBox refId="accountRules_copilot_markers">Microsoft Copilot (copilot.com): markers</listBox>
+        <dropdownList refId="accountRules_copilot_business" noSort="true">Microsoft Copilot (copilot.com): business account</dropdownList>
+        <dropdownList refId="accountRules_copilot_personal" noSort="true">Microsoft Copilot (copilot.com): personal account</dropdownList>
+        <dropdownList refId="accountRules_copilot_unknown" noSort="true">Microsoft Copilot (copilot.com): account not detected</dropdownList>
+        <listBox refId="accountRules_m365copilot_workspaces">Microsoft 365 Copilot: workspace names</listBox>
+        <listBox refId="accountRules_m365copilot_markers">Microsoft 365 Copilot: markers</listBox>
+        <dropdownList refId="accountRules_m365copilot_business" noSort="true">Microsoft 365 Copilot: business account</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_personal" noSort="true">Microsoft 365 Copilot: personal account</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_unknown" noSort="true">Microsoft 365 Copilot: account not detected</dropdownList>
+      </presentation>
+      <presentation id="dictionary">
+        <textBox refId="dictionary_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="dictionary_hashes">Term checksums</listBox>
+      </presentation>
+      <presentation id="customTerms">
+        <textBox refId="customTerms_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="customTerms_hashes">Term checksums</listBox>
+      </presentation>
+      <presentation id="customPatterns">
+        <listBox refId="customPatterns">Own detection patterns</listBox>
+      </presentation>
+      <presentation id="labelNames">
+        <listBox refId="labelNames">Own sensitivity label names</listBox>
+      </presentation>
+      <presentation id="massListMin">
+        <decimalTextBox refId="massListMin" defaultValue="10">Customer list threshold</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinRows">
+        <decimalTextBox refId="tableMinRows" defaultValue="10">Tables: minimum number of rows</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinColumns">
+        <decimalTextBox refId="tableMinColumns" defaultValue="2">Tables: minimum number of sensitive columns</decimalTextBox>
+      </presentation>
+      <presentation id="tableRedaction">
+        <dropdownList refId="tableRedaction" noSort="true">Tables: redaction</dropdownList>
+      </presentation>
+      <presentation id="identityMinParts">
+        <decimalTextBox refId="identityMinParts" defaultValue="3">Identity combination: required parts</decimalTextBox>
+      </presentation>
+      <presentation id="complianceFrameworks">
+        <listBox refId="complianceFrameworks">Compliance report: frameworks</listBox>
+      </presentation>
+      <presentation id="complianceReportDays">
+        <decimalTextBox refId="complianceReportDays" defaultValue="30">Compliance report: period in days</decimalTextBox>
+      </presentation>
+      <presentation id="reportingUrl">
+        <textBox refId="reportingUrl">
+          <label>Reporting URL (reserved)</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

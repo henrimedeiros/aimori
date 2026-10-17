@@ -1,0 +1,23 @@
+# Lokale Arbeitskopien und Worktrees - nie einchecken
+/.*-arbeitskopien/
+tasks/worktrees/
+node_modules/
+# Schluessel und Pakete nie einchecken (Design-Review B17)
+*.pem
+*.crx
+*.key
+# Handtest auf echten KI-Seiten: Profil mit angemeldeten Sitzungen und Screenshots nie einchecken
+/.handtest-profil/
+/.handtest-ergebnis/
+# Texterkennung: erzeugt von scripts/build-ocr.mjs aus den gepinnten Paketen, nie einchecken (Design-Review Bilder, Auflage 12)
+/extension/vendor/ocr/*
+!/extension/vendor/ocr/PINS.json
+# Arbeitsdateien von Messungen
+/.tmp/
+# Ausgabe von scripts/mandanten.mjs (vertraulich: Richtlinien je Kunde, ggf. Salz/Pruefsummen)
+/enterprise/mandanten/ausgabe/
+# Lokale KI-Erkennung: erzeugt von scripts/build-ki.mjs aus dem gepinnten Modell, nie einchecken (Design-Review KI 16.10.2026, Auflagen 2, 6)
+/extension/vendor/ki/*
+!/extension/vendor/ki/PINS.json
+# Store-Pakete aus scripts/pack-store.mjs (koennen key.pem enthalten) - nie einchecken
+/dist/

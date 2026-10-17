@@ -1,0 +1,22 @@
+# Design-Review: Eigene Begriffe (14.10.2026)
+
+Vorhaben (14.10.2026): Firmen und Nutzer schützen eigene Begriffe (Kundennamen, Projekt-Codenamen, interne Domains, Mitarbeiterkürzel). Richtlinie `customTerms` verteilt nur gesalzene Prüfsummen, Admin-Werkzeug `scripts/begriffe-hashen.mjs`, lokale Liste in den Einstellungen, Datentyp „Eigener Begriff“ (`custom_term`). Keine neuen Rechte, keine Abhängigkeiten, kein Netz.
+
+Urteil Sicherheits-Review (vor dem Bauen, 14.10.2026): **freigegeben mit Auflagen**. PBKDF2 o. ä. zu Recht verworfen (jedes n-Gramm des Textes muss gehasht werden); Salz lesbar → kein Geheimnisschutz, dokumentiert.
+
+| Nr. | Auflage | Umsetzung |
+|---|---|---|
+| 1 | Hash-Format fest: SHA-256 über UTF-8 von `salt_hex_klein + begriff`; Salz und Hashes beim Einlesen klein; gemeinsame feste Prüfwerte; eigene SHA-256 mit Mittelzustand gegen Node `crypto` getestet (leer, Mehrbyte, lang) | `engine/dictionary.js` (`termHash`, `termList`, `scanTerms` mit `saltState`/`finish`), `common/policy.js` `termSet()`; Tests `begriffe.test.mjs` (`VECTORS`, Vergleich mit `crypto.createHash`, Begriff über zwei Blöcke) |
+| 2 | Eine Normalisierung für Begriff und Text: NFKC → `toLowerCase()` → ä/ö/ü/ß → NFKD → `\p{M}` entfernen; Wörter `[\p{L}\p{N}]+`; `\p{Cf}` vorher entfernen, nicht trennend | `dictionary.js` `normWord()`/`words()`/`prepareTerm()`; Tests weiches Trennzeichen, ZWSP, İ, Ligatur, Vollbreite |
+| 3 | Fundstellen auf den Originaltext zurückrechnen; Tests mit Umlaut, Ligatur, Vollbreite, weichem Trennzeichen im Treffer; Überlappung wie bestehende Detektoren | `words()` trägt die Lage des Original-Tokens; Überlappung über `engine.scan` (längster gewinnt); Test „Lage …“ inkl. `engine.redact` |
+| 4 | 150 ms gesamthaft über `dictionary`, `customTerms`, `userTerms`; Überschreitung → „nicht prüfbar“; Messung 190k Zeichen, beide Listen, 1–5 Wörter | `engine.js` gleiche `deadline`, `timeout` → `unscannable`; Test „Leistung“ (50k ≈ 35 ms, 190k ≈ 135 ms auf dem Entwickler-PC), Test Budget → `timeout` |
+| 5 | `hashes` in ADMX als `list`; Gesamtgrösse prüfen; Weg GPO → `storage.managed` mit 20 000 testen, sonst Maximum senken und dokumentieren | ADMX `customTerms_hashes` als `list` (erzeugt), `termSet()`: höchstens 20 000 × 64 Zeichen; Plan von `Deploy-Policy.ps1 -PlanOnly` geprüft. **Offen:** echter GPO-Weg mit 20 000 Einträgen auf verwaltetem Gerät (braucht Adminrechte) – in `docs/eigene-begriffe.md` als ungetestet vermerkt |
+| 6 | `userTerms` nur aus options.html (`sender.url` exakt), Policy mit `userTerms` abgelehnt, Salze nie vermischt | `background.js` Nachricht `userTerms` (exakte URL), `save` behält die Liste und setzt sie nie; `policy.js` `userTerms` nur als Benutzerwert; `engineConfig` je Liste eigenes Salz; Tests `background.test.mjs`, `begriffe.test.mjs` |
+| 7 | Textfeld `spellcheck`/`autocomplete`/`autocorrect`/`autocapitalize` aus; Klartext nie in storage/console/Fehler/Nachricht; Abgewiesenes nur mit Zeilennummer | `ui/options.js` Abschnitt 5 (hasht in der Seite, sendet nur `{salt, hashes}`) |
+| 8 | Salz/Hashes bleiben in der isolierten Welt, nie ins Seiten-DOM oder in die Leiste; Leiste nur Typ und Anzahl | unverändert bestehender Weg (`content.js` → `found` nur Typ/Kategorie/Anzahl); keine neue Nachricht an Seite oder iframe |
+| 9 | Werkzeug: Begriffe nur aus Datei/stdin, Warnungen mit Zeilennummer, gleiche Regeln (3 Zeichen, 5 Wörter) mit gemeinsamem Code, `--out` nur mit `--force` überschreiben, `--salt` prüfen, Doku zu Salz-Wechsel | `scripts/begriffe-hashen.mjs` lädt `engine/dictionary.js` (`prepareTerm`, `termHash`); Tests Werkzeug; `docs/eigene-begriffe.md` |
+| 10 | Nur erfundene Begriffe und `example`-Domains | Tests, Beispiel-Richtlinie, Doku |
+| 11 | Statistik nur Zähler je Typ, kein Hash-Index | unveränderte Statistik (Kategorie/Entscheidung je Tag), Fund trägt keinen Listen- oder Hash-Index |
+| 12 | Restrisiko sichtbar in der Admin-Doku, `warn` Standard, `dictionary` als Vorgänger, beide Listen wirken | `docs/eigene-begriffe.md`, `docs/einstellungen.md`, `actionFor('custom_term')` = `warn` |
+
+Restrisiken: Salz lesbar → erratbare Begriffe zurückrechenbar (mittel, dokumentiert); Homoglyphen/Verfremdung umgehen die Erkennung (tief, dokumentiert); Content Scripts können `storage.local` lesen, dort liegen nur Prüfsummen (tief); Unicode-Tabellen von Node und Browser können abweichen (tief, feste Prüfwerte in den Tests, E2E prüft den Browser); sehr lange Texte → „nicht prüfbar“ (tief, fail-closed).

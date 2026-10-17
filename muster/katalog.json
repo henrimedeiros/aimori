@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "version": "2026.10.16-1",
+  "muster": [
+    {
+      "id": "cm_tailscale_key",
+      "name": { "de": "Tailscale-Schlüssel", "en": "Tailscale key" },
+      "cat": "technik",
+      "cls": "hoch",
+      "regex": "\\btskey-(?:auth|api|client)-[A-Za-z0-9]{10,24}-[A-Za-z0-9]{24,40}\\b",
+      "flags": "",
+      "validator": "keiner",
+      "ohneKontextSicher": true,
+      "lizenz": "Apache-2.0",
+      "quelle": "eigene Arbeit nach dem oeffentlich dokumentierten Schluesselformat (Praefix tskey-auth/api/client)",
+      "tests": {
+        "positiv": [
+          "tskey-auth-kAbCdEf1CNTRL-0123456789abcdefghijABCDEFGHIJ",
+          "TS_AUTHKEY=tskey-client-k12345678CNTRL-abcdefghijklmnopqrstuvwxyz0123",
+          "Schluessel tskey-api-kExample1CNTRL-ZYXWVUTSRQPONMLKJIHGFEDCBA9876 bitte ersetzen"
+        ],
+        "negativ": [
+          "tskey-auth-",
+          "tskey-auth-kAbC-0123",
+          "tskey-foo-kAbCdEf1CNTRL-0123456789abcdefghijABCDEFGHIJ",
+          "tailscale up --authkey file:/etc/tskey"
+        ]
+      }
+    },
+    {
+      "id": "cm_figma_token",
+      "name": { "de": "Figma-Zugangstoken", "en": "Figma access token" },
+      "cat": "technik",
+      "cls": "hoch",
+      "regex": "\\bfigd_[A-Za-z0-9_-]{38,44}",
+      "flags": "",
+      "validator": "keiner",
+      "ohneKontextSicher": true,
+      "lizenz": "Apache-2.0",
+      "quelle": "eigene Arbeit nach dem oeffentlich dokumentierten Tokenformat (Praefix figd_)",
+      "tests": {
+        "positiv": [
+          "figd_0123456789abcdefghijABCDEFGHIJ-_0123456",
+          "FIGMA_TOKEN=figd_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn",
+          "X-Figma-Token: figd_aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
+        ],
+        "negativ": [
+          "figd_short",
+          "figma_0123456789abcdefghijABCDEFGHIJ0123456",
+          "config figd_ = none",
+          "figd_0123456789abcdefghijABCDEFGHIJ012"
+        ]
+      }
+    },
+    {
+      "id": "cm_rubygems_key",
+      "name": { "de": "RubyGems-API-Schlüssel", "en": "RubyGems API key" },
+      "cat": "technik",
+      "cls": "hoch",
+      "regex": "\\brubygems_[a-f0-9]{48}\\b",
+      "flags": "",
+      "validator": "keiner",
+      "ohneKontextSicher": true,
+      "lizenz": "Apache-2.0",
+      "quelle": "eigene Arbeit nach dem oeffentlich dokumentierten Schluesselformat (Praefix rubygems_, 48 Hexzeichen)",
+      "tests": {
+        "positiv": [
+          "rubygems_0123456789abcdef0123456789abcdef0123456789abcdef",
+          "GEM_HOST_API_KEY=rubygems_ffffffffffffffffffffffffffffffffffffffffffffffff",
+          "key: rubygems_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
+        ],
+        "negativ": [
+          "rubygems_org",
+          "rubygems_0123456789abcdef",
+          "rubygems_0123456789abcdef0123456789abcdef0123456789abcdeg",
+          "gem push rubygems_key.gem"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>AImori</displayName>
+  <description>Richtlinien der Browser-Erweiterung</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_MV3">Microsoft Edge mit Manifest-V3-Erweiterungen (ab Version 110)</string>
+      <string id="cat_root">AImori (Microsoft Edge)</string>
+      <string id="branding">Branding</string>
+      <string id="branding_help">Whitelabel-Darstellung im Popup, in den Einstellungen und im Warn-Dialog.</string>
+      <string id="language">Sprache</string>
+      <string id="language_help">Sprache der Oberflaeche. auto = Browsersprache.</string>
+      <string id="language_auto">auto</string>
+      <string id="language_en">en</string>
+      <string id="language_de">de</string>
+      <string id="language_fr">fr</string>
+      <string id="language_it">it</string>
+      <string id="language_pt">pt</string>
+      <string id="language_es">es</string>
+      <string id="countryPacks">Laenderpakete</string>
+      <string id="countryPacks_help">Laender- und Regionspakete der Erkennung (CH, DE, AT, FR, IT, BE, NL, US, BR, LI, ES, PT, LU, SE, DK, NO, FI, IS, IE, GB, PL, CZ, SK, HU, RO, BG, HR, SI, GR, CY, MT, EE, LT, LV, CA, MX, AR, CL, CO, IN, CN, JP, KR, SG, AU, NZ, ZA, TR, IL, AE, SA, NG, EU). Gesetzt hat diese Richtlinie immer Vorrang und schaltet die automatische Auswahl ab. Standard: automatisch (Zeitzone und Sprachregion, nur lokal).</string>
+      <string id="autoCountryPacks">Laenderpakete automatisch waehlen</string>
+      <string id="autoCountryPacks_help">true: Laenderpakete folgen der lokalen Zeitzone und den Sprachregionen (kein Netzwerk, kein Standortzugriff), Benutzer koennen nicht auf manuell wechseln. false: keine automatische Auswahl, Benutzer waehlen die Pakete selbst. Wird ignoriert, wenn Laenderpakete (countryPacks) gesetzt ist. Standard: automatisch, Benutzer duerfen aendern.</string>
+      <string id="globalPacks">Globale Pakete</string>
+      <string id="globalPacks_help">Globale Erkennungspakete (finance, secrets, contact, travel, marker = Vertraulichkeits-Vermerke und Vertraulichkeitsbezeichnungen, context = Kontext-Risiken: Identitaets-Kombi, Gesundheit/Personal/Gesinnung einer Person, Kundenlisten, community = Gemeinschafts-Muster aus dem signierten Katalog der Erweiterung). Standard: alle.</string>
+      <string id="rules">Regeln je Datentyp</string>
+      <string id="rules_help">Aktion je Datentyp-ID (siehe docs/datentypen.md): off, warn, redact oder block. Wertname = Datentyp-ID, Wert = Aktion.</string>
+      <string id="allowUserOverride">&quot;Trotzdem senden&quot; erlauben</string>
+      <string id="allowUserOverride_help">Bei false koennen Benutzer erkannte Daten nicht trotzdem senden oder einfuegen (nur schwaerzen oder abbrechen). Standard: true.</string>
+      <string id="allowNotSensitive">&quot;Kein sensibler Wert&quot; erlauben</string>
+      <string id="allowNotSensitive_help">Bei false koennen Benutzer erkannte Werte nicht als &quot;kein sensibler Wert&quot; markieren; die lokale Liste wird geloescht. Wirkt nur zusammen mit &quot;Trotzdem senden&quot; erlauben. Standard: true.</string>
+      <string id="allowPlaceholders">Platzhalter erlauben</string>
+      <string id="allowPlaceholders_help">Bei false koennen Benutzer erkannte Werte nicht durch Platzhalter wie [IBAN_1] ersetzen und KI-Antworten nicht mit echten Werten anzeigen; die Zuordnung im Arbeitsspeicher wird verworfen. Die KI-Seite erfaehrt Art und Anzahl der ersetzten Werte. Standard: true.</string>
+      <string id="competenceRecord">KI-Kompetenz-Nachweis</string>
+      <string id="competenceRecord_help">Bei true erklaert die Erweiterung jede Warnung und zaehlt lokal je Datentyp-Gruppe und Monat, wie viele Erklaerungen gesehen und wie oft Werte geschwaerzt, das Senden abgebrochen oder trotzdem gesendet wurde (nur Zahlen, 13 Monate, verlaesst das Geraet nie). Benutzer koennen eine Selbstauskunft drucken. Bei false wird nichts gezaehlt und die lokalen Zaehler werden geloescht. Standard: true (Benutzer duerfen abschalten).</string>
+      <string id="imageScan">Bilder pruefen</string>
+      <string id="imageScan_help">Bei true werden eingefuegte, abgelegte oder hochgeladene PNG-, JPEG- und WebP-Bilder (z. B. Screenshots) lokal per Texterkennung gelesen und wie Text geprueft; die KI-Seite erhaelt das Bild erst nach der Pruefung (Original, geschwaerzte Kopie oder nichts). Nicht rechtzeitig pruefbare oder zu grosse Bilder zeigen eine Meldung statt still durchzugehen. Bei false gelten Bilder wie andere Dateien (blockUncheckedFiles). Standard: true.</string>
+      <string id="detection">Erkennung</string>
+      <string id="detection_help">ki = Regeln plus lokales KI-Modell fuer Namen, Firmen, Adressen und Gesundheitsangaben (laeuft auf dem Geraet, nichts wird gesendet; bei Fehlern nur Regeln); regeln = nur Regeln. Die Regeln gelten immer. Standard: ki.</string>
+      <string id="detection_ki">ki</string>
+      <string id="detection_regeln">regeln</string>
+      <string id="uncertainFindings">Unsichere Funde</string>
+      <string id="uncertainFindings_help">Funde ohne Kontextwort oder mit mehrdeutigem Format (z. B. Telefonnummern, unformatierte Kartennummern): hint = nur dezenter Hinweis beim Tippen, haelt das Senden nie an; warn = Dialog hoechstens mit Warnen; enforce = Regeln gelten wie fuer sichere Funde. Standard: hint.</string>
+      <string id="uncertainFindings_hint">hint</string>
+      <string id="uncertainFindings_warn">warn</string>
+      <string id="uncertainFindings_enforce">enforce</string>
+      <string id="allowedSites">Erlaubte KI-Seiten</string>
+      <string id="allowedSites_help">Welche der unterstuetzten KI-Seiten genutzt werden duerfen (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot). Eingaben auf den anderen unterstuetzten Seiten werden gesperrt. Standard: alle.</string>
+      <string id="blockWhenInactive">Sperren, wenn Schutz inaktiv</string>
+      <string id="blockWhenInactive_help">Wird das Eingabefeld einer unterstuetzten Seite nicht erkannt (Seitenumbau), Senden und Einfuegen sperren. Standard: false.</string>
+      <string id="blockUncheckedFiles">Ungepruefte Dateien sperren</string>
+      <string id="blockUncheckedFiles_help">Dateien ausser PNG-, JPEG- und WebP-Bildern kann diese Version nicht pruefen (Bilder: siehe imageScan; bei true haben nicht pruefbare Bilder nur Abbrechen). Bei true werden Datei-Uploads, -Ablagen und eingefuegte Dateien auf den KI-Seiten gesperrt. Standard: false.</string>
+      <string id="aiSiteMode">KI-Seiten-Kontrolle</string>
+      <string id="aiSiteMode_help">Bekannte KI-Seiten (siehe docs/ki-seiten-liste.md), die nicht in den freigegebenen KI-Seiten stehen: off = keine Kontrolle; hint = Hinweis-Leiste mit Text und Link aus dem Branding; block = die Seite wird durch eine Sperrseite ersetzt. Die Sperrseite ist nur eine Ueberlagerung; fuer eine harte Sperre zusaetzlich die Browser-Richtlinie URLBlocklist nutzen. Ausserhalb der unterstuetzten KI-Seiten muessen Benutzer den Zugriff einmal in den Einstellungen der Erweiterung erlauben (optionale Host-Rechte). Ist irgendein KI-Seiten-Feld per Richtlinie gesetzt, gelten lokale Einstellungen dazu nicht. Standard: off.</string>
+      <string id="aiSiteMode_off">off</string>
+      <string id="aiSiteMode_hint">hint</string>
+      <string id="aiSiteMode_block">block</string>
+      <string id="allowedAiSites">Freigegebene KI-Seiten</string>
+      <string id="allowedAiSites_help">IDs freigegebener KI-Seiten aus der Liste (z. B. m365copilot, chatgpt). Dort weder Hinweis noch Sperre. Unbekannte IDs werden ignoriert. Max. 500 Eintraege.</string>
+      <string id="blockedAiSites">Gesperrte KI-Seiten</string>
+      <string id="blockedAiSites_help">IDs von KI-Seiten, die immer gesperrt sind, solange aiSiteMode nicht off ist, auch im Hinweis-Modus. Hat Vorrang vor den freigegebenen KI-Seiten. Unbekannte IDs werden ignoriert. Max. 500 Eintraege.</string>
+      <string id="suggestedAiSite">Vorgeschlagene freigegebene KI</string>
+      <string id="suggestedAiSite_help">ID der freigegebenen KI-Seite, auf die Benutzer gelenkt werden, z. B. m365copilot. Gilt als freigegeben. Auf nicht freigegebenen KI-Seiten (KI-Seiten-Kontrolle hint = warnen oder block = sperren) zeigt der Hinweis bzw. die Sperrseite einen Knopf &quot;Zu &lt;Name&gt; wechseln&quot;, der nur auf Klick die Startseite dieser KI aus der eingebauten Liste oeffnet. Link KI-Seiten-Hinweis aus dem Branding hat Vorrang. Unbekannte IDs und IDs in den gesperrten KI-Seiten werden ignoriert. Wirkt nur als Richtlinie; ohne Richtlinie keine Funktion. Gueltige IDs: chatgpt, claude, gemini, copilot, m365copilot, perplexity, mistral, deepseek, grok, poe, characterai, you, huggingchat, metaai, qwen, kimi, zai, doubao, ernie, pi, duckai, aistudio, notebooklm, jules, githubcopilot, phind, v0, bolt, lovable, replit, genspark, manus, felo, openrouter, lmarena, deepl, jasper, copyai, writesonic, gamma, midjourney, firefly, designer, leonardo, ideogram, dreamstudio, sora, runway, heygen, synthesia, suno, elevenlabs.</string>
+      <string id="answerCheck">KI-Antworten pruefen</string>
+      <string id="answerCheck_help">off = KI-Antworten werden nicht geprueft; hint = die letzte Antwort auf den unterstuetzten KI-Seiten wird lokal mit Regeln und Katalog geprueft; heikle Daten (Schluessel, Personendaten ...) werden dezent unterstrichen und in einer Hinweis-Leiste genannt (nur Typ und Anzahl, vor und nach dem Kopieren). Kopieren wird nie gesperrt, nichts wird gesendet, gespeichert oder gezaehlt. Ein ungueltiger Wert gilt als hint. Standard: hint.</string>
+      <string id="answerCheck_off">off</string>
+      <string id="answerCheck_hint">hint</string>
+      <string id="sensitiveSources">Vertrauliche Quellen (Zwischenablage)</string>
+      <string id="sensitiveSources_help">Hostnamen vertraulicher Quellen, z. B. bank.example.com oder *.hr.example.com (nur https, ohne Pfad und Port, hoechstens ein fuehrendes *., mindestens zwei Teile, keine KI-Seiten, keine IP-Adressen). Dort kopierter Text erhaelt ein fluechtiges Merkmal (nur gesalzene Pruefsumme, 30 Minuten, nur im Arbeitsspeicher des Browsers, kein Inhalt). Wird derselbe Text in eine KI-Seite eingefuegt, erscheint eine deutliche Warnung (siehe Einfuegen aus vertraulichen Quellen). Benutzer muessen den Zugriff auf diese Seiten einmal in den Einstellungen der Erweiterung erlauben (optionale Host-Rechte; verwaltete Installationen erhalten sie nicht vorab). Per Richtlinie gesetzt, koennen Benutzer keine Quellen ergaenzen oder entfernen. Max. 100 Eintraege. Standard: leer.</string>
+      <string id="sensitiveSourceAction">Einfuegen aus vertraulichen Quellen</string>
+      <string id="sensitiveSourceAction_help">warn = deutliche Warnung, Benutzer koennen verwerfen oder trotzdem einfuegen (nur mit allowUserOverride); block = Einfuegen in KI-Seiten wird gestoppt. Ein ungueltiger Wert in der Richtlinie gilt als block. Standard: warn.</string>
+      <string id="sensitiveSourceAction_warn">warn</string>
+      <string id="sensitiveSourceAction_block">block</string>
+      <string id="hiddenInstructionScan">Versteckte Anweisungen pruefen</string>
+      <string id="hiddenInstructionScan_help">Bei true werden eingefuegter Text (auch HTML) und hochgeladene Textdokumente (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, hoechstens 2 MB) auf den KI-Seiten lokal auf Hinweise auf versteckte Anweisungen geprueft: unsichtbare Zeichen (Zero-Width, Bidi-Steuerzeichen, Unicode-Tag-Zeichen; Emoji-, Flaggen-, RTL- und indische Schriften sowie BOM ausgenommen), versteckter Text in eingefuegtem HTML und typische Umgehungssaetze in 6 Sprachen. Nur Heuristik, nicht jede Manipulation wird gefunden. Die Meldung nennt Art und Anzahl, nie Ausschnitte; nichts wird gespeichert. Standard: true.</string>
+      <string id="hiddenInstructionAction">Aktion bei versteckten Anweisungen</string>
+      <string id="hiddenInstructionAction_help">warn = Meldung, Benutzer koennen verwerfen oder fortfahren (nur mit allowUserOverride); block = Einfuegen bzw. Hochladen wird gestoppt. Text oder Dokumente ueber den Grenzen (2 MB, Zeitbudget) gelten als Fund. Ungueltiger Wert in der Richtlinie gilt als block. Standard: warn.</string>
+      <string id="hiddenInstructionAction_warn">warn</string>
+      <string id="hiddenInstructionAction_block">block</string>
+      <string id="formGuardSites">Formularwache: Seiten</string>
+      <string id="formGuardSites_help">Hostnamen der Seiten, deren Formulare beim Absenden geprueft werden, z. B. portal.example.com oder *.hr.example.com (nur https, kein Pfad/Port, hoechstens ein fuehrendes *., mindestens zwei Labels, keine KI-Seiten, keine IP-Adressen). Geprueft werden Textfelder, Textbereiche und bearbeitbare Bereiche des Formulars (nicht Passwort-, Datei- oder versteckte Felder) lokal mit derselben Erkennung wie auf den KI-Seiten, egal ob ein Mensch oder ein KI-Agent sie ausgefuellt hat. Bei Fund wird das Absenden gestoppt und ein eigenes Fenster der Erweiterung fragt Nicht senden / Senden einmal erlauben (nur mit allowUserOverride). Nicht abgedeckt: Seiten, die Daten per Skript statt per Formular senden, form.submit(), versteckte Felder. Benutzer muessen den Zugriff einmal in den Einstellungen erlauben. Per Richtlinie gesetzt koennen Benutzer keine Seiten aendern. Hoechstens 20 Eintraege. Standard: leer.</string>
+      <string id="copySidebarHint">Hinweis beim Kopieren (KI-Seitenleisten)</string>
+      <string id="copySidebarHint_help">Bei true erscheint beim Kopieren von Text mit sensiblen Daten auf einer beliebigen https-Seite ein dezenter Hinweis, dass KI-Seitenleisten und KI-Erweiterungen (z. B. Copilot in Edge, Gemini in Chrome, Claude in Chrome) nicht geprueft werden. Wirkt erst, wenn der Benutzer in den Einstellungen den optionalen Zugriff auf alle https-Seiten erteilt hat; eine Richtlinie kann diesen Zugriff nicht erteilen. Der markierte Text wird lokal geprueft und verworfen, nichts wird gespeichert oder gesendet. Nicht abgedeckt: http-Seiten, iframes, Kopieren in anderen Programmen. Bei false wird der Zugriff zurueckgegeben. Standard: true.</string>
+      <string id="voiceMode">Sprachmodus auf KI-Seiten</string>
+      <string id="voiceMode_help">Im Sprachmodus (ChatGPT Voice, Gemini Live, Copilot-Sprache, Claude-Sprachmodus) geht Gesprochenes ohne Text im Eingabefeld direkt an die KI und kann nicht geprueft werden. Diktat ins Eingabefeld wird unabhaengig davon wie getippter Text geprueft. allow = keine Meldung; warn = Meldung beim Druck auf den Sprachmodus-Knopf, Benutzer koennen ihn einmal je Seitenaufruf trotzdem starten (nur mit allowUserOverride, sonst wie block); block = der Knopf wird gestoppt. Erkannt ueber feste Selektoren je Seite: nach Seitenumbauten geaenderte Knoepfe, Tastenkuerzel sowie Desktop- und Handy-Apps sind nicht abgedeckt (docs/sprache-und-diktat.md). Ungueltiger Wert gilt als block. Standard: warn.</string>
+      <string id="voiceMode_allow">allow</string>
+      <string id="voiceMode_warn">warn</string>
+      <string id="voiceMode_block">block</string>
+      <string id="documentFingerprints">Fingerabdruecke von Firmendokumenten</string>
+      <string id="documentFingerprints_help">Erkennt, wenn groessere Teile vertraulicher Firmendokumente auf KI-Seiten eingefuegt, gesendet oder als Textdokument hochgeladen werden. Erzeugen mit scripts/dokumente-fingerabdruck.mjs aus den Dokumenten (lokal, ohne Netz): nur gesalzene, auf 32 Bit gekuerzte Werte von SHA-256(Salz + Zeilenumbruch + 8 normalisierte Woerter), ausgeduennt, sortiert, Base64; kein Klartext, keine Dateinamen, keine Reihenfolge. Salz und Werte sind fuer lokale Benutzer lesbar: ein vermuteter Text laesst sich bestaetigen, darum keine Dokumente aufnehmen, deren Wortlaut selbst geheim ist. Kein DLP-Ersatz: Umformulieren, Uebersetzen oder Bilder umgehen es. Ein ungueltiges Feld verwirft die ganze Richtlinie. Die Meldung nennt nur die Art, nie Dokument oder Abschnitt. Hoechstens 100000 Werte (Weg ueber GPO/Intune geprueft bis 50000).</string>
+      <string id="documentFingerprints_action_warn">warn</string>
+      <string id="documentFingerprints_action_block">block</string>
+      <string id="accountRules">Regeln je Konto</string>
+      <string id="accountRules_help">Unterschiedliche Regeln fuer Firmen- und Privatkonten derselben KI-Seite, erkannt nur aus sichtbaren Seitensignalen (Workspace-Name oder Kennzeichen im Kontobereich, Host). Je Seite: Workspace-Namen, Kennzeichen, Stufe fuer Firmenkonto, Privatkonto und nicht erkanntes Konto (normal, allow, hint, block). Nicht erkannt = strengste Stufe. Ungueltige Seiteneintraege fallen auf normal zurueck. Seite oder Benutzer koennen den Kontobereich faelschen: hint statt allow, Workspace-Namen statt Kennzeichen bevorzugen. Ist irgendeine Richtlinie gesetzt, gelten lokale Konto-Regeln nicht. Siehe docs/konto-regeln.md.</string>
+      <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_allow">allow</string>
+      <string id="accountRules_chatgpt_business_hint">hint</string>
+      <string id="accountRules_chatgpt_business_block">block</string>
+      <string id="accountRules_chatgpt_personal_normal">normal</string>
+      <string id="accountRules_chatgpt_personal_hint">hint</string>
+      <string id="accountRules_chatgpt_personal_block">block</string>
+      <string id="accountRules_chatgpt_unknown_normal">normal</string>
+      <string id="accountRules_chatgpt_unknown_hint">hint</string>
+      <string id="accountRules_chatgpt_unknown_block">block</string>
+      <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_allow">allow</string>
+      <string id="accountRules_claude_business_hint">hint</string>
+      <string id="accountRules_claude_business_block">block</string>
+      <string id="accountRules_claude_personal_normal">normal</string>
+      <string id="accountRules_claude_personal_hint">hint</string>
+      <string id="accountRules_claude_personal_block">block</string>
+      <string id="accountRules_claude_unknown_normal">normal</string>
+      <string id="accountRules_claude_unknown_hint">hint</string>
+      <string id="accountRules_claude_unknown_block">block</string>
+      <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_allow">allow</string>
+      <string id="accountRules_copilot_business_hint">hint</string>
+      <string id="accountRules_copilot_business_block">block</string>
+      <string id="accountRules_copilot_personal_normal">normal</string>
+      <string id="accountRules_copilot_personal_hint">hint</string>
+      <string id="accountRules_copilot_personal_block">block</string>
+      <string id="accountRules_copilot_unknown_normal">normal</string>
+      <string id="accountRules_copilot_unknown_hint">hint</string>
+      <string id="accountRules_copilot_unknown_block">block</string>
+      <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_allow">allow</string>
+      <string id="accountRules_m365copilot_business_hint">hint</string>
+      <string id="accountRules_m365copilot_business_block">block</string>
+      <string id="accountRules_m365copilot_personal_normal">normal</string>
+      <string id="accountRules_m365copilot_personal_hint">hint</string>
+      <string id="accountRules_m365copilot_personal_block">block</string>
+      <string id="accountRules_m365copilot_unknown_normal">normal</string>
+      <string id="accountRules_m365copilot_unknown_hint">hint</string>
+      <string id="accountRules_m365copilot_unknown_block">block</string>
+      <string id="dictionary">Firmen-Woerterbuch</string>
+      <string id="dictionary_help">Firmenbegriffe als SHA-256-Pruefsummen: Hex(SHA-256(Salz + normalisierter Begriff)). Schuetzt nur vor beilaeufigem Lesen.</string>
+      <string id="customTerms">Eigene Begriffe</string>
+      <string id="customTerms_help">Eigene Begriffe (Kundennamen, Projekt-Codenamen, interne Domains, Kuerzel) nur als gesalzene SHA-256-Pruefsummen, nie im Klartext: Hex(SHA-256(Salz + normalisierter Begriff)). Erzeugen mit scripts/begriffe-hashen.mjs. Normalisierung: Kleinbuchstaben, Umlaute als ae/oe/ue/ss, Akzente entfernt; Leerzeichen, Bindestriche, Punkte und andere Trennzeichen trennen Woerter; 1-5 Woerter, nur ganze Woerter. Das Salz ist fuer Benutzer lesbar: schuetzt nur vor beilaeufigem Lesen. Datentyp custom_term (Regeln).</string>
+      <string id="customPatterns">Eigene Erkennungsmuster</string>
+      <string id="customPatterns_help">Eigene regulaere Ausdruecke der Organisation, gemeldet als Datentyp &quot;Eigenes Muster (Organisation)&quot; (das Muster selbst wird nie angezeigt). Nur per Richtlinie. Max. 50 Eintraege, je Zeile ein JSON-Objekt: id (org_ + 2-40 Zeichen a-z 0-9 _), regex (JavaScript, max. 300 Zeichen, nur begrenzte Quantoren {n,m} bis 64, kein * + {n,}, keine Rueckverweise/Lookarounds, Trefferlaenge 3-256), flags (&quot;&quot; oder &quot;i&quot;), category (Standard firma), context (max. 20 Woerter), requireContext (true/false), action (warn, redact, block; Standard warn). Ein ungueltiger Eintrag verwirft die ganze Liste. Siehe docs/muster-mitmachen.md.</string>
+      <string id="labelNames">Eigene Label-Namen</string>
+      <string id="labelNames_help">Namen der eigenen Vertraulichkeitsbezeichnungen (z. B. Microsoft-Purview-Labels), die als Text in kopierten Dokumenten stehen; gemeldet als Datentyp conf_label (Paket marker). Hier gehoeren nur Label-Namen hinein, nie Kunden- oder Projektnamen - dafuer customTerms (Pruefsummen). Klartext, nur per Richtlinie (Benutzer koennen es nicht setzen), wird nirgends angezeigt. Vergleich ohne Gross/Klein, nur ganze Woerter. Eingebaute Vermerke (Vertraulich, Streng vertraulich, Intern, Confidential ...) brauchen keinen Eintrag. Max. 50 Namen mit 2-64 Zeichen (Buchstaben, Ziffern, Leerzeichen . - _ ( ) &amp; \ /); ein ungueltiger Eintrag verwirft die ganze Liste.</string>
+      <string id="massListMin">Schwelle Kundenliste</string>
+      <string id="massListMin_help">Mindestzahl verschiedener Eintraege (Mailadressen, Telefonnummern, IBANs oder Zeilen einer Tabelle mit Vor-/Nachname-Spalte), ab der ein Text als Kundenliste/Export gilt (Datentyp mass_list, Paket context). Gleiche Werte zaehlen einmal. Erlaubt 3-1000, Standard 10; Werte ausserhalb bleiben beim Standard.</string>
+      <string id="tableScan">Tabellen-Erkennung</string>
+      <string id="tableScan_help">Bei true (Standard) gelten eingefuegte oder hochgeladene Tabellen (TSV/CSV, Markdown, HTML, JSON, XLSX) mit vielen Personenzeilen als Massenleck, auch ohne einzelne Nummern (Spaltenkoepfe und Wertformen; Datentypen mass_list und mass_table).</string>
+      <string id="tableMinRows">Tabellen: Mindestzahl Zeilen</string>
+      <string id="tableMinRows_help">Ab so vielen Datenzeilen gilt eine Tabelle mit Personendaten als Massenleck. Erlaubt 3-1000, Standard 10; Werte ausserhalb bleiben beim Standard.</string>
+      <string id="tableMinColumns">Tabellen: Mindestzahl heikler Spalten</string>
+      <string id="tableMinColumns_help">So viele heikle Spalten (Name, E-Mail, Telefon, Geburtsdatum, Adresse, Lohn, Diagnose ...) braucht eine Tabelle, mindestens eine davon identifizierend. Erlaubt 1-10, Standard 2.</string>
+      <string id="tableRedaction">Tabellen: Schwaerzen</string>
+      <string id="tableRedaction_help">columns (Standard) = nur die Zellen der heiklen Spalten ersetzen; rows = zusaetzlich nach Kopf und 3 Zeilen kuerzen (auch dort heikle Zellen geschwaerzt).</string>
+      <string id="tableRedaction_columns">columns</string>
+      <string id="tableRedaction_rows">rows</string>
+      <string id="deobfuscation">Verschleierte Daten erkennen</string>
+      <string id="deobfuscation_help">Bei true (Standard) prueft die Erweiterung auch Varianten des Textes: unsichtbare Zeichen, Vollbreite/Doppelgaenger, Trennzeichen zwischen Ziffern, ausgeschriebene Ziffern, rueckwaerts, Base64/Hex/URL-Kodierung sowie ueber mehrere Nachrichten verteilte Teile (nur fluechtig im Speicher).</string>
+      <string id="allowRephrase">Sicher umformulieren erlauben</string>
+      <string id="allowRephrase_help">Bei true (Standard) bietet die Meldung den Knopf &quot;Sicher umformulieren&quot;: heikle Details werden lokal durch allgemeine Beschreibungen ersetzt, die Frage bleibt gleich; Vorschau im Eingabefeld, Rueckgaengig moeglich.</string>
+      <string id="identityMinParts">Identitaet: noetige Teile</string>
+      <string id="identityMinParts_help">Ab wie vielen Teilen Name + Geburtsdatum als Identitaet gelten (Datentyp identity_combo, Paket context): 2 = Name und Geburtsdatum, 3 = dazu Adresse, Telefon, Mail oder Ausweisnummer (Standard), 4 = dazu zwei davon. Erlaubt 2-4; Werte ausserhalb bleiben beim Standard.</string>
+      <string id="competenceHideSensitive">KI-Kompetenz-Nachweis: sensible Gruppen immer ausblenden</string>
+      <string id="competenceHideSensitive_help">Bei true zeigt der Nachweis die Gruppen Gesundheit, Personendaten und nationale ID nie (Benutzer koennen sie nicht einblenden). Zahlen je Person zu Gesundheit oder Gesinnung koennten sonst eine Mitarbeiterueberwachung ermoeglichen. Standard: false (Benutzer entscheiden).</string>
+      <string id="complianceReport">Nachweis-Bericht</string>
+      <string id="complianceReport_help">Bei true (Standard) kann jede Person einen lokalen Bericht nur mit Zahlen oeffnen (Treffer nach Datentyp, KI-Seite und Aktion, aktive Regeln) samt Zuordnung zu Gesetzen und Normen, ihn drucken oder als HTML-Datei herunterladen. Die Erweiterung legt nie selbst Dateien ab. Exportierte Dateien nur mit eigenen Werkzeugen einsammeln, mit scripts/bericht-sammeln.mjs zusammenzaehlen, die einzelnen Dateien danach loeschen, die Zahlen nur als Nachweis verwenden (nicht zur Leistungs- oder Verhaltenskontrolle, Art. 26 ArGV 3) und die Mitarbeitenden vorher informieren (Art. 19 revDSG) und anhoeren (Art. 48 ArG). Bei false zeigt die Berichtsseite nur einen Hinweis.</string>
+      <string id="complianceFrameworks">Nachweis-Bericht: Vorlagen</string>
+      <string id="complianceFrameworks_help">Zuordnungen im Bericht, fuer Benutzer fest: revdsg (Schweiz revDSG), dsgvo (EU-DSGVO), hipaa (USA HIPAA), euaiact (EU AI Act Art. 4), iso27001 (ISO/IEC 27001:2022 Anhang A). Ein unbekannter Wert verwirft die Liste (Standard: alle).</string>
+      <string id="trainingAmpel">Training-Ampel</string>
+      <string id="trainingAmpel_help">Bei true (Standard) zeigt das Symbol der Erweiterung auf bekannten KI-Seiten, ob Eingaben standardmaessig zum Training der Modelle genutzt werden (gruen = nein, gelb = teils oder unklar, rot = ja), mit der Kontoart aus accountRules; das Popup erklaert es und fuehrt zur Opt-out-Einstellung des Anbieters. Die Angaben sind mitgeliefert (Herstellerquelle und Stand je Seite), es wird nichts nachgeladen. Bei false keine Ampel und kein Abschnitt im Popup.</string>
+      <string id="complianceReportDays">Nachweis-Bericht: Zeitraum in Tagen</string>
+      <string id="complianceReportDays_help">Zeitraum des Berichts, fuer Benutzer fest: 7, 30 oder 90 Tage. Andere Werte bleiben beim Standard 30.</string>
+      <string id="reportingUrl">Berichts-URL (reserviert)</string>
+      <string id="reportingUrl_help">Reserviert fuer einen spaeteren Berichts-Endpunkt (z. B. CIPP). Diese Version nutzt den Wert nicht und hat keinen Netzwerkzugriff.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="branding">
+        <textBox refId="branding_productName">
+          <label>Produktname</label>
+        </textBox>
+        <textBox refId="branding_companyName">
+          <label>Firmenname</label>
+        </textBox>
+        <textBox refId="branding_logo">
+          <label>Logo</label>
+        </textBox>
+        <textBox refId="branding_primaryColor">
+          <label>Primaerfarbe</label>
+        </textBox>
+        <textBox refId="branding_accentColor">
+          <label>Akzentfarbe</label>
+        </textBox>
+        <textBox refId="branding_supportUrl">
+          <label>Support-Link</label>
+        </textBox>
+        <textBox refId="branding_supportText">
+          <label>Support-Text</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeText">
+          <label>Hinweistext KI-Seiten</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeUrl">
+          <label>Link KI-Seiten-Hinweis</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeLinkText">
+          <label>Knopftext KI-Seiten-Hinweis</label>
+        </textBox>
+      </presentation>
+      <presentation id="language">
+        <dropdownList refId="language" noSort="true">Sprache</dropdownList>
+      </presentation>
+      <presentation id="countryPacks">
+        <listBox refId="countryPacks">Laenderpakete</listBox>
+      </presentation>
+      <presentation id="globalPacks">
+        <listBox refId="globalPacks">Globale Pakete</listBox>
+      </presentation>
+      <presentation id="rules">
+        <listBox refId="rules">Regeln je Datentyp</listBox>
+      </presentation>
+      <presentation id="detection">
+        <dropdownList refId="detection" noSort="true">Erkennung</dropdownList>
+      </presentation>
+      <presentation id="uncertainFindings">
+        <dropdownList refId="uncertainFindings" noSort="true">Unsichere Funde</dropdownList>
+      </presentation>
+      <presentation id="allowedSites">
+        <listBox refId="allowedSites">Erlaubte KI-Seiten</listBox>
+      </presentation>
+      <presentation id="aiSiteMode">
+        <dropdownList refId="aiSiteMode" noSort="true">KI-Seiten-Kontrolle</dropdownList>
+      </presentation>
+      <presentation id="allowedAiSites">
+        <listBox refId="allowedAiSites">Freigegebene KI-Seiten</listBox>
+      </presentation>
+      <presentation id="blockedAiSites">
+        <listBox refId="blockedAiSites">Gesperrte KI-Seiten</listBox>
+      </presentation>
+      <presentation id="suggestedAiSite">
+        <textBox refId="suggestedAiSite">
+          <label>Vorgeschlagene freigegebene KI</label>
+        </textBox>
+      </presentation>
+      <presentation id="answerCheck">
+        <dropdownList refId="answerCheck" noSort="true">KI-Antworten pruefen</dropdownList>
+      </presentation>
+      <presentation id="sensitiveSources">
+        <listBox refId="sensitiveSources">Vertrauliche Quellen (Zwischenablage)</listBox>
+      </presentation>
+      <presentation id="sensitiveSourceAction">
+        <dropdownList refId="sensitiveSourceAction" noSort="true">Einfuegen aus vertraulichen Quellen</dropdownList>
+      </presentation>
+      <presentation id="hiddenInstructionAction">
+        <dropdownList refId="hiddenInstructionAction" noSort="true">Aktion bei versteckten Anweisungen</dropdownList>
+      </presentation>
+      <presentation id="formGuardSites">
+        <listBox refId="formGuardSites">Formularwache: Seiten</listBox>
+      </presentation>
+      <presentation id="voiceMode">
+        <dropdownList refId="voiceMode" noSort="true">Sprachmodus auf KI-Seiten</dropdownList>
+      </presentation>
+      <presentation id="documentFingerprints">
+        <textBox refId="documentFingerprints_salt">
+          <label>Salz</label>
+        </textBox>
+        <decimalTextBox refId="documentFingerprints_shingle" defaultValue="8">Woerter je Fingerabdruck</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_sample" defaultValue="4">Ausduennung</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_minMatches" defaultValue="4">Mindestzahl Treffer</decimalTextBox>
+        <dropdownList refId="documentFingerprints_action" noSort="true">Aktion</dropdownList>
+        <listBox refId="documentFingerprints_data">Fingerabdruck-Daten</listBox>
+      </presentation>
+      <presentation id="accountRules">
+        <listBox refId="accountRules_chatgpt_workspaces">ChatGPT: Workspace-Namen</listBox>
+        <listBox refId="accountRules_chatgpt_markers">ChatGPT: Kennzeichen</listBox>
+        <dropdownList refId="accountRules_chatgpt_business" noSort="true">ChatGPT: Firmenkonto</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_personal" noSort="true">ChatGPT: Privatkonto</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_unknown" noSort="true">ChatGPT: Konto nicht erkannt</dropdownList>
+        <listBox refId="accountRules_claude_workspaces">Claude: Workspace-Namen</listBox>
+        <listBox refId="accountRules_claude_markers">Claude: Kennzeichen</listBox>
+        <dropdownList refId="accountRules_claude_business" noSort="true">Claude: Firmenkonto</dropdownList>
+        <dropdownList refId="accountRules_claude_personal" noSort="true">Claude: Privatkonto</dropdownList>
+        <dropdownList refId="accountRules_claude_unknown" noSort="true">Claude: Konto nicht erkannt</dropdownList>
+        <listBox refId="accountRules_copilot_workspaces">Microsoft Copilot (copilot.com): Workspace-Namen</listBox>
+        <listBox refId="accountRules_copilot_markers">Microsoft Copilot (copilot.com): Kennzeichen</listBox>
+        <dropdownList refId="accountRules_copilot_business" noSort="true">Microsoft Copilot (copilot.com): Firmenkonto</dropdownList>
+        <dropdownList refId="accountRules_copilot_personal" noSort="true">Microsoft Copilot (copilot.com): Privatkonto</dropdownList>
+        <dropdownList refId="accountRules_copilot_unknown" noSort="true">Microsoft Copilot (copilot.com): Konto nicht erkannt</dropdownList>
+        <listBox refId="accountRules_m365copilot_workspaces">Microsoft 365 Copilot: Workspace-Namen</listBox>
+        <listBox refId="accountRules_m365copilot_markers">Microsoft 365 Copilot: Kennzeichen</listBox>
+        <dropdownList refId="accountRules_m365copilot_business" noSort="true">Microsoft 365 Copilot: Firmenkonto</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_personal" noSort="true">Microsoft 365 Copilot: Privatkonto</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_unknown" noSort="true">Microsoft 365 Copilot: Konto nicht erkannt</dropdownList>
+      </presentation>
+      <presentation id="dictionary">
+        <textBox refId="dictionary_salt">
+          <label>Salz</label>
+        </textBox>
+        <listBox refId="dictionary_hashes">Pruefsummen</listBox>
+      </presentation>
+      <presentation id="customTerms">
+        <textBox refId="customTerms_salt">
+          <label>Salz</label>
+        </textBox>
+        <listBox refId="customTerms_hashes">Pruefsummen</listBox>
+      </presentation>
+      <presentation id="customPatterns">
+        <listBox refId="customPatterns">Eigene Erkennungsmuster</listBox>
+      </presentation>
+      <presentation id="labelNames">
+        <listBox refId="labelNames">Eigene Label-Namen</listBox>
+      </presentation>
+      <presentation id="massListMin">
+        <decimalTextBox refId="massListMin" defaultValue="10">Schwelle Kundenliste</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinRows">
+        <decimalTextBox refId="tableMinRows" defaultValue="10">Tabellen: Mindestzahl Zeilen</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinColumns">
+        <decimalTextBox refId="tableMinColumns" defaultValue="2">Tabellen: Mindestzahl heikler Spalten</decimalTextBox>
+      </presentation>
+      <presentation id="tableRedaction">
+        <dropdownList refId="tableRedaction" noSort="true">Tabellen: Schwaerzen</dropdownList>
+      </presentation>
+      <presentation id="identityMinParts">
+        <decimalTextBox refId="identityMinParts" defaultValue="3">Identitaet: noetige Teile</decimalTextBox>
+      </presentation>
+      <presentation id="complianceFrameworks">
+        <listBox refId="complianceFrameworks">Nachweis-Bericht: Vorlagen</listBox>
+      </presentation>
+      <presentation id="complianceReportDays">
+        <decimalTextBox refId="complianceReportDays" defaultValue="30">Nachweis-Bericht: Zeitraum in Tagen</decimalTextBox>
+      </presentation>
+      <presentation id="reportingUrl">
+        <textBox refId="reportingUrl">
+          <label>Berichts-URL (reserviert)</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>
