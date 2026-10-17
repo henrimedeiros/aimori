@@ -163,7 +163,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   step('Lokale KI', ['scripts/build-ki.mjs']);
   step('Pruefung (npm run check)', ['scripts/check.mjs']);
   const tests = fs.readdirSync(path.join(ROOT, 'tests')).filter((f) => f.endsWith('.test.mjs')).sort().map((f) => `tests/${f}`);
-  step(`Tests (${tests.length} Dateien)`, ['--test', '--test-concurrency=8', ...tests]);
+  step(`Tests (${tests.length} Dateien)`, ['--test', '--test-concurrency=4', ...tests]);
 
   console.log('\n== Paket');
   const names = collect();
