@@ -1,7 +1,7 @@
 # Privacy Policy – AImori
 
-Effective date: `<DATUM-DER-VEROEFFENTLICHUNG>`
-Publisher: `<NAME-ODER-ORGANISATION>`, contact: `<KONTAKT-EMAIL>`
+Effective date: 18 October 2026
+Publisher: the AImori project, https://github.com/henrimedeiros/aimori. Contact: GitHub issues (https://github.com/henrimedeiros/aimori/issues), for security matters a private advisory (https://github.com/henrimedeiros/aimori/security/advisories/new).
 
 AImori is a browser extension that checks text, pasted content and images you enter on AI sites for sensitive data. **All checks run locally in your browser.** AImori has no server and no network access (the extension's content security policy sets `connect-src 'none'`, and tests enforce that the code contains no network calls).
 
@@ -40,11 +40,11 @@ AImori is not directed at children and does not knowingly process children's dat
 
 ## Changes
 
-Changes to this policy are published in the source repository (`<GITHUB-REPO-URL>`) and take effect with the next extension version.
+Changes to this policy are published in the source repository (https://github.com/henrimedeiros/aimori) and take effect with the next extension version.
 
 ## Contact
 
-Questions about privacy: `<KONTAKT-EMAIL>`.
+Questions about privacy: open an issue at https://github.com/henrimedeiros/aimori/issues.
 
 ---
 
@@ -58,4 +58,4 @@ AImori prüft Eingaben auf KI-Seiten **ausschliesslich lokal im Browser** auf se
 - Richtlinien Ihrer Organisation werden aus `chrome.storage.managed` gelesen.
 - Nichts davon verlässt das Gerät. Weder die Entwickler noch Ihre IT können über AImori Inhalte abrufen.
 
-Verantwortlich: `<NAME-ODER-ORGANISATION>`, Kontakt: `<KONTAKT-EMAIL>`.
+Herausgeber: Projekt AImori, https://github.com/henrimedeiros/aimori. Kontakt: GitHub Issues (https://github.com/henrimedeiros/aimori/issues), Sicherheitsthemen vertraulich über https://github.com/henrimedeiros/aimori/security/advisories/new.

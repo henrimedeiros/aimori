@@ -21,7 +21,7 @@ AImori helps against mistakes. It is not a full DLP system: desktop and mobile a
 
 ## Install
 
-- **Chrome Web Store:** `<STORE-URL>`
+- **Chrome Web Store:** link follows after the review.
 - **From source (unpacked):** `chrome://extensions` or `edge://extensions` → developer mode → "Load unpacked" → select the `extension` folder. Text recognition and the local AI model are build outputs and must be built first (see below).
 
 ## Build and test

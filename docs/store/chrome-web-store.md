@@ -21,9 +21,9 @@ Das Skript baut Texterkennung und lokale KI aus den gepinnten Quellen, erzeugt A
 | Kurzbeschreibung | aus `_locales/*/messages.json` (`extDescription`), höchstens 132 Zeichen |
 | Kategorie | Privacy & Security |
 | Sprachen | Englisch (Standard), Deutsch, Französisch, Italienisch, Portugiesisch, Spanisch |
-| Website | `<WEBSITE-URL>` oder `<GITHUB-REPO-URL>` |
-| Support | `<GITHUB-REPO-URL>/issues` |
-| Datenschutzerklärung | öffentliche URL von [PRIVACY.md](../../PRIVACY.md), z. B. `<GITHUB-REPO-URL>/blob/main/PRIVACY.md` |
+| Website | https://github.com/henrimedeiros/aimori |
+| Support | https://github.com/henrimedeiros/aimori/issues |
+| Datenschutzerklärung | öffentliche URL von [PRIVACY.md](../../PRIVACY.md), https://github.com/henrimedeiros/aimori/blob/main/PRIVACY.md |
 
 ### Ausführliche Beschreibung (Englisch)
 
@@ -57,7 +57,7 @@ For organisations
 Privacy
 Your prompts never leave your device. AImori stores only daily counters (site, category, decision) for 90 days – never your text, matches or file names.
 
-Open source under the GNU AGPL v3: <GITHUB-REPO-URL>
+Open source under the GNU AGPL v3: https://github.com/henrimedeiros/aimori
 
 AImori helps against mistakes. It is not a complete data loss prevention system: desktop and mobile apps of AI providers and deliberately disguised data are not covered.
 ```
@@ -94,7 +94,7 @@ Für Unternehmen
 Datenschutz
 Deine Prompts verlassen dein Gerät nie. AImori speichert nur Tageszähler (Seite, Kategorie, Entscheidung) für 90 Tage – nie Texte, Funde oder Dateinamen.
 
-Open Source unter der GNU AGPL v3: <GITHUB-REPO-URL>
+Open Source unter der GNU AGPL v3: https://github.com/henrimedeiros/aimori
 
 AImori hilft gegen Versehen. Es ist kein vollständiges DLP-System: Desktop- und Handy-Apps der KI-Anbieter und absichtlich verschleierte Daten sind nicht abgedeckt.
 ```

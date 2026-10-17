@@ -6,8 +6,7 @@ AImori protects sensitive data, so we take security reports seriously.
 
 Please **do not open a public issue** for security problems. Report them privately instead:
 
-- GitHub: "Report a vulnerability" (private security advisory) in this repository, or
-- e-mail: `<KONTAKT-EMAIL>`
+Use GitHub's "Report a vulnerability" (private security advisory): https://github.com/henrimedeiros/aimori/security/advisories/new
 
 Please include the affected version, the browser and version, steps to reproduce and the impact you expect. Use only synthetic test data (for example official sample IBANs), never real personal or customer data.
 
@@ -34,4 +33,4 @@ Only the latest version published in the Chrome Web Store receives security fixe
 
 # Sicherheitsrichtlinie (Deutsch)
 
-Sicherheitslücken bitte **nicht als öffentliches Issue** melden, sondern vertraulich über „Report a vulnerability“ in diesem Repository oder per E-Mail an `<KONTAKT-EMAIL>`. Bitte Version, Browser, Schritte zum Nachstellen und erwartete Auswirkung angeben und nur synthetische Testdaten verwenden. Wir bestätigen Meldungen innerhalb von 7 Tagen und stimmen den Veröffentlichungstermin mit Ihnen ab.
+Sicherheitslücken bitte **nicht als öffentliches Issue** melden, sondern vertraulich über „Report a vulnerability“ in diesem Repository (https://github.com/henrimedeiros/aimori/security/advisories/new). Bitte Version, Browser, Schritte zum Nachstellen und erwartete Auswirkung angeben und nur synthetische Testdaten verwenden. Wir bestätigen Meldungen innerhalb von 7 Tagen und stimmen den Veröffentlichungstermin mit Ihnen ab.
