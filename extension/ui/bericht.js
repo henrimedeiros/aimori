@@ -33,7 +33,7 @@
   const days = h('select', { id: 'dlx-ber-tage', disabled: st.lockedDays }, B.DAYS.map((d) => h('option', { value: String(d), selected: d === st.days }, T('days', { n: d }))));
   const fwBoxes = B.FRAMEWORKS.map((f) => {
     const box = h('input', { type: 'checkbox', 'data-fw': f, checked: st.frameworks.indexOf(f) !== -1, disabled: st.lockedFrameworks });
-    return { f, box, label: h('label', { class: 'dlx-ber-fw' }, box, ' ', B.FW[f].name[lang]) };
+    return { f, box, label: h('label', { class: 'dlx-chip dlx-ber-fw' }, box, B.FW[f].name[lang]) };
   });
   const out = h('div', { id: 'dlx-ber-inhalt' });
   const kopf = h('dl', { class: 'dlx-rec-kopf' });
@@ -51,10 +51,21 @@
       ...(b.companyName ? [h('dt', null, T('org')), h('dd', null, b.companyName)] : []),
       h('dt', null, T('period')), h('dd', null, sum.from + ' – ' + sum.to),
       h('dt', null, T('created')), h('dd', null, created));
-    out.replaceChildren(...B.model(d, lang, { catName }).map((x) => (x.k === 'table'
-      ? h('table', { class: 'dlx-tabelle dlx-rec' }, h('tr', null, x.head.map((c, i) => h('th', { class: i ? 'dlx-zahl' : null }, c))),
-        x.rows.map((r) => h('tr', null, r.map((c, i) => h('td', { class: i ? 'dlx-zahl' : null }, c)))))
-      : h(x.k, null, x.text))));
+    out.replaceChildren(...B.model(d, lang, { catName }).map(block));
+  }
+  // Zahlenspalten rechtsbuendig, Textspalten (Anforderung, Massnahme, Beleg) links. Eine Zeile nur aus
+  // Zahlen (Treffer nach Aktion) als Kennzahl-Kacheln; die letzte Spalte ist dort die Summe.
+  const NUM = /^[\d\s.,'’  ]+$/;
+  function block(x) {
+    if (x.k !== 'table') return h(x.k, null, x.text);
+    const num = x.head.map((_, i) => x.rows.length > 0 && x.rows.every((r) => NUM.test(String(r[i]))));
+    if (x.rows.length === 1 && num.every(Boolean)) {
+      return h('dl', { class: 'dlx-kennzahlen dlx-rec' }, x.head.map((c, i) => h('div', { class: 'dlx-kennzahl' + (i === x.head.length - 1 ? ' dlx-summe' : '') },
+        h('dt', null, c), h('dd', null, x.rows[0][i]))));
+    }
+    const cls = (i) => (num[i] ? 'dlx-zahl' : null);
+    return h('table', { class: 'dlx-tabelle dlx-rec' + (num.some(Boolean) ? '' : ' dlx-rec-text') }, h('tr', null, x.head.map((c, i) => h('th', { class: cls(i) }, c))),
+      x.rows.map((r) => h('tr', null, r.map((c, i) => h('td', { class: cls(i) }, c)))));
   }
   days.addEventListener('change', render);
   for (const x of fwBoxes) x.box.addEventListener('change', render);
@@ -75,9 +86,10 @@
   });
 
   main.append(kopf,
-    h('div', { class: 'dlx-nicht-drucken dlx-feld' }, h('label', null, T('period'), ' ', days), st.lockedDays ? h('span', { class: 'dlx-muted' }, ' ' + T('locked')) : null),
-    h('fieldset', { class: 'dlx-nicht-drucken dlx-feld' }, h('legend', null, T('framework')), fwBoxes.map((x) => x.label),
-      st.lockedFrameworks ? h('p', { class: 'dlx-muted' }, T('locked')) : null),
+    h('section', { class: 'dlx-abschnitt dlx-rec-wahl dlx-nicht-drucken' },
+      h('div', { class: 'dlx-feld' }, h('label', null, T('period'), days), st.lockedDays ? h('span', { class: 'dlx-muted' }, T('locked')) : null),
+      h('fieldset', null, h('legend', null, T('framework')), fwBoxes.map((x) => x.label),
+        st.lockedFrameworks ? h('p', { class: 'dlx-muted' }, T('locked')) : null)),
     out, h('p', { class: 'dlx-muted dlx-rec-hinweis', id: 'dlx-ber-hinweis' }, T('note')),
     h('div', { class: 'dlx-aktionen dlx-nicht-drucken' }, print, dl));
   render();

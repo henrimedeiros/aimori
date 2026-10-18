@@ -696,6 +696,8 @@ async function kierkennung() {
   await closeDialogs();
   T.close();
   fs.writeFileSync(stueck, orig);
+  // Zustand wie frisch geladen: nach 2 Fehlern laedt die Erweiterung sonst bis zum Neustart nie mehr (Schritt kiseite).
+  await swEval(`(async () => { kiReady = false; await chrome.storage.session.remove('kiStatus'); kiPreload(); return 'ok'; })()`);
 
   await sleep(500);
   wache.close();

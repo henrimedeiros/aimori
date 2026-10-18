@@ -27,7 +27,7 @@
 
   const store = K.clean(st.store);
   const months = st.months.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m));
-  const name = h('input', { type: 'text', autocomplete: 'off', spellcheck: 'false', class: 'dlx-rec-name', 'aria-label': T('recName'), placeholder: T('recName') });
+  const name = h('input', { type: 'text', autocomplete: 'off', spellcheck: 'false', class: 'dlx-rec-name', 'aria-label': T('recName') });
   const hide = h('input', { type: 'checkbox', id: 'dlx-rec-hide' });
   // Richtlinie competenceHideSensitive: sensible Gruppen immer aus (Design-Review Kontext, Auflage 5).
   if (st.hideSensitive) { hide.checked = true; hide.disabled = true; }

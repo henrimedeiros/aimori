@@ -119,8 +119,8 @@
     sel.dataset.pack = pack;
     groups.get(pack).push(h('tr', null, h('td', null, DLX.i18n.typeName(lang, id)), h('td', null, lockNote(isLocked), ' ', sel)));
   }
-  // Reihenfolge wie die Chips oben: globale Pakete, Laender, zuletzt Firmen- und eigene Begriffe.
-  const order = DLX.policy.GLOBAL.map((p) => T('pack_' + p)).concat(DLX.policy.COUNTRY.map(region), T('dictGroup'), T('termGroup'));
+  // Reihenfolge wie die Chips oben: globale Pakete, lokale KI und Bilder, Laender, zuletzt Firmen- und eigene Begriffe.
+  const order = DLX.policy.GLOBAL.map((p) => T('pack_' + p)).concat(T('pack_ki'), T('pack_bild'), DLX.policy.COUNTRY.map(region), T('dictGroup'), T('termGroup'));
   const sorted = Array.from(groups).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
   // Alle Gruppen zu; die Marke zeigt den Stand ("5 Warnen", "3 Warnen · 2 Blockieren").
   const ruleGroups = sorted.map(([pack, rows]) => h('details', { class: 'dlx-gruppe-auf', 'data-pack': pack },

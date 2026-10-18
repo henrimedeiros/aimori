@@ -24,6 +24,53 @@ button, select, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 select:focus-visible, input:focus-visible, textarea:focus-visible { outline-offset: 1px; border-radius: var(--r1); }
 
+/* Formular-Bausteine (18.10.2026): Haken, Auswahl und Textfelder im Stil der Knoepfe statt Browser-Standard.
+   Haken: abgerundetes Quadrat, angehakt im Hauptknopf-Verlauf (Whitelabel ueber --dlx-haupt-grund/--dlx-brand-ink);
+   Auswahl und Textfelder: Pill, deckende Flaeche, feiner Rand, Marken-Ring beim Fokus. */
+input[type="checkbox"] {
+  appearance: none; display: inline-grid; place-content: center; flex: none; width: 18px; height: 18px; margin: 0;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 32%, transparent); border-radius: 6px; background: var(--flaeche); vertical-align: -4px; cursor: pointer;
+  transition: background-color var(--dauer-hover) var(--ease-out), border-color var(--dauer-hover) var(--ease-out), box-shadow var(--dauer-hover) var(--ease-out);
+}
+input[type="checkbox"]::after {
+  content: ""; width: 5px; height: 9px; margin-top: -2px; border: solid var(--dlx-brand-ink); border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0); transition: transform var(--dauer-hover) var(--ease-out);
+}
+input[type="checkbox"]:hover:not(:disabled) { border-color: color-mix(in srgb, var(--marke-1) 55%, var(--knopf-rand)); }
+input[type="checkbox"]:checked { border-color: transparent; background: var(--dlx-haupt-grund); box-shadow: var(--haupt-kante); }
+input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
+input[type="checkbox"]:disabled { opacity: 0.5; cursor: default; }
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+@media (forced-colors: active) { input[type="checkbox"] { appearance: auto; } }
+
+select {
+  appearance: none; height: 38px; max-width: 100%; padding: 0 38px 0 14px; border: 1px solid var(--knopf-rand); border-radius: var(--pill);
+  background-color: var(--flaeche); color: var(--ink); font-size: var(--fs-small); font-weight: 500; cursor: pointer;
+  /* Pfeil aus zwei Strichen (Verlaeufe, kein Bild): wie der Pfeil des eigenen Auswahlfelds */
+  background-image: linear-gradient(45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  background-size: 6px 6px; background-repeat: no-repeat; background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%;
+  transition: border-color var(--dauer-hover) var(--ease-out), box-shadow var(--dauer-hover) var(--ease-out);
+}
+select:focus-visible { border-radius: var(--pill); }
+@media (forced-colors: active) { select { appearance: auto; padding-right: 10px; background-image: none; } }
+.dlx-quelle-feld, .dlx-rec-name {
+  height: 38px; padding: 0 14px; border: 1px solid var(--knopf-rand); border-radius: var(--pill); background: var(--flaeche); color: var(--ink); font-size: var(--fs-small);
+  transition: border-color var(--dauer-hover) var(--ease-out), box-shadow var(--dauer-hover) var(--ease-out);
+}
+.dlx-quelle-feld::placeholder, .dlx-rec-name::placeholder, textarea::placeholder { color: var(--muted); }
+select:hover:not(:disabled), .dlx-quelle-feld:hover:not(:disabled), .dlx-rec-name:hover, .dlx-suche:hover, textarea.dlx-begriffe:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--marke-1) 45%, var(--knopf-rand));
+}
+select:focus-visible, .dlx-quelle-feld:focus-visible, .dlx-rec-name:focus-visible, .dlx-suche:focus-visible, textarea.dlx-begriffe:focus-visible {
+  outline: 2px solid transparent; border-color: var(--marke-1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--marke-1) 25%, transparent);
+}
+.dlx-quelle-feld:focus-visible, .dlx-rec-name:focus-visible, .dlx-suche:focus-visible { border-radius: var(--pill); }
+select:disabled, input:disabled, textarea:disabled { opacity: 0.6; cursor: default; }
+/* Gruppen (Fieldset) ohne Browser-Rahmen, Titel wie die Zwischentitel der Einstellungen */
+fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+legend { padding: 0; margin-bottom: var(--s2); color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; }
+
 /* Signet und Wortmarke (Markenvorgabe: "AI" abgesetzt, auf Dunkel im Verlauf) */
 .dlx-signet { display: block; flex: none; }
 .dlx-logo { width: 28px; height: 28px; flex: none; border-radius: 6px; }
@@ -260,14 +307,12 @@ body.dlx-options { min-height: 100vh; background: var(--buehne), var(--bg); back
 .dlx-quellen { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s3) 0; padding: 0; list-style: none; font-size: var(--fs-small); }
 .dlx-quellen li { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .dlx-quellen code { font-family: var(--mono); font-size: var(--fs-small); }
-.dlx-quelle-feld { flex: 1 1 260px; min-width: 0; height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--pill); background: var(--surface); color: var(--ink); font-size: var(--fs-small); }
-.dlx-quelle-feld::placeholder { color: var(--muted); }
+.dlx-quelle-feld { flex: 1 1 260px; min-width: 0; height: 44px; }
 .dlx-abschnitt > p.dlx-chips { align-items: center; margin: var(--s2) 0; color: var(--muted); font-size: var(--fs-small); }
 .dlx-keine-treffer { padding: var(--s5); text-align: center; }
 .dlx-feld-name { min-width: 120px; color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; }
 .dlx-abschnitt .dlx-feld + .dlx-feld { margin-top: var(--s3); }
-.dlx-abschnitt label { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-small); }
-.dlx-abschnitt input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.dlx-abschnitt label { display: inline-flex; align-items: center; gap: 10px; font-size: var(--fs-small); cursor: pointer; }
 
 /* Statuskarte: drei Kacheln; Zustand immer mit Icon und Text, nie nur Farbe */
 .dlx-statusblock { padding: var(--s5); }
@@ -305,11 +350,16 @@ body.dlx-options { min-height: 100vh; background: var(--buehne), var(--bg); back
 .dlx-gruppe + .dlx-gruppe { margin-top: var(--s4); }
 .dlx-gruppe h3 { margin: 0 0 var(--s2); font-size: var(--fs-small); color: var(--ink-2); }
 .dlx-chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.dlx-chip { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: var(--r1); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: var(--fs-small); cursor: pointer; }
-.dlx-chip input { margin: 0; accent-color: var(--accent); }
-select { height: 38px; padding: 0 10px; border-radius: var(--r1); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: var(--fs-small); }
-select:disabled, input:disabled { opacity: 0.6; }
-textarea.dlx-begriffe { display: block; width: 100%; box-sizing: border-box; min-height: 88px; padding: 8px 10px; border-radius: var(--r1); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-small); resize: vertical; }
+/* Chips als Pills (wie die Knoepfe); angehakt mit Marken-Tönung, gesperrt ohne Hover */
+.dlx-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 14px 6px 10px; border: 1px solid var(--knopf-rand); border-radius: var(--pill); background: var(--flaeche); color: var(--ink-2); font-size: var(--fs-small); line-height: 1.3; cursor: pointer;
+  transition: background-color var(--dauer-hover) var(--ease-out), border-color var(--dauer-hover) var(--ease-out), color var(--dauer-hover) var(--ease-out); }
+.dlx-chip:hover:not(:has(input:disabled)) { border-color: color-mix(in srgb, var(--marke-1) 45%, var(--knopf-rand)); color: var(--ink); }
+.dlx-chip:has(input:checked) { border-color: color-mix(in srgb, var(--marke-1) 40%, var(--knopf-rand)); background: var(--accent-soft); color: var(--ink); }
+.dlx-chip:has(input:disabled) { cursor: default; }
+.dlx-chip:has(input:disabled:not(:checked)) { color: var(--muted); }
+.dlx-chip:has(input:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--marke-1) 25%, transparent); }
+textarea.dlx-begriffe { display: block; width: 100%; box-sizing: border-box; min-height: 96px; padding: 10px 14px; border-radius: var(--r2); border: 1px solid var(--knopf-rand); background: var(--flaeche); color: var(--ink); font: inherit; font-size: var(--fs-small); resize: vertical;
+  transition: border-color var(--dauer-hover) var(--ease-out), box-shadow var(--dauer-hover) var(--ease-out); }
 .dlx-lock { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: var(--fs-tiny); }
 .dlx-tabelle { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
 .dlx-tabelle th { text-align: left; font-weight: 600; color: var(--muted); font-size: var(--fs-tiny); padding: 0 8px 8px 0; border-bottom: 1px solid var(--line); }
@@ -317,18 +367,57 @@ textarea.dlx-begriffe { display: block; width: 100%; box-sizing: border-box; min
 .dlx-tabelle tr:last-child td { border-bottom: 0; }
 .dlx-tabelle td:last-child, .dlx-tabelle th:last-child { text-align: right; padding-right: 0; }
 .dlx-tabelle .dlx-zahl { text-align: right; }
-/* Erklaerseite und KI-Kompetenz-Nachweis (druckbar) */
-.dlx-wissen { max-width: 760px; margin: 0 auto; padding: var(--s5); display: flex; flex-direction: column; gap: var(--s4); }
-.dlx-wissen h1 { margin: 0; }
-.dlx-rec-kopf { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+.dlx-tabelle td.dlx-zahl { white-space: nowrap; }
+/* Erklaerseite, Bericht und KI-Kompetenz-Nachweis (druckbar) */
+.dlx-wissen { max-width: 820px; margin: 0 auto; padding: var(--s6) var(--s5) var(--s8); display: flex; flex-direction: column; gap: var(--s4); }
+.dlx-wissen h1 { margin: 0; font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.25rem); font-weight: 700; letter-spacing: -0.045em; line-height: 1.08; }
+.dlx-wissen > h2 { margin: var(--s4) 0 0; font-size: var(--fs-h3); }
+/* Kopf der Einzelseiten auf die Breite des Inhalts */
+body:has(.dlx-wissen) .dlx-opt-kopf > div { max-width: 820px; padding: var(--s3) var(--s5); }
+.dlx-wissen .dlx-abschnitt h2 a { color: var(--ink); text-decoration: none; }
+.dlx-wissen .dlx-abschnitt h2 a::after { content: "\2192" / ""; display: inline-block; margin-left: 8px; color: var(--accent); transition: transform var(--dauer-hover) var(--ease-out); }
+.dlx-wissen .dlx-abschnitt h2 a:hover { color: var(--accent); }
+.dlx-wissen .dlx-abschnitt h2 a:hover::after { transform: translateX(3px); }
+.dlx-wissen .dlx-abschnitt > p + p, .dlx-wissen .dlx-abschnitt > h3 { margin-top: var(--s2); }
+.dlx-wissen .dlx-abschnitt > h3.dlx-unter { margin-top: var(--s4); }
+.dlx-rec-kopf { display: grid; grid-template-columns: max-content 1fr; align-items: center; gap: 8px 20px; margin: 0; font-size: var(--fs-small); }
 .dlx-rec-kopf dt { color: var(--muted); }
-.dlx-rec-kopf dd { margin: 0; }
+.dlx-rec-kopf dd { margin: 0; font-weight: 500; }
 .dlx-rec-name { width: 100%; max-width: 360px; }
-.dlx-rec { margin-bottom: var(--s4); }
-.dlx-rec .dlx-summe td { font-weight: 600; }
+/* Auswahl ueber dem Bericht (Zeitraum, Vorlagen): eine Karte, nicht gedruckt */
+.dlx-rec-wahl { display: flex; flex-direction: column; gap: var(--s4); }
+.dlx-wissen label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.dlx-rec-wahl .dlx-feld > label { gap: var(--s3); color: var(--ink-2); font-weight: 600; }
+.dlx-rec-wahl fieldset { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dlx-rec-wahl legend { float: left; width: 100%; }
+/* Berichtstabellen als Karte: Kopfzeile getoent, Zahlen rechts, Text links und oben */
+.dlx-tabelle.dlx-rec { margin-bottom: var(--s2); border-collapse: separate; border-spacing: 0; border: 1px solid var(--glas-rand); border-radius: var(--r2); background: var(--flaeche); overflow: hidden; }
+.dlx-tabelle.dlx-rec th, .dlx-tabelle.dlx-rec td { padding: 10px 16px; text-align: left; }
+.dlx-tabelle.dlx-rec th { padding-top: 9px; padding-bottom: 9px; background: var(--surface); color: var(--muted); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.dlx-tabelle.dlx-rec td { vertical-align: top; }
+.dlx-tabelle.dlx-rec td:first-child { color: var(--ink); font-weight: 500; }
+.dlx-tabelle.dlx-rec .dlx-zahl { text-align: right; }
+.dlx-tabelle.dlx-rec td.dlx-zahl { font-family: var(--font-display); font-weight: 600; }
+.dlx-tabelle.dlx-rec td:not(:first-child):not(.dlx-zahl) { color: var(--ink-2); }
+/* Texttabellen (Vorlagen): feste Spaltenbreiten, damit alle Vorlagen gleich aussehen */
+.dlx-tabelle.dlx-rec { table-layout: fixed; }
+.dlx-tabelle.dlx-rec:not(.dlx-rec-text) th:first-child { width: 30%; }
+.dlx-rec-text th:first-child { width: 22%; }
+.dlx-rec-text th:last-child:not(:nth-child(2)) { width: 28%; }
+.dlx-rec .dlx-summe td { border-top: 1px solid var(--line-stark); background: var(--surface); font-weight: 650; }
+/* Kennzahlen (Treffer nach Aktion): Kacheln statt einer Zeile Zahlen */
+.dlx-kennzahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--s3); margin: 0 0 var(--s2); }
+.dlx-kennzahl { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 4px; margin: 0; padding: var(--s4); border: 1px solid var(--glas-rand); border-radius: var(--r2); background: var(--flaeche); }
+.dlx-kennzahl dt { color: var(--muted); font-size: var(--fs-tiny); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.dlx-kennzahl dd { margin: 0; font-family: var(--font-display); font-size: 2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+.dlx-kennzahl.dlx-summe { background: var(--accent-soft); border-color: color-mix(in srgb, var(--marke-1) 30%, var(--glas-rand)); }
+.dlx-rec-hinweis { padding-top: var(--s3); border-top: 1px solid var(--line); }
 @media print {
   .dlx-nicht-drucken { display: none !important; }
+  body.dlx-options { background: none; }
+  .dlx-opt-kopf { position: static; backdrop-filter: none; }
   .dlx-rec-name { border: 0; padding: 0; }
+  .dlx-tabelle.dlx-rec, .dlx-kennzahl { break-inside: avoid; }
 }
 .dlx-unter { margin: 0 0 var(--s2); font-size: var(--fs-tiny); color: var(--muted); font-weight: 600; }
 .dlx-gruppe-auf { border-top: 1px solid var(--line); }
