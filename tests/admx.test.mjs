@@ -7,12 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { ROOT, EXT, load as loadExt, ENGINE_FILES as EF } from './helpers/load.mjs';
-import { build, extensionId, NESTED_DECIMAL_DEFAULT } from '../scripts/build-admx.mjs';
+import { build, STORE_ID, NESTED_DECIMAL_DEFAULT } from '../scripts/build-admx.mjs';
 
 const ADMX_DIR = path.join(ROOT, 'enterprise', 'admx');
 const manifest = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
 const schema = JSON.parse(fs.readFileSync(path.join(EXT, 'managed_schema.json'), 'utf8'));
-const ID = extensionId(manifest);
+// Vorlagen fuer die Erweiterung aus dem Chrome Web Store (Store-ID).
+const ID = STORE_ID;
 const { files } = build();
 const WIN = process.platform === 'win32';
 

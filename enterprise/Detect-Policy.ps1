@@ -6,7 +6,7 @@
   Nur lesend. Exit 0 = vorhanden (Ausgabe "Installed"), Exit 1 = fehlt.
   Mit -RequireForcelist muss zusaetzlich ein eigener Forcelist-Eintrag vorhanden sein.
 .EXAMPLE
-  .\Detect-Policy.ps1 -ExtensionId hfgcdbigpgpdoegkhfbbbnibnkpdjkbb -Browser Edge
+  .\Detect-Policy.ps1 -ExtensionId lefajbhockjgdhaohnacgaggfepianjh -Browser Edge
 #>
 param(
   [Parameter(Mandatory = $true)][ValidatePattern('^[a-p]{32}$')][string]$ExtensionId,

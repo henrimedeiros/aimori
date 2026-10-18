@@ -2,7 +2,8 @@
 // extension/managed_schema.json. Registry-Ziel je Browser:
 //   HKLM\Software\Policies\Google\Chrome\3rdparty\extensions\<ID>\policy
 //   HKLM\Software\Policies\Microsoft\Edge\3rdparty\extensions\<ID>\policy
-// ID aus dem oeffentlichen Schluessel im Manifest (Store-ID spaeter: --id <id>).
+// ID: die Erweiterungs-ID im Chrome Web Store (STORE_ID). Fuer die entpackte Entwicklungsfassung oder ein eigenes
+// signiertes Paket: --id <id> (Entwicklungs-ID aus dem oeffentlichen Schluessel im Manifest: extensionId()).
 // Produktname aus extension/branding.js. Alle Texte werden XML-escaped (B19).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXT = path.join(ROOT, 'extension');
 const OUT = path.join(ROOT, 'enterprise', 'admx');
+
+export const STORE_ID = 'lefajbhockjgdhaohnacgaggfepianjh';
 
 export function extensionId(manifest) {
   const der = Buffer.from(manifest.key, 'base64');
@@ -254,9 +257,8 @@ function adml(b, lang, policies, product) {
 
 // Liefert { relativer Pfad: Inhalt }.
 export function build(idOverride) {
-  const manifest = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
   const schema = JSON.parse(fs.readFileSync(path.join(EXT, 'managed_schema.json'), 'utf8'));
-  const id = idOverride || extensionId(manifest);
+  const id = idOverride || STORE_ID;
   if (!/^[a-p]{32}$/.test(id)) throw new Error('invalid extension id');
   const product = productName();
   const policies = policiesFrom(schema);

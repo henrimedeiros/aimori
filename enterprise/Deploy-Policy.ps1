@@ -16,7 +16,7 @@
   Wahrheitswert = REG_DWORD 0/1, Text = REG_SZ.
 
 .EXAMPLE
-  .\Deploy-Policy.ps1 -ExtensionId hfgcdbigpgpdoegkhfbbbnibnkpdjkbb -PolicyJson .\example-policy.json -WhatIf
+  .\Deploy-Policy.ps1 -ExtensionId lefajbhockjgdhaohnacgaggfepianjh -PolicyJson .\example-policy.json -WhatIf
 .EXAMPLE
   .\Deploy-Policy.ps1 -ExtensionId <id> -PolicyJson .\policy.json -Browser Edge
 #>

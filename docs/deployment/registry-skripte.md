@@ -10,8 +10,8 @@ Ordner `enterprise/`. Windows PowerShell 5.1, als Administrator. Ausführungsric
 
 Immer zuerst mit `-WhatIf` (zeigt, was geändert würde) bzw. `-PlanOnly` (listet alle geplanten Registry-Werte, ohne Adminrechte):
 ```powershell
-.\Deploy-Policy.ps1 -ExtensionId hfgcdbigpgpdoegkhfbbbnibnkpdjkbb -PolicyJson .\example-policy.json -PlanOnly
-.\Deploy-Policy.ps1 -ExtensionId hfgcdbigpgpdoegkhfbbbnibnkpdjkbb -PolicyJson .\example-policy.json -WhatIf
+.\Deploy-Policy.ps1 -ExtensionId lefajbhockjgdhaohnacgaggfepianjh -PolicyJson .\example-policy.json -PlanOnly
+.\Deploy-Policy.ps1 -ExtensionId lefajbhockjgdhaohnacgaggfepianjh -PolicyJson .\example-policy.json -WhatIf
 ```
 
 Beispiel nur für die KI-Lenkung (freigegebene KI vorschlagen, Hinweis bzw. Sperre auf anderen KI-Seiten): `example-ki-lenkung.json`, siehe [Erlaubte KI-Tools](../ki-seiten.md#powershell-ohne-gpointune-zb-per-rmm).

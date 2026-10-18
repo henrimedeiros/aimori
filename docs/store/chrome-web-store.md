@@ -11,7 +11,7 @@ node scripts/pack-store.mjs
 
 Das Skript baut Texterkennung und lokale KI aus den gepinnten Quellen, erzeugt ADMX/ADML und Doku neu, führt `npm run check` und alle Tests aus und schreibt `dist/aimori-<version>-chrome.zip` (ohne Manifest-Feld `key`, mit `LICENSE.txt`) samt SHA-256. Bricht ein Schritt ab, wird kein Paket geschrieben.
 
-**Erste Einreichung und Erweiterungs-ID:** Die Richtlinien-Vorlagen (`enterprise/admx/`) und Beispiele nutzen die Entwicklungs-ID `hfgcdbigpgpdoegkhfbbbnibnkpdjkbb`. Soll der Store diese ID übernehmen, einmalig mit dem privaten Schlüssel packen: `node scripts/pack-store.mjs --key-pem <datei>` (die ZIP enthält dann `key.pem`, nur für diesen ersten Upload verwenden, danach löschen, nie einchecken oder weitergeben). Ohne Schlüssel vergibt der Store eine neue ID; dann die Richtlinien mit der Store-ID neu erzeugen ([Für Unternehmen](../fuer-unternehmen.md)).
+**Erste Einreichung und Erweiterungs-ID:** Eingereicht am 18.10.2026 ohne Schlüssel; der Store hat die ID `lefajbhockjgdhaohnacgaggfepianjh` vergeben. Die Richtlinien-Vorlagen (`enterprise/admx/`) und Beispiele nutzen diese Store-ID (`STORE_ID` in `scripts/build-admx.mjs`). Die entpackte Entwicklungsfassung behält ihre ID `hfgcdbigpgpdoegkhfbbbnibnkpdjkbb` aus dem Manifest-Feld `key` ([Für Unternehmen](../fuer-unternehmen.md)).
 
 ## 2. Eintrag (Store listing)
 

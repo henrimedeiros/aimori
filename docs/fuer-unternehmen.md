@@ -280,10 +280,10 @@ ID jeweils in der Store-Adresse ablesen):
 mit Pflegeaufwand):
 
 ```json
-{"*":{"installation_mode":"blocked","blocked_permissions":["debugger"]},"hfgcdbigpgpdoegkhfbbbnibnkpdjkbb":{"installation_mode":"force_installed","update_url":"<Ihre Update-URL bzw. Store-URL>"}}
+{"*":{"installation_mode":"blocked","blocked_permissions":["debugger"]},"lefajbhockjgdhaohnacgaggfepianjh":{"installation_mode":"force_installed","update_url":"https://clients2.google.com/service/update2/crx"}}
 ```
 
-- Die AImori-ID oben ist die der Entwicklungsfassung; nach einer Store-Veröffentlichung gilt die Store-ID
+- Die AImori-ID oben ist die Store-ID aus dem Chrome Web Store (gilt für Chrome und Edge)
   ([Installation](installation.md)). Ohne eigenen Eintrag sperrt `"*": blocked` auch AImori.
 - `"*": blocked` und `blocked_permissions: ["debugger"]` treffen auch legitime Erweiterungen (Passwortmanager,
   Barrierefreiheit, Entwicklerwerkzeuge). Benötigte Erweiterungen je einzeln mit `"installation_mode":"allowed"`

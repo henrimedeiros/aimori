@@ -17,10 +17,11 @@ test('Store-Manifest ohne "key", sonst unveraendert', () => {
   assert.deepEqual(m, orig);
 });
 
-test('Entwicklungs-ID aus dem Manifest-Schluessel = ID der ADMX-Pfade', () => {
+test('Entwicklungs-ID aus dem Manifest-Schluessel, ADMX-Pfade mit der Store-ID', () => {
   const id = extensionId(JSON.parse(read('extension/manifest.json')).key);
-  assert.match(id, /^[a-p]{32}$/);
-  assert.ok(read('enterprise/admx/dlx-chrome.admx').includes(`3rdparty\\extensions\\${id}\\policy`));
+  assert.equal(id, 'hfgcdbigpgpdoegkhfbbbnibnkpdjkbb');
+  // Seit der Einreichung am 18.10.2026 gelten die Vorlagen fuer die Fassung aus dem Chrome Web Store.
+  assert.ok(read('enterprise/admx/dlx-chrome.admx').includes('3rdparty\\extensions\\lefajbhockjgdhaohnacgaggfepianjh\\policy'));
 });
 
 test('Paket: keine versteckten Dateien, Schluessel oder Pakete; Manifest-Verweise vorhanden', () => {

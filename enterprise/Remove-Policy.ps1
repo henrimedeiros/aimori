@@ -6,7 +6,7 @@
   "<ExtensionId>;" beginnen. Fremde Eintraege bleiben unberuehrt. Vorher .reg-Sicherung.
   Unterstuetzt -WhatIf.
 .EXAMPLE
-  .\Remove-Policy.ps1 -ExtensionId hfgcdbigpgpdoegkhfbbbnibnkpdjkbb -WhatIf
+  .\Remove-Policy.ps1 -ExtensionId lefajbhockjgdhaohnacgaggfepianjh -WhatIf
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(

@@ -6,7 +6,7 @@ Die Erweiterung ist noch in keinem Store. Für Tests und Pilot:
    **Bilder prüfen** braucht die gebündelte Texterkennung, die nicht im Repo liegt: `npm ci --ignore-scripts` (nur die exakt gepinnten Pakete aus `package-lock.json`, nie `npm install`, keine Install-Skripte), dann `node scripts/build-ocr.mjs` – kopiert genau sieben Dateien nach `extension/vendor/ocr/` und vergleicht sie mit `extension/vendor/ocr/PINS.json`. Ohne diesen Schritt meldet jedes Bild „Bild konnte nicht geprüft werden“ (siehe [Bilder prüfen](bilder.md)).
 2. **Edge:** `edge://extensions` → „Entwicklermodus“ ein → „Entpackte Erweiterung laden“ → Ordner `extension` wählen.
    **Chrome:** `chrome://extensions` → „Entwicklermodus“ → „Entpackte Erweiterung laden“ → `extension`.
-3. Die Erweiterungs-ID ist fest: `hfgcdbigpgpdoegkhfbbbnibnkpdjkbb` (aus dem öffentlichen Schlüssel `key` im Manifest). Auf diese ID beziehen sich ADMX, Registry-Skripte und Beispiele. Nach einer Store-Veröffentlichung gilt die Store-ID; dann `node scripts/build-admx.mjs --id <Store-ID>` ausführen.
+3. Erweiterungs-IDs: Die Fassung aus dem Chrome Web Store hat die ID `lefajbhockjgdhaohnacgaggfepianjh`; darauf beziehen sich ADMX, Registry-Skripte und Beispiele. Die entpackte Entwicklungsfassung hat wegen des öffentlichen Schlüssels `key` im Manifest die feste ID `hfgcdbigpgpdoegkhfbbbnibnkpdjkbb`; Vorlagen für sie: `node scripts/build-admx.mjs --id hfgcdbigpgpdoegkhfbbbnibnkpdjkbb`.
 
 ## Prüfen (einmal je KI-Seite, von Hand)
 Mit offiziellen Testwerten, nie mit echten Daten. Vorher **jeden schon offenen Tab der KI-Seite neu laden** (F5): Tabs, die vor dem Laden oder Aktualisieren der Erweiterung offen waren, haben noch kein Content Script und sind ungeschützt.

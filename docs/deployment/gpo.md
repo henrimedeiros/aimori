@@ -16,4 +16,4 @@ Vorlagen: `enterprise/admx/` – je eine ADMX für Edge und Chrome, Sprachen `en
 - KI-Desktop-Apps per AppLocker/Intune sperren, wenn nur der geschützte Browser genutzt werden soll.
 
 ## Andere Erweiterungs-ID
-Vorlagen enthalten die ID fest. Für eine Store- oder eigene CRX-ID: `node scripts/build-admx.mjs --id <id>` und die neuen Dateien verteilen.
+Vorlagen enthalten die Store-ID `lefajbhockjgdhaohnacgaggfepianjh` fest. Für die Entwicklungsfassung oder eine eigene CRX-ID: `node scripts/build-admx.mjs --id <id>` und die neuen Dateien verteilen.
