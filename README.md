@@ -55,7 +55,7 @@ The AI writes the reminder with `[IBAN_1]` – and AImori shows you the answer w
 
 ## Install
 
-| | |
+| For | How to install |
 |---|---|
 | **Chrome and Edge** | [**Add AImori from the Chrome Web Store**](https://chromewebstore.google.com/detail/lefajbhockjgdhaohnacgaggfepianjh) (the listing goes live once Google's review is complete). In Edge, allow extensions from other stores when asked. No ZIP file, no developer mode, updates arrive automatically. |
 | **Organisations** | Force-install with the extension ID `lefajbhockjgdhaohnacgaggfepianjh` via Group Policy, Intune or the registry, see [for organisations](#for-organisations). |
@@ -135,7 +135,7 @@ flowchart LR
 
 ## Where it works
 
-| | |
+| Area | Supported |
 |---|---|
 | **AI sites** | ChatGPT, Claude, Gemini, Microsoft Copilot and Microsoft 365 Copilot. On over 60 other AI sites, organisations can show a notice or block the site (optional permission). |
 | **Browsers** | Google Chrome and Microsoft Edge, version 110 or later. Microsoft does not let extensions run on Copilot in Edge – there, AImori protects you in Chrome. |
@@ -143,7 +143,7 @@ flowchart LR
 
 ## Privacy
 
-| | |
+| Question | Answer |
 |---|---|
 | **What AImori sees** | The text you type, paste or upload on supported AI sites – checked in your browser, in memory. |
 | **What it stores** | Your settings and daily counters (site, data category, decision) for 90 days. Never your text, the values it found or file names. |

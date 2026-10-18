@@ -55,7 +55,7 @@ Die KI schreibt die Erinnerung mit `[IBAN_1]` – und AImori zeigt dir die Antwo
 
 ## Installieren
 
-| | |
+| Für | So installierst du |
 |---|---|
 | **Chrome und Edge** | [**AImori im Chrome Web Store hinzufügen**](https://chromewebstore.google.com/detail/lefajbhockjgdhaohnacgaggfepianjh) (der Eintrag ist nach der Prüfung durch Google erreichbar). In Edge auf Nachfrage Erweiterungen aus anderen Stores erlauben. Keine ZIP-Datei, kein Entwicklermodus, Updates kommen automatisch. |
 | **Unternehmen** | Per Gruppenrichtlinie, Intune oder Registry mit der Erweiterungs-ID `lefajbhockjgdhaohnacgaggfepianjh` zwangsinstallieren, siehe [Für Unternehmen](#für-unternehmen). |
@@ -135,7 +135,7 @@ flowchart LR
 
 ## Wo es wirkt
 
-| | |
+| Bereich | Unterstützt |
 |---|---|
 | **KI-Seiten** | ChatGPT, Claude, Gemini, Microsoft Copilot und Microsoft 365 Copilot. Auf über 60 weiteren KI-Seiten können Organisationen einen Hinweis zeigen oder die Seite sperren (optionale Berechtigung, [KI-Seiten](docs/ki-seiten.md)). |
 | **Browser** | Google Chrome und Microsoft Edge ab Version 110. Microsoft lässt auf Copilot in Edge keine Erweiterungen laufen – dort schützt AImori in Chrome. |
@@ -143,7 +143,7 @@ flowchart LR
 
 ## Datenschutz
 
-| | |
+| Frage | Antwort |
 |---|---|
 | **Was AImori sieht** | Den Text, den du auf unterstützten KI-Seiten tippst, einfügst oder hochlädst – geprüft im Browser, im Arbeitsspeicher. |
 | **Was es speichert** | Deine Einstellungen und Tageszähler (Seite, Kategorie, Entscheidung) für 90 Tage. Nie Texte, Funde oder Dateinamen. |
