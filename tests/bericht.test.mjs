@@ -224,8 +224,9 @@ class Node {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {}; this.text = ''; this.style = {}; this.checked = false; this.value = ''; this.disabled = false; }
   setAttribute(k, v) { this.attrs[k] = String(v); if (k === 'checked') this.checked = true; if (k === 'disabled') this.disabled = true; if (k === 'value') this.value = String(v); }
   getAttribute(k) { return Object.hasOwn(this.attrs, k) ? this.attrs[k] : null; }
-  append(...n) { for (const c of n) this.children.push(c); }
-  replaceChildren(...n) { this.children = []; this.append(...n.flat()); }
+  // Wie im Browser: alles ausser Knoten (auch null und Arrays) wird zu Text.
+  append(...n) { for (const c of n) this.children.push(c instanceof Node ? c : Object.assign(new Node('#text'), { text: String(c) })); }
+  replaceChildren(...n) { this.children = []; this.append(...n); }
   get textContent() { return this.text + this.children.map((c) => c.textContent).join(''); }
   addEventListener(t, f) { (this.listeners[t] || (this.listeners[t] = [])).push(f); }
   fire(t) { for (const f of this.listeners[t] || []) f({ isTrusted: true, target: this }); }
@@ -289,6 +290,21 @@ test('Seite: Tabellen, Vorlagen, Zeitraum, Drucken und HTML-Export ohne Personen
     assert.deepEqual(J(d.frameworks), ['revdsg', 'euaiact']);
     assert.equal(s.blobs[0].type, 'text/html');
   } finally { s.restore(); }
+});
+
+test('Seite: Kopf ohne und mit Firmenname nur Begriff/Wert-Paare, kein "null"', async () => {
+  const sums = {};
+  for (const d of B.DAYS) sums[d] = J(B.summarize(STATS, NOW, d));
+  for (const companyName of ['', 'Muster AG']) {
+    const s = await openPage({ on: true, sums, frameworks: ['revdsg'], days: 30, lockedFrameworks: false, lockedDays: false, policies: [],
+      branding: { productName: 'Example', companyName, logo: '' }, language: 'de' });
+    try {
+      const kopf = s.find((n) => n.attrs.class === 'dlx-rec-kopf')[0];
+      const tags = kopf.children.map((c) => c.tagName);
+      assert.deepEqual(tags, (companyName ? ['DT', 'DD'] : []).concat(['DT', 'DD', 'DT', 'DD']));
+      assert.ok(!/null|\[object/.test(kopf.textContent), kopf.textContent);
+    } finally { s.restore(); }
+  }
 });
 
 test('Seite: Richtlinie aus -> nur Hinweis, keine Knoepfe', async () => {

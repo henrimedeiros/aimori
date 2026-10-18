@@ -48,7 +48,7 @@
     const { sum, fws } = current();
     const d = B.data(sum, fws, st.policies, created, '0'.repeat(32));
     kopf.replaceChildren(
-      b.companyName ? [h('dt', null, T('org')), h('dd', null, b.companyName)] : null,
+      ...(b.companyName ? [h('dt', null, T('org')), h('dd', null, b.companyName)] : []),
       h('dt', null, T('period')), h('dd', null, sum.from + ' – ' + sum.to),
       h('dt', null, T('created')), h('dd', null, created));
     out.replaceChildren(...B.model(d, lang, { catName }).map((x) => (x.k === 'table'
