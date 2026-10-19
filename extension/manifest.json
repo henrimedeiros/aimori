@@ -4,7 +4,7 @@
   "short_name": "__MSG_extShortName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimum_chrome_version": "110",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtEkMcDls5vcPLKDdVMzSFwznpdU8v9uDNR8OUnej0TxjCjgo0GFke5D1NXkGu9EN53+P3i9jvznSQQxzQOpnbzvFXvKef97prHlDvArNGDWPNp5hdvNjiwY6Mdf0qnVn+KZH3Cor0moEj/xdZGv2uA4kgmAVgW7gVJftUGlIuVm0pl2QZVnRsQDCEuisxoHkbv8mIGVYVBX3Ko1JlDBLqpYRFzL4xPvRqhbSiLxK2abRuqbqsUyXuXtkukgOk4A4QkT/lvbiPqUvD7G+FvGTjTIC89Fj/Ik+W8H6K2CNiokkb1I4eax9ni/Va97v28FR6Iuy/nxDjP90i1jhGWKjXQIDAQAB",
   "permissions": [
@@ -21,6 +21,12 @@
         "default": "Alt+Shift+S"
       },
       "description": "__MSG_cmdRedact__"
+    },
+    "placeholder-all": {
+      "suggested_key": {
+        "default": "Alt+Shift+L"
+      },
+      "description": "__MSG_cmdPlaceholder__"
     },
     "toggle-pause": {
       "suggested_key": {

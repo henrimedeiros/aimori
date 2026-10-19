@@ -193,9 +193,10 @@
     // Warum heikel (ein fester Satz je Datentyp-Gruppe) und "Mehr erfahren" auf die
     // lokale Seite ui/wissen.html; der Link ist keine Entscheidung und sendet nichts.
     // Typeigener Satz (z. B. why_internal_link) vor dem Gruppensatz; "Mehr erfahren" fuehrt immer zur Gruppe.
+    // Lernmodus (learningMode): nur feste Saetze aus _locales, nie der Wert; aus = keine Erklaerung.
     const hasWhy = (cat) => DLX.i18n.has('en', 'why_' + cat);
     const whyCats = [], learnCats = [];
-    if (input || img || info.mode === 'live') for (const it of sureItems) {
+    if (info.learning !== false && (input || img || info.mode === 'live')) for (const it of sureItems) {
       const k = hasWhy(it.id) ? it.id : it.cat;
       if (it.id !== 'unscannable' && hasWhy(k) && !whyCats.includes(k)) { whyCats.push(k); learnCats.push(it.cat); }
     }
@@ -276,7 +277,7 @@
       }
       if (info.code) card.append(h('p', { class: 'dlx-code' }, T('codeNote')));
       if (docFix) card.append(h('p', { class: 'dlx-warum', 'data-k': 'fixnote' }, T(info.loss ? 'docFixLoss' : 'docFix')));
-      for (const cat of whyCats) card.append(h('p', { class: 'dlx-warum' }, T('why_' + cat)));
+      for (const cat of whyCats.slice(0, 4)) card.append(h('p', { class: 'dlx-warum' }, T('why_' + cat)));
       if (block) card.append(h('p', { class: 'dlx-sperre' }, T('blockNote')));
       // Knopfzeile bleibt unten sichtbar (sticky), Zusatzoptionen darin als eigene Zeile.
       const opts = options(whyCats.length ? learnCats[0] : null);

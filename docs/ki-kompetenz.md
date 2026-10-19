@@ -4,7 +4,8 @@ Stand 14.10.2026. Jede Warnung erklärt in einem Satz, warum der erkannte Wert h
 
 ## Erklärungen
 
-- Ein fester Satz je Datentyp-Gruppe (Finanzdaten, Sozialversicherung, Gesundheit, Firmendaten, Kontaktdaten, Steuernummer, Zugangsdaten, Ausweisdokument, Nationale ID), auf Deutsch und Englisch; die übrigen Oberflächensprachen zeigen den englischen Text.
+- Ein fester Satz je Datentyp-Gruppe (Finanzdaten, Sozialversicherung, Gesundheit, Firmendaten, Kontaktdaten, Steuernummer, Zugangsdaten, Ausweisdokument, Nationale ID) in allen Oberflächensprachen.
+- **Lernmodus:** Für häufige Datentypen (z. B. IBAN, Kartenprüfcode, Mailadresse, AHV-Nummer, Sitzungstoken, privater Schlüssel) steht statt des Gruppensatzes ein eigener Satz, warum genau dieser Typ heikel ist (`why_<typ-id>` in `_locales`). Die Sätze sind fest und nennen nie den gefundenen Wert. Im Vollbild-Dialog höchstens vier Sätze.
 - In der Leiste steht der Satz hinter dem erkannten Typ (bei wenig Platz gekürzt, ganz als Tooltip), im Vollbild-Dialog je Gruppe ein Absatz.
 - „Mehr erfahren“ öffnet `ui/wissen.html#<gruppe>` in einem neuen Tab: längere Erklärung, erkannte Datentypen der Gruppe, was man tun kann. Die Seite liegt in der Erweiterung (keine Website, kein Netz) und ist für Webseiten nicht erreichbar.
 - Die Texte sind allgemeine Information, keine Rechtsberatung.
@@ -29,7 +30,8 @@ Gespeichert in `chrome.storage.local` unter `dlx.kompetenz`, **nur Zahlen je Dat
 
 | Schlüssel | Typ | Standard | Bedeutung |
 |---|---|---|---|
-| `competenceRecord` | Wahr/Falsch | `true` | `false`: nichts wird gezählt, die Zähler werden sofort gelöscht (auch bei Wechsel zur Laufzeit), der Nachweis entfällt. Als Richtlinie gesetzt ist der Schalter in den Einstellungen gesperrt. Die Erklärungen selbst erscheinen immer. |
+| `competenceRecord` | Wahr/Falsch | `true` | `false`: nichts wird gezählt, die Zähler werden sofort gelöscht (auch bei Wechsel zur Laufzeit), der Nachweis entfällt. Als Richtlinie gesetzt ist der Schalter in den Einstellungen gesperrt. Die Erklärungen selbst steuert `learningMode`. |
+| `learningMode` | Wahr/Falsch | `true` | `false`: Meldungen zeigen keine Erklärung und kein „Mehr erfahren“; `seen` zählt dann nicht. Benutzer dürfen abschalten (Einstellungen → Übersicht → Lernmodus); als Richtlinie gesetzt gesperrt. |
 
 Ohne Richtlinie kann jede Person den Nachweis in den Einstellungen abschalten.
 

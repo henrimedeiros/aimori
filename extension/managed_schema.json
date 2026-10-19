@@ -74,6 +74,11 @@
       "description": "If true, pasted, dropped or uploaded PNG, JPEG and WebP images (e.g. screenshots) are read locally with text recognition and checked like text; the AI site only receives the image after the check (original, redacted copy or nothing). Images that cannot be checked in time or are too large show a message instead of passing silently. If false, images are handled like other files (blockUncheckedFiles). Default: true.",
       "type": "boolean"
     },
+    "learningMode": {
+      "title": "Learning mode",
+      "description": "If true, each message explains in one short sentence per data type why the data is sensitive (fixed texts, never the value found), with a link to a local explanation page. If false, messages show no explanations and the AI literacy record counts no explanations as seen. Default: true (users may switch it off).",
+      "type": "boolean"
+    },
     "detection": {
       "title": "Detection",
       "description": "ki = rules plus a local AI model for names, companies, addresses and health data (runs on the device, nothing is sent; falls back to rules on errors); regeln = rules only. Rules always apply. Default: ki.",

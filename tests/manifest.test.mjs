@@ -17,11 +17,12 @@ test('Manifest V3 mit minimalen Rechten', () => {
   assert.equal(m.manifest_version, 3);
   // activeTab und declarativeContent nur fuer die Training-Ampel (Design-Review Training-Ampel 16.10.2026, Auflage 1).
   assert.deepEqual(m.permissions, ['storage', 'scripting', 'offscreen', 'activeTab', 'declarativeContent', 'alarms']);
-  // Tastenkuerzel: Schwaerzen, Pause, Popup; Texte in allen Sprachen (Edge vergibt Alt+Shift+P/X nicht).
-  assert.deepEqual(Object.entries(m.commands).map(([k, v]) => k + '=' + v.suggested_key.default), ['redact-all=Alt+Shift+S', 'toggle-pause=Alt+Shift+O', '_execute_action=Alt+Shift+K']);
+  // Tastenkuerzel: Schwaerzen, Platzhalter, Pause, Popup (Chrome erlaubt hoechstens 4 vorgeschlagene);
+  // Texte in allen Sprachen (Edge vergibt Alt+Shift+P/X nicht).
+  assert.deepEqual(Object.entries(m.commands).map(([k, v]) => k + '=' + v.suggested_key.default), ['redact-all=Alt+Shift+S', 'placeholder-all=Alt+Shift+L', 'toggle-pause=Alt+Shift+O', '_execute_action=Alt+Shift+K']);
   for (const l of fs.readdirSync(path.join(EXT, '_locales'))) {
     const msg = JSON.parse(fs.readFileSync(path.join(EXT, '_locales', l, 'messages.json'), 'utf8'));
-    for (const c of ['cmdRedact', 'cmdPause']) assert.ok(msg[c] && msg[c].message.length > 5 && msg[c].message.length <= 80, l + ' ' + c);
+    for (const c of ['cmdRedact', 'cmdPlaceholder', 'cmdPause']) assert.ok(msg[c] && msg[c].message.length > 5 && msg[c].message.length <= 80, l + ' ' + c);
   }
   assert.equal(m.host_permissions, undefined, 'keine host_permissions (B6)');
   assert.equal(m.optional_permissions, undefined);

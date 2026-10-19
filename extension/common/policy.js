@@ -38,7 +38,7 @@
   const SOURCE_ACTIONS = ['warn', 'block'];
   // Versteckte Anweisungen (Design-Review KI-Agenten 16.10.2026, Auflage 6).
   const HIDDEN_ACTIONS = ['warn', 'block'];
-  const USER_KEYS = ['language', 'countryMode', 'countryPacks', 'globalPacks', 'rules', 'competenceRecord', 'imageScan', 'detection', 'answerCheck', 'sensitiveSources', 'sensitiveSourceAction', 'hiddenInstructionScan', 'hiddenInstructionAction', 'formGuardSites', 'copySidebarHint', 'barTheme', 'barCompact', 'screenShareGuard'];
+  const USER_KEYS = ['language', 'countryMode', 'countryPacks', 'globalPacks', 'rules', 'competenceRecord', 'imageScan', 'detection', 'answerCheck', 'sensitiveSources', 'sensitiveSourceAction', 'hiddenInstructionScan', 'hiddenInstructionAction', 'formGuardSites', 'copySidebarHint', 'barTheme', 'barCompact', 'screenShareGuard', 'learningMode'];
   // Darstellung der Warnleiste (Design-Review Warnleiste anpassbar 17.10.2026, Auflage 1): nur diese
   // festen Strings; alles andere = auto (nur Darstellung, keine Schutzwirkung).
   const BAR_THEMES = ['auto', 'light', 'dark'];
@@ -433,7 +433,7 @@
         case 'uncertainFindings':
           if (UNCERTAIN.indexOf(v) !== -1) value.uncertainFindings = v; else errors.push(key);
           break;
-        case 'allowUserOverride': case 'allowNotSensitive': case 'allowPlaceholders': case 'blockWhenInactive': case 'blockUncheckedFiles': case 'autoCountryPacks': case 'competenceRecord': case 'imageScan': case 'hiddenInstructionScan':
+        case 'allowUserOverride': case 'allowNotSensitive': case 'allowPlaceholders': case 'blockWhenInactive': case 'blockUncheckedFiles': case 'autoCountryPacks': case 'competenceRecord': case 'imageScan': case 'hiddenInstructionScan': case 'learningMode':
         // Hinweis beim Kopieren (Design-Review Kopierwarnung 16.10.2026, Auflage 2).
         case 'copySidebarHint':
         // Tabellen, Verschleierung, Umformulieren (Design-Review 16.10.2026): nur verwaltet (nicht in USER_KEYS).
@@ -636,6 +636,7 @@
       allowPlaceholders: true,
       competenceRecord: true,
       imageScan: true,
+      learningMode: true,
       detection: 'ki',
       uncertainFindings: 'hint',
       allowedSites: SITES.slice(),

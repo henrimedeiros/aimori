@@ -21,8 +21,8 @@ if (m.manifest_version !== 3) problems.push('manifest_version != 3');
 // activeTab und declarativeContent nur fuer die Training-Ampel (Design-Review Training-Ampel 16.10.2026, Auflage 1).
 // alarms nur fuer das Ende der Pause per Tastenkuerzel (Design-Review Alltag 14.10.2026, Auflage 8).
 if (JSON.stringify(m.permissions) !== '["storage","scripting","offscreen","activeTab","declarativeContent","alarms"]') problems.push('permissions: nur "storage", "scripting", "offscreen", "activeTab", "declarativeContent" und "alarms" erlaubt');
-// Tastenkuerzel: genau diese drei Befehle (Schwaerzen, Pause, Popup), keine weiteren.
-if (JSON.stringify(Object.keys(m.commands || {})) !== '["redact-all","toggle-pause","_execute_action"]') problems.push('commands: nur redact-all, toggle-pause und _execute_action erlaubt');
+// Tastenkuerzel: genau diese vier Befehle (Schwaerzen, Platzhalter, Pause, Popup), keine weiteren.
+if (JSON.stringify(Object.keys(m.commands || {})) !== '["redact-all","placeholder-all","toggle-pause","_execute_action"]') problems.push('commands: nur redact-all, placeholder-all, toggle-pause und _execute_action erlaubt');
 for (const k of ['host_permissions', 'optional_permissions', 'externally_connectable']) if (m[k]) problems.push(`${k} nicht erlaubt`);
 // https://*/* nur genau einmal als optionales Recht fuer vertrauliche Quellen (Design-Review Antwort/Zwischenablage 16.10.2026, Auflage 23).
 // permissions sind oben genau festgelegt; activeTab bleibt sonst ueberall verboten.

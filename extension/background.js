@@ -606,7 +606,8 @@ const PAUSE_KEY = 'dlx.pause';
 const PAUSE_MS = 15 * 60000;
 const PAUSE_ALARM = 'dlx-pause';
 // Kuerzel -> Entscheidung, feste Zuordnung; nie override/notsensitive (Auflage 2).
-const COMMANDS = { 'redact-all': 'redact' };
+// Platzhalter nur mit allowPlaceholders (decisionAllowed bzw. Pruefung vor dem Auftrag).
+const COMMANDS = { 'redact-all': 'redact', 'placeholder-all': 'pseudonym' };
 async function clearPause() {
   await chrome.storage.local.remove(PAUSE_KEY);
   await chrome.alarms.clear(PAUSE_ALARM);
@@ -662,6 +663,7 @@ async function onCommand(command, tab) {
   }
   // Andere offene Meldung (z. B. Datei, Seite gesperrt): Kuerzel tut nichts.
   if (open && !SOFT.includes(p.mode)) return;
+  if (choice === 'pseudonym' && !placeholdersAllowed(e.cfg)) return;
   await chrome.tabs.sendMessage(tab.id, { t: 'cmd', choice }, { frameId: 0 }).catch(() => {});
 }
 
@@ -1282,7 +1284,8 @@ async function handle(msg, sender) {
       if (r.p.frameId == null && r.p.popupTabId !== sender.tab.id) { r.p.frameId = sender.frameId; r.p.frameDoc = sender.documentId || null; await savePending(r.all); }
       chrome.tabs.sendMessage(r.aiTab, { t: 'dlgReady', nonce: r.p.nonce }, { frameId: 0 }).catch(() => {});
       const kGroups = DLX.kompetenz.groupsOf(r.p.items);
-      if (KSHOW.includes(r.p.mode) && !r.p.kSeen && kGroups.length && kompetenzOn(e.cfg)) {
+      // Ohne Lernmodus zeigt die Meldung keine Erklaerung, also zaehlt auch nichts als gesehen.
+      if (KSHOW.includes(r.p.mode) && !r.p.kSeen && kGroups.length && kompetenzOn(e.cfg) && e.cfg.learningMode !== false) {
         r.p.kSeen = true;
         await savePending(r.all);
         await kCount(e.cfg, kGroups, 'seen');
@@ -1290,7 +1293,7 @@ async function handle(msg, sender) {
       const layout = r.p.popupTabId === sender.tab.id ? 'full' : r.p.layout;
       const allowNotSensitive = (r.p.mode === 'send' || r.p.mode === 'paste') && r.p.action === 'warn' && ignoreAllowed(e.cfg) && ignorableCount(r.p) > 0;
       return { mode: r.p.mode, action: r.p.action, items: r.p.items, code: r.p.code === true, fix: r.p.fix === true, loss: r.p.loss === true, account: r.p.account || null, reason: r.p.reason || null, layout, theme: barTheme(e.cfg, r.p.theme), compact: BAR_COMPACT_OUT.includes(e.cfg.barCompact) ? e.cfg.barCompact : 'auto', allowOverride: e.cfg.allowUserOverride, allowNotSensitive,
-        allowPlaceholders: placeholdersAllowed(e.cfg), allowRephrase: e.cfg.allowRephrase === true, branding: e.cfg.branding, language: e.cfg.language, managed: e.managed };
+        allowPlaceholders: placeholdersAllowed(e.cfg), allowRephrase: e.cfg.allowRephrase === true, learning: e.cfg.learningMode !== false, branding: e.cfg.branding, language: e.cfg.language, managed: e.managed };
     }
     if (msg.t === 'decide') {
       const choice = String(msg.choice);

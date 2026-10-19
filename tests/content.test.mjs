@@ -1360,12 +1360,12 @@ test('Pause: Seitensperre, KI-Sperre und blockWhenInactive gelten weiter', async
   assert.equal(pasteText(ina, ina.other).defaultPrevented, true, 'Feld nicht erkannt');
 });
 
-test('Kuerzel ohne Meldung: nur vom Service Worker, nur Schwaerzen, nur auf erlaubter Seite', async () => {
+test('Kuerzel ohne Meldung: nur vom Service Worker, nur Schwaerzen/Platzhalter, nur auf erlaubter Seite', async () => {
   const s = setup();
   await tick();
   s.type('Konto ' + IBAN + ' bitte');
-  for (const choice of ['override', 'notsensitive', 'pseudonym']) s.onMsg({ t: 'cmd', choice });
-  assert.ok(s.composer.textContent.includes(IBAN), 'nur redact');
+  for (const choice of ['override', 'notsensitive', 'show']) s.onMsg({ t: 'cmd', choice });
+  assert.ok(s.composer.textContent.includes(IBAN), 'nur redact/pseudonym');
   let out = null;
   s.onMsg({ t: 'cmd', choice: 'redact' }, (r) => { out = r; });
   assert.ok(!s.composer.textContent.includes(IBAN), s.composer.textContent);
@@ -1380,6 +1380,19 @@ test('Kuerzel ohne Meldung: nur vom Service Worker, nur Schwaerzen, nur auf erla
   ai.type('Konto ' + IBAN);
   ai.onMsg({ t: 'cmd', choice: 'redact' });
   assert.ok(ai.composer.textContent.includes(IBAN), 'gesperrte KI-Seite: nichts');
+});
+
+test('Kuerzel Platzhalter ohne Meldung: [IBAN_1] im Feld; ohne allowPlaceholders nichts', async () => {
+  const s = setup();
+  await tick();
+  s.type('Konto ' + IBAN + ' bitte');
+  s.onMsg({ t: 'cmd', choice: 'pseudonym' });
+  assert.ok(!s.composer.textContent.includes(IBAN) && s.composer.textContent.includes('[IBAN_1]'), s.composer.textContent);
+  const off = setup({ cfg: { allowPlaceholders: false } });
+  await tick();
+  off.type('Konto ' + IBAN);
+  off.onMsg({ t: 'cmd', choice: 'pseudonym' });
+  assert.ok(off.composer.textContent.includes(IBAN), 'Richtlinie aus: nichts');
 });
 
 test('Kuerzel-Nachricht aus einem Tab (anderes Content Script) wird ignoriert', async () => {

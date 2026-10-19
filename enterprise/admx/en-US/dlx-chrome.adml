@@ -35,6 +35,8 @@
       <string id="competenceRecord_help">If true, the extension explains each warning and counts locally, per data type group and month, how many explanations were seen and how often values were redacted, sending was cancelled or data was sent anyway (numbers only, 13 months, never leaves the device). Users can print a self-declared record. If false, nothing is counted and the local counters are deleted. Default: true (users may switch it off).</string>
       <string id="imageScan">Check images</string>
       <string id="imageScan_help">If true, pasted, dropped or uploaded PNG, JPEG and WebP images (e.g. screenshots) are read locally with text recognition and checked like text; the AI site only receives the image after the check (original, redacted copy or nothing). Images that cannot be checked in time or are too large show a message instead of passing silently. If false, images are handled like other files (blockUncheckedFiles). Default: true.</string>
+      <string id="learningMode">Learning mode</string>
+      <string id="learningMode_help">If true, each message explains in one short sentence per data type why the data is sensitive (fixed texts, never the value found), with a link to a local explanation page. If false, messages show no explanations and the AI literacy record counts no explanations as seen. Default: true (users may switch it off).</string>
       <string id="detection">Detection</string>
       <string id="detection_help">ki = rules plus a local AI model for names, companies, addresses and health data (runs on the device, nothing is sent; falls back to rules on errors); regeln = rules only. Rules always apply. Default: ki.</string>
       <string id="detection_ki">ki</string>

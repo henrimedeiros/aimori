@@ -255,7 +255,7 @@ test('Platzhalter: Knopf neben Schwaerzen nur mit allowPlaceholders; Antwort-Lei
 test('Erklaerung: Satz je Gruppe in Leiste und Dialog, "Mehr erfahren" nur auf die eigene Seite, keine Nachricht (Auflage 7)', async () => {
   const s = setup(Object.assign({}, SEND, { items: [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'email', cat: 'kontakt', n: 1 }] }));
   await s.flush();
-  assert.match(s.doc.body.textContent, /IBAN.*– Konto- und Kartennummern genügen zusammen mit einem Namen für Betrug/);
+  assert.match(s.doc.body.textContent, /IBAN.*– Mit einer IBAN und einem Namen lassen sich Lastschriften fälschen/);
   const links = s.doc.body.all((n) => n.tagName === 'A');
   assert.equal(links.length, 1, 'in der Leiste ein Link fuer die erste Gruppe');
   assert.equal(links[0].getAttribute('href'), 'chrome-extension://x/ui/wissen.html#finanz');
@@ -269,7 +269,7 @@ test('Erklaerung: Satz je Gruppe in Leiste und Dialog, "Mehr erfahren" nur auf d
   await full.flush();
   const why = full.doc.body.all((n) => n.getAttribute('class') === 'dlx-warum');
   assert.equal(why.length, 2);
-  assert.match(why[1].textContent, /E-Mail-Adressen, Telefonnummern/);
+  assert.match(why[1].textContent, /Mailadressen erkennen eine Person/);
   // Datei- und Seitenhinweise ohne Funde: kein Satz, kein Link
   const file = setup(Object.assign({}, BASE, { mode: 'fileinfo', items: [] }));
   await file.flush();
@@ -278,6 +278,26 @@ test('Erklaerung: Satz je Gruppe in Leiste und Dialog, "Mehr erfahren" nur auf d
   const other = setup(LIVE);
   await other.flush();
   assert.ok(other.doc.body.all((n) => n.tagName === 'A').every((a) => a.getAttribute('href').startsWith('chrome-extension://x/ui/wissen.html#')));
+});
+
+test('Lernmodus: Satz je Datentyp vor dem Gruppensatz, hoechstens 4 im Dialog; learning false = keine Erklaerung, kein Link', async () => {
+  const items = [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'cc_visa', cat: 'finanz', n: 1 }, { id: 'email', cat: 'kontakt', n: 1 },
+    { id: 'jwt', cat: 'technik', n: 1 }, { id: 'pem_private', cat: 'technik', n: 1 }];
+  const full = setup(Object.assign({}, SEND, { layout: 'full', items }));
+  await full.flush();
+  const why = full.doc.body.all((n) => n.getAttribute('class') === 'dlx-warum').map((n) => n.textContent);
+  assert.equal(why.length, 4);
+  assert.match(why[0], /Lastschriften fälschen/, 'IBAN: eigener Satz');
+  assert.match(why[1], /Konto- und Kartennummern/, 'Kartennummer ohne eigenen Satz: Gruppensatz');
+  assert.match(why[2], /Mailadressen/);
+  assert.match(why[3], /Sitzungstoken/);
+  for (const layout of ['bar', 'full']) {
+    const off = setup(Object.assign({}, SEND, { layout, items, learning: false }));
+    await off.flush();
+    assert.equal(off.doc.body.all((n) => /dlx-warum|dlx-bar-warum/.test(n.getAttribute('class') || '')).length, 0, layout);
+    assert.equal(off.doc.body.all((n) => n.getAttribute('data-k') === 'learn').length, 0, layout + ': kein "Mehr erfahren"');
+    assert.ok(off.button('redact') && off.button('cancel'), layout + ': Knoepfe bleiben');
+  }
 });
 
 // --- Bilder pruefen (Design-Review Bilder 14.10.2026) ---------------------------

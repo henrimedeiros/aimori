@@ -1054,7 +1054,7 @@ async function sprachen() {
     const d = await dialog();
     const dt = d ? await d.text() : '';
     check(`Sprache ${l}: Warnleiste mit Erklaerung der Sprache, nicht gesendet, kein Wert`,
-      dt.includes(m.why_finanz.message.slice(0, 25)) && !dt.includes('CH93') && (await T.log()) === '', dt.slice(0, 200));
+      dt.includes(m.why_iban.message.slice(0, 25)) && !dt.includes('CH93') && (await T.log()) === '', dt.slice(0, 200));
     if (d) { await d.click('cancel'); d.close(); }
     await closeDialogs(); await sleep(300);
     T.close();
@@ -1283,7 +1283,7 @@ async function kompetenz() {
   await type('Rechnung an IBAN CH9300762011623852957 bitte'); await enter(); await sleep(800);
   const d = await dialog();
   const txt = d ? await d.text() : '';
-  check('Kompetenz: Leiste erklaert, warum der Wert heikel ist, ohne Wert', /Konto- und Kartennummern/.test(txt) && !txt.includes('CH93'), txt.slice(0, 160));
+  check('Kompetenz: Leiste erklaert, warum der Wert heikel ist, ohne Wert', /Lastschriften fälschen/.test(txt) && !txt.includes('CH93'), txt.slice(0, 160));
   const href = d ? await d.ev(`(document.querySelector('a[data-k="learn"]') || {}).href || ''`) : '';
   check('Kompetenz: "Mehr erfahren" zeigt auf die eigene Erklaerseite', href === ext + 'wissen.html#finanz', href);
   if (d) await d.click('learn');
@@ -1332,6 +1332,48 @@ async function kompetenz() {
   check('Kompetenz: Nachweis meldet "ausgeschaltet"', /ausgeschaltet/.test(await N.page.ev(`document.body.innerText`)));
   N.close();
   await toggle(true);
+}
+
+// Lernmodus: eigener Satz je Datentyp statt Gruppensatz; Schalter aus = keine Erklaerung,
+// kein "Mehr erfahren", nichts als gesehen gezaehlt. Knoepfe bleiben.
+async function lernmodus() {
+  await closeDialogs();
+  const ext = 'chrome-extension://' + ID + '/ui/';
+  const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+  const seen = async () => {
+    const k = JSON.parse((await swEval(`chrome.storage.local.get('dlx.kompetenz').then((x) => JSON.stringify(x['dlx.kompetenz'] || null))`)) || 'null');
+    return (k && k[month] && k[month].finanz && k[month].finanz.seen) || 0;
+  };
+  const toggle = async (on) => {
+    const O = await openTab(ext + 'options.html', 'document.body');
+    await sleep(400);
+    const ok = await O.page.ev(`(() => { const b = document.getElementById('dlx-lern-an'); if (!b || b.disabled) return false; if (b.checked !== ${on}) { b.checked = ${on}; b.dispatchEvent(new Event('change')); } return true; })()`);
+    await sleep(900);
+    O.close();
+    return ok;
+  };
+  // Je Durchgang ein frischer Tab: Protokoll der Attrappe bei offener Meldung lesen (nichts gesendet), dann abbrechen.
+  const ED = `document.querySelector('.ProseMirror')`;
+  const ask = async () => {
+    const T = await openTab('https://chatgpt.com/', ED);
+    await T.page.ev(`localStorage.removeItem('draft'); ${ED}.replaceChildren(document.createElement('p'))`); await sleep(300);
+    await T.type('Rechnung an IBAN CH9300762011623852957 bitte'); await T.enter(); await sleep(1200);
+    const d = await dialog();
+    const r = d ? { text: await d.text(), learn: await d.ev(`!!document.querySelector('[data-k="learn"]')`), redact: await d.has('redact') } : { text: '', learn: false, redact: false };
+    r.log = await T.log();
+    if (d) { await d.click('cancel'); d.close(); }
+    await closeDialogs(); await sleep(300);
+    T.close();
+    return r;
+  };
+  const on = await ask();
+  check('Lernmodus an: Leiste erklaert die IBAN mit eigenem Satz, ohne Wert', /Lastschriften fälschen/.test(on.text) && !/Konto- und Kartennummern/.test(on.text) && !on.text.includes('CH93') && on.learn && on.log === '', on.text.slice(0, 200));
+  check('Lernmodus: Einstellungen haben den Schalter, aus gespeichert', await toggle(false));
+  const s0 = await seen();
+  const off = await ask();
+  check('Lernmodus aus: keine Erklaerung, kein "Mehr erfahren", Schwaerzen bleibt, nichts gesendet', off.redact && !/Lastschriften|Konto- und Kartennummern/.test(off.text) && !off.learn && off.log === '', JSON.stringify(off).slice(0, 300));
+  check('Lernmodus aus: Kompetenz zaehlt keine Erklaerung als gesehen', (await seen()) === s0, String(s0));
+  check('Lernmodus: wieder eingeschaltet', await toggle(true));
 }
 
 // --- Bilder pruefen (Design-Review Bilder 14.10.2026) ---------------------------
@@ -2935,8 +2977,8 @@ async function kuerzel() {
   }
   const names = await swEval(`chrome.commands.getAll().then((c) => JSON.stringify(c.map((x) => x.name + '=' + x.shortcut)))`);
   // Edge zeigt Kuerzel in Browsersprache ("ALT+UMSCHALTTASTE+S"); geprueft wird Alt + Buchstabe.
-  check('Kuerzel: Schwaerzen Alt+Shift+S, Pause Alt+Shift+O, Popup Alt+Shift+K vom Browser vergeben',
-    /redact-all=ALT\+[^"]*\+S"/i.test(names) && /toggle-pause=ALT\+[^"]*\+O"/i.test(names) && /_execute_action=ALT\+[^"]*\+K"/i.test(names), names);
+  check('Kuerzel: Schwaerzen Alt+Shift+S, Platzhalter Alt+Shift+L, Pause Alt+Shift+O, Popup Alt+Shift+K vom Browser vergeben',
+    /redact-all=ALT\+[^"]*\+S"/i.test(names) && /placeholder-all=ALT\+[^"]*\+L"/i.test(names) && /toggle-pause=ALT\+[^"]*\+O"/i.test(names) && /_execute_action=ALT\+[^"]*\+K"/i.test(names), names);
 
   // 1) Schwaerzen ohne Meldung: Feldtext wird ersetzt, nichts gesendet.
   const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
@@ -2945,6 +2987,12 @@ async function kuerzel() {
   const logBefore = await T.log();
   await shortcut(T, 'redact-all', 's', 83, T.val);
   check('Kuerzel Alt+Shift+S: Text vor dem Senden geschwaerzt (' + cmdWay.way + ')', !(await T.val()).includes('CH93') && (await T.val()).includes('Konto') && (await T.log()) === logBefore, await T.val());
+  await T.clear();
+
+  // 1b) Platzhalter ohne Meldung: Wert wird zu [IBAN_1], nichts gesendet.
+  await T.type('Konto CH9300762011623852957 bitte'); await sleep(200);
+  await shortcut(T, 'placeholder-all', 'l', 76, T.val);
+  check('Kuerzel Alt+Shift+L: Wert vor dem Senden durch Platzhalter ersetzt (' + cmdWay.way + ')', !(await T.val()).includes('CH93') && /\[IBAN_1\]/.test(await T.val()) && (await T.log()) === logBefore, await T.val());
   await T.clear();
 
   // 2) Pause: Warnung bleibt aus, Senden geht durch; erneut = Schutz wieder an.
@@ -2961,7 +3009,7 @@ async function kuerzel() {
   await sleep(500);
   const kt = JSON.parse(await O.page.ev(`JSON.stringify(Array.from(document.querySelectorAll('[data-k="kuerzel"] li'), (li) => [li.dataset.k, li.querySelector('kbd').textContent, li.querySelector('span').textContent]))`));
   const kOk = (name, letter, re) => kt.some(([k, key, text]) => k === 'kuerzel-' + name && new RegExp('^ALT\\+.*\\+' + letter + '$', 'i').test(key) && re.test(text));
-  check('Einstellungen: drei Tastenkuerzel mit Tasten aufgelistet', kt.length === 3 && kOk('redact-all', 'S', /schwärzen/) && kOk('toggle-pause', 'O', /pausieren/) && kOk('_execute_action', 'K', /öffnen/), JSON.stringify(kt));
+  check('Einstellungen: vier Tastenkuerzel mit Tasten aufgelistet', kt.length === 4 && kOk('redact-all', 'S', /schwärzen/) && kOk('placeholder-all', 'L', /Platzhalter/) &&kOk('toggle-pause', 'O', /pausieren/) && kOk('_execute_action', 'K', /öffnen/), JSON.stringify(kt));
   if (process.env.E2E_BILDER) {
     await O.page.call('Emulation.setDeviceMetricsOverride', { width: 1100, height: 900, deviceScaleFactor: 1, mobile: false });
     const r = JSON.parse(await O.page.ev(`JSON.stringify(Object.assign(document.querySelector('[data-k="kuerzel"]').closest('section').getBoundingClientRect().toJSON(), { scrollY }))`));
@@ -2995,7 +3043,7 @@ async function run() {
   browserWs = (await (await fetch(base + '/json/version')).json()).webSocketDebuggerUrl;
   await sleep(1500);   // Service Worker der Erweiterung starten lassen
   const only = process.env.E2E_NUR ? process.env.E2E_NUR.split(',') : null;
-  const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite };
+  const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, lernmodus, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite };
   if (process.env.E2E_BILDER) Object.assign(steps, { bilder, store });
   if (process.env.E2E_BILDMESSUNG) steps.bildmessung = bildmessung;
   for (const [name, fn] of Object.entries(steps)) if (!only || only.includes(name)) await fn();

@@ -55,6 +55,7 @@
     if (!locked.globalPacks) settings.globalPacks = checked(globalBoxes);
     if (!locked.competenceRecord) settings.competenceRecord = kompBox.checked;
     if (!locked.imageScan) settings.imageScan = imgBox.checked;
+    if (!locked.learningMode) settings.learningMode = lernBox.checked;
     if (!locked.hiddenInstructionScan) settings.hiddenInstructionScan = hidBox.checked;
     if (!locked.hiddenInstructionAction) settings.hiddenInstructionAction = hidAction.value;
     if (!locked.detection) settings.detection = kiBox.checked ? 'ki' : 'regeln';
@@ -181,6 +182,9 @@
   const hidAction = h('select', { disabled: !!locked.hiddenInstructionAction, 'aria-label': T('optHidden'), 'data-k': 'hidden-action' },
     DLX.policy.HIDDEN_ACTIONS.map((a) => h('option', { value: a, selected: cfg.hiddenInstructionAction === a }, T('hiddenAction_' + a))));
   imgBox.addEventListener('change', save);
+  // Lernmodus: Erklaersatz je Datentyp in der Meldung; Richtlinie sperrt den Schalter.
+  const lernBox = h('input', { type: 'checkbox', id: 'dlx-lern-an', checked: cfg.learningMode !== false, disabled: !!locked.learningMode });
+  lernBox.addEventListener('change', save);
   const kompBox = h('input', { type: 'checkbox', id: 'dlx-komp-an', checked: cfg.competenceRecord !== false, disabled: !!locked.competenceRecord });
   kompBox.addEventListener('change', async () => { await save(); location.reload(); });
   const kompReset = h('button', { type: 'button', class: 'dlx-knopf dlx-gross dlx-trotzdem', disabled: cfg.competenceRecord === false }, T('kompReset'));
@@ -505,7 +509,7 @@
 
   // Tastenkuerzel (manifest commands, Design-Review Alltag 14.10.2026, Auflage 4): Anzeige
   // per textContent, aendern nur auf der festen Kuerzel-Seite des Browsers.
-  const SC_NAMES = { 'redact-all': 'scRedact', 'toggle-pause': 'scPause', _execute_action: 'scPopup' };
+  const SC_NAMES = { 'redact-all': 'scRedact', 'placeholder-all': 'scPlaceholder', 'toggle-pause': 'scPause', _execute_action: 'scPopup' };
   const scUl = h('ul', { class: 'dlx-kuerzel', 'data-k': 'kuerzel' });
   chrome.commands.getAll().then((list) => {
     for (const c of list) if (Object.hasOwn(SC_NAMES, c.name)) scUl.append(h('li', { 'data-k': 'kuerzel-' + c.name }, h('kbd', null, c.shortcut || T('scNone')), h('span', null, T(SC_NAMES[c.name]))));
@@ -530,6 +534,7 @@
       section(T('optBar'), T('optBarNote'),
         h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optBarTheme')), barThemeSel, lockNote(locked.barTheme), barInvalid('barTheme')),
         h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optBarCompact')), barCompactSel, lockNote(locked.barCompact), barInvalid('barCompact'))),
+      section(T('optLearn'), T('optLearnNote'), h('div', { class: 'dlx-feld' }, h('label', null, lernBox, ' ', T('learnOn')), lockNote(locked.learningMode))),
       kuerzel]],
     ['erkennung', 'navDetect', [
       section(T('optKi'), T('optKiNote'), h('div', { class: 'dlx-feld' }, h('label', null, kiBox, ' ', T('kiOn')), lockNote(locked.detection)),

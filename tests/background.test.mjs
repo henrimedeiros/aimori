@@ -198,7 +198,7 @@ test('Laenderpakete automatisch: Reise wird nachgefuehrt, Ort wird nie gespeiche
   assert.deepEqual(Object.keys(a.cfg).filter((k) => k !== 'imageScan').sort(), ['accountRules', 'allowNotSensitive', 'allowPause', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedSites', 'answerCheck', 'blockUncheckedFiles', 'blockWhenInactive',
     'branding', 'competenceHideSensitive', 'competenceRecord', 'complianceFrameworks', 'complianceReport', 'complianceReportDays', 'copySidebarHint', 'countryPacks', 'customPatterns', 'customTerms',
     'deobfuscation', 'detection', 'dictionary', 'documentFingerprints', 'globalPacks', 'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'internalDomains', 'labelNames',
-    'language', 'massListMin', 'rules', 'screenShareGuard', 'sensitiveSourceAction', 'tableMinColumns', 'tableMinRows', 'tableRedaction', 'tableScan', 'trainingAmpel', 'uncertainFindings', 'userTerms',
+    'language', 'learningMode', 'massListMin', 'rules', 'screenShareGuard', 'sensitiveSourceAction', 'tableMinColumns', 'tableMinRows', 'tableRedaction', 'tableScan', 'trainingAmpel', 'uncertainFindings', 'userTerms',
     'voiceMode']);
   // texts = feste Paket-Texte (z. B. Datentyp-Namen mit «Europe»), ohne Ortsbezug.
   const ohneTexte = JSON.stringify(Object.assign({}, a, { texts: null }));
@@ -1430,6 +1430,27 @@ test('Kuerzel mit offener Meldung: Entscheidung nur an dasselbe Dokument, gezaeh
   assert.deepEqual(JSON.parse(JSON.stringify([c[0].msg, c[0].opt])), [{ t: 'cmd', choice: 'redact' }, { frameId: 0 }]);
 });
 
+test('Kuerzel Platzhalter: offene Meldung = pseudonym, sonst Auftrag; ohne allowPlaceholders nichts', async () => {
+  const s = setup({}, null);
+  await s.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, Object.assign({}, content, { documentId: 'DOC1' }));
+  s.replies.fn = (msg, opt) => (opt && opt.documentId === 'DOC1' ? { ok: true } : undefined);
+  await s.events.command('placeholder-all', { id: 5 }); await tick();
+  const d = s.sent.filter((x) => x.msg.t === 'decision');
+  assert.deepEqual([d.length, d[0].msg.choice, d[0].opt.documentId], [1, 'pseudonym', 'DOC1']);
+  assert.ok(JSON.stringify(s.store.local['dlx.stats']).includes('pseudonym'));
+  await s.events.command('placeholder-all', { id: 5 }); await tick();
+  const c = s.sent.filter((x) => x.msg.t === 'cmd');
+  assert.deepEqual(JSON.parse(JSON.stringify([c[0].msg, c[0].opt])), [{ t: 'cmd', choice: 'pseudonym' }, { frameId: 0 }]);
+  const off = setup({ allowPlaceholders: false }, null);
+  await off.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, Object.assign({}, content, { documentId: 'D2' }));
+  off.replies.fn = () => ({ ok: true });
+  await off.events.command('placeholder-all', { id: 5 }); await tick();
+  assert.equal(off.sent.filter((x) => x.msg.t === 'decision').length, 0, 'offene Meldung: keine Platzhalter-Entscheidung');
+  delete off.store.session['dlx.pending'];
+  await off.events.command('placeholder-all', { id: 5 }); await tick();
+  assert.equal(off.sent.filter((x) => x.msg.t === 'cmd').length, 0, 'ohne Meldung: kein Auftrag');
+});
+
 test('Kuerzel: altes Dokument zaehlt nicht, unbekannte Befehle und ohne Tab nichts, Datei-Meldung und Sperre bleiben', async () => {
   const s = setup({}, null);
   await s.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, Object.assign({}, content, { documentId: 'ALT' }));
@@ -1437,7 +1458,7 @@ test('Kuerzel: altes Dokument zaehlt nicht, unbekannte Befehle und ohne Tab nich
   await s.events.command('redact-all', { id: 5 }); await tick();
   assert.equal(s.store.local['dlx.stats'], undefined, 'nichts gezaehlt');
   const n = s.sent.length;
-  for (const cmd of ['override', 'notsensitive', 'placeholder-all', '_execute_action']) await s.events.command(cmd, { id: 5 });
+  for (const cmd of ['override', 'notsensitive', 'reveal-all', '_execute_action']) await s.events.command(cmd, { id: 5 });
   await s.events.command('redact-all', undefined);
   await s.events.command('redact-all', { id: -1 });
   await tick();

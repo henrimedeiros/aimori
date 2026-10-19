@@ -406,11 +406,13 @@
     if (msg.t === 'srcMarks') { srcApply(msg); return; }
     if (msg.t === 'shareState') { shareApply(msg); return; }
     // Tastenkuerzel ohne offene Meldung (nur vom Service Worker, Auflage 3):
-    // Feldtext neu scannen und schwaerzen, nur auf erlaubter, nicht gesperrter Seite.
+    // Feldtext neu scannen und schwaerzen bzw. durch Platzhalter ersetzen (nur mit
+    // allowPlaceholders), nur auf erlaubter, nicht gesperrter Seite.
     if (msg.t === 'cmd') {
-      if (msg.choice === 'redact' && !aiBlocked && siteAllowed() && !pending) {
+      const ok = msg.choice === 'redact' || (msg.choice === 'pseudonym' && placeholdersOn());
+      if (ok && !aiBlocked && siteAllowed() && !pending) {
         hideLive();
-        redactIn(site.findComposer(), 'redact');
+        redactIn(site.findComposer(), msg.choice);
       }
       return;
     }

@@ -4,7 +4,7 @@ Statt einen erkannten Wert nur zu schwärzen, kann die Leiste ihn durch einen **
 
 ## So funktioniert es
 
-1. Beim Senden, Einfügen oder im Hinweis beim Tippen erscheint neben **Schwärzen** der Knopf **Platzhalter**.
+1. Beim Senden, Einfügen oder im Hinweis beim Tippen erscheint neben **Schwärzen** der Knopf **Platzhalter** (unter „Weitere Optionen“). Schneller geht das Tastenkürzel **Alt+Shift+L**: es ersetzt alle erkannten Werte im Eingabefeld, auch ohne offene Meldung (im Browser änderbar).
 2. Jeder erkannte Wert wird zu `[TYP_n]`: `TYP` ist die Datentyp-ID in Grossbuchstaben ([Liste](datentypen.md)), `n` zählt je Typ in Leserichtung hoch. Derselbe Wert bekommt im ganzen Tab immer denselben Platzhalter; anders geschriebene Werte (z. B. mit Leerzeichen gruppiert) zählen als eigener Wert.
 3. Enthält eine Antwort der KI bekannte Platzhalter, erscheint über dem Eingabefeld die Leiste **„Antwort enthält Platzhalter für …“** mit dem Knopf **Mit echten Werten anzeigen**. Die Leiste nennt nur Arten und Anzahl, nie Werte. **Ausblenden** gilt für diese Antwort.
 4. Die Ansicht zeigt die Antwort mit echten Werten als reinen Text, dazu **Kopieren** und **Schliessen** und den Hinweis, echte Werte nicht zurück in den Chat einzufügen.

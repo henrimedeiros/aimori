@@ -27,7 +27,7 @@
   // (bool: on/off, Aufzaehlung: der erlaubte Wert, Liste: Anzahl, sonst "set").
   const POLICY_KIND = {
     allowUserOverride: 'bool', allowNotSensitive: 'bool', allowPlaceholders: 'bool', blockWhenInactive: 'bool', blockUncheckedFiles: 'bool',
-    autoCountryPacks: 'bool', competenceRecord: 'bool', competenceHideSensitive: 'bool', imageScan: 'bool', complianceReport: 'bool', trainingAmpel: 'bool',
+    autoCountryPacks: 'bool', competenceRecord: 'bool', competenceHideSensitive: 'bool', imageScan: 'bool', learningMode: 'bool', complianceReport: 'bool', trainingAmpel: 'bool',
     tableScan: 'bool', deobfuscation: 'bool', allowRephrase: 'bool', tableRedaction: ['columns', 'rows'], tableMinRows: 'set', tableMinColumns: 'set',
     detection: ['ki', 'regeln'], uncertainFindings: ['hint', 'warn', 'enforce'], aiSiteMode: ['off', 'hint', 'block'], language: ['auto', 'en', 'de', 'fr', 'it', 'pt', 'es'],
     allowedSites: 'list', countryPacks: 'list', globalPacks: 'list', allowedAiSites: 'list', blockedAiSites: 'list', complianceFrameworks: 'list',

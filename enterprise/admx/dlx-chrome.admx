@@ -153,6 +153,16 @@
         <decimal value="0" />
       </disabledValue>
     </policy>
+    <policy name="learningMode" class="Machine" displayName="$(string.learningMode)" explainText="$(string.learningMode_help)" key="Software\Policies\Google\Chrome\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="learningMode">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
     <policy name="detection" class="Machine" displayName="$(string.detection)" explainText="$(string.detection_help)" presentation="$(presentation.detection)" key="Software\Policies\Google\Chrome\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
       <parentCategory ref="dlx_root" />
       <supportedOn ref="SUPPORTED_MV3" />

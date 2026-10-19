@@ -76,6 +76,10 @@
    "Vérifier les images",
    "Si true, les images PNG, JPEG et WebP collées, déposées ou importées (p. ex. captures d’écran) sont lues localement par reconnaissance de texte et vérifiées comme du texte ; le site d’IA ne reçoit l’image qu’après la vérification (original, copie caviardée ou rien). Les images qui ne peuvent pas être vérifiées à temps ou qui sont trop grandes affichent un message au lieu de passer sans avertissement. Si false, les images sont traitées comme les autres fichiers (blockUncheckedFiles). Par défaut : true."
   ],
+  "learningMode": [
+   "Mode apprentissage",
+   "Si true, chaque message explique en une courte phrase par type de données pourquoi ces données sont sensibles (textes fixes, jamais la valeur trouvée), avec un lien vers une page d’explication locale. Si false, les messages n’affichent aucune explication et le justificatif de maîtrise de l’IA ne compte aucune explication comme vue. Par défaut : true (les utilisateurs peuvent le désactiver)."
+  ],
   "detection": [
    "Détection",
    "ki = règles plus un modèle d’IA local pour les noms, entreprises, adresses et données de santé (fonctionne sur l’appareil, rien n’est envoyé ; en cas d’erreur, règles seules) ; regeln = règles seules. Les règles s’appliquent toujours. Par défaut : ki."
