@@ -20,7 +20,7 @@ Die Regeln erkennen feste Formate (IBAN, Karten, AHV, Telefon, Mail …) und Nam
 
 ## Bauen
 
-Das Modell ist nicht im Git. `npm ci --ignore-scripts && node scripts/build-ki.mjs` lädt das Original (ca. 279 MB) einmal am gepinnten Commit von Hugging Face (nur HTTPS, nur Hugging-Face-Hosts), prüft SHA-256 gegen `extension/vendor/ki/PINS.json`, **kürzt das Vokabular** (siehe unten, `scripts/lib/ki-konvert.mjs`), prüft das Ergebnis gegen `modell.erzeugt` und legt Modell, ONNX-WASM und Tokenizer als base64-Stücke (je 16 MB) nach `extension/vendor/ki/`. Ohne diesen Schritt fehlt die KI und die Erweiterung arbeitet nur mit Regeln. Paketgrösse seit 16.10.2026: ca. 226 MB unkomprimiert (base64), ca. 147 MB gepackt (vorher 410 / 268 MB).
+Das Modell ist nicht im Git. `npm ci --ignore-scripts && node scripts/build-ki.mjs` lädt das Original (ca. 279 MB) einmal am gepinnten Commit von Hugging Face (nur HTTPS, nur Hugging-Face-Hosts), prüft SHA-256 gegen `extension/vendor/ki/PINS.json`, **kürzt das Vokabular** (siehe unten, `scripts/lib/ki-konvert.mjs`), prüft das Ergebnis gegen `modell.erzeugt` und legt Modell, ONNX-WASM und Tokenizer als base64-Stücke (je 2,5 MB Rohdaten, ca. 3,5 MB je Skriptdatei – unter der 4-MB-Grenze der Firefox-Prüfung; vor dem 17.10.2026 je 16 MB) nach `extension/vendor/ki/`. Ohne diesen Schritt fehlt die KI und die Erweiterung arbeitet nur mit Regeln. Paketgrösse seit 16.10.2026: ca. 226 MB unkomprimiert (base64), ca. 147 MB gepackt (vorher 410 / 268 MB).
 
 ## Messung (16.10.2026)
 

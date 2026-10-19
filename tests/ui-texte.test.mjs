@@ -7,15 +7,11 @@ import { load, ENGINE_FILES } from './helpers/load.mjs';
 const DLX = load([...ENGINE_FILES, 'common/i18n.js', 'common/stats.js']);
 const I = DLX.i18n;
 
-// Erklaerungen und KI-Kompetenz-Nachweis gibt es nur DE/EN (14.10.2026);
-// die uebrigen Sprachen fallen fuer genau diese Schluessel auf Englisch zurueck.
+// Seit 17.10.2026 alle Sprachen vollstaendig (auch Erklaerungen und KI-Kompetenz-Nachweis).
 const EN_DE_ONLY = /^(why_(?!timezone$|region$|language$)|learn|komp|rec[A-Z]|optKomp)/;
 test('alle Sprachen haben dieselben Schluessel wie Englisch', () => {
   const en = Object.keys(I.STRINGS.en).sort();
-  assert.deepEqual(Object.keys(I.STRINGS.de).sort(), en, 'de');
-  for (const l of ['fr', 'it', 'pt', 'es']) {
-    assert.deepEqual(Object.keys(I.STRINGS[l]).sort(), en.filter((k) => !EN_DE_ONLY.test(k)), l);
-  }
+  for (const l of I.LANGS) assert.deepEqual(Object.keys(I.STRINGS[l]).sort(), en, l);
 });
 
 test('Erklaerung und laengerer Text je Datentyp-Gruppe in DE und EN, kurz und ohne Rechtszusagen', () => {
@@ -23,8 +19,8 @@ test('Erklaerung und laengerer Text je Datentyp-Gruppe in DE und EN, kurz und oh
   const cats = new Set(Array.from(DLX.engine.allDetectors(), (d) => d.cat));
   for (const c of cats) assert.ok(K.GROUPS.includes(c), 'Gruppe fehlt in kompetenz.js: ' + c);
   for (const g of K.GROUPS) for (const l of ['de', 'en']) {
-    const why = I.STRINGS[l]['why_' + g];
-    const learn = I.STRINGS[l]['learn_' + g];
+    const why = I.t(l, 'why_' + g);
+    const learn = I.t(l, 'learn_' + g);
     assert.ok(why && why.length <= 130 && /[.]$/.test(why), l + ' why_' + g);
     assert.ok(learn && learn.length > why.length, l + ' learn_' + g);
   }
@@ -35,18 +31,19 @@ test('Erklaerung und laengerer Text je Datentyp-Gruppe in DE und EN, kurz und oh
   assert.match(I.STRINGS.de.recNote, /2\. Februar 2025/);
   assert.match(I.STRINGS.de.recNote, /Selbstauskunft/);
   assert.match(I.STRINGS.de.recNote, /EU-Bezug/);
-  assert.equal(I.t('fr', 'why_finanz'), I.STRINGS.en.why_finanz, 'Rueckfall Englisch');
+  assert.notEqual(I.t('fr', 'why_finanz'), I.t('en', 'why_finanz'), 'eigene Uebersetzung statt Englisch');
 });
 
 test('jede Kategorie und jede Aktion hat einen Text', () => {
   const cats = new Set(Array.from(DLX.engine.allDetectors(), (d) => d.cat));
-  for (const c of cats) assert.ok(Object.hasOwn(I.STRINGS.en, 'cat_' + c), c);
+  for (const c of cats) assert.ok(I.has('en', 'cat_' + c), c);
   for (const a of ['off', 'warn', 'redact', 'block']) assert.ok(Object.hasOwn(I.STRINGS.en, 'act_' + a), a);
   for (const d of DLX.stats.DECISIONS) assert.ok(Object.hasOwn(I.STRINGS.en, 'dec_' + d), d);
 });
 
 test('Texte enthalten keinen Produktnamen, nur Platzhalter', () => {
-  for (const table of Object.values(I.STRINGS)) for (const s of Object.values(table)) assert.ok(!/aimori/i.test(s));
+  // ext* = Manifest-Name/-Beschreibung (chrome.i18n), dort steht der Produktname.
+  for (const table of Object.values(I.STRINGS)) for (const [k, s] of Object.entries(table)) if (!k.startsWith('ext')) assert.ok(!/aimori/i.test(s), k);
   assert.equal(I.t('de', 'introSend', { product: 'Example' }).startsWith('Example hat'), true);
 });
 

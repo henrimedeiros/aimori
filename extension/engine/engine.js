@@ -16,17 +16,25 @@
     for (const p of Object.values(DLX.packs)) out.push(...p.detectors);
     return out;
   }
+  // id -> Detektor, einmal je Pruefung gebaut und danach verworfen (nie veraltet); bei
+  // doppelter ID gewinnt wie bei find() der erste Eintrag. Spart je Detektor einen
+  // Durchlauf ueber alle Detektoren (Design-Review Datei-Pruefung schneller 19.10.2026, Auflage 4).
+  function detectorMap() {
+    const m = new Map();
+    for (const p of Object.values(DLX.packs)) for (const d of p.detectors) if (!m.has(d.id)) m.set(d.id, d);
+    return m;
+  }
 
   function defaultAction(d) {
     if (d.act) return d.act;   // z. B. doc_identity: block (Design-Review Code und Bilder, Antwort Default)
     return d.cls === 'tief' ? 'off' : 'warn';
   }
 
-  function actionFor(id, cfg) {
+  function actionFor(id, cfg, byId) {
     const r = cfg && cfg.rules && cfg.rules[id];
     if (r && RANK[r] !== undefined) return r;
-    if (id === 'dictionary' || id === 'custom_term') return 'warn';
-    const d = allDetectors().find((x) => x.id === id);
+    if (id === 'dictionary' || id === 'custom_term' || id === 'internal_link') return 'warn';
+    const d = byId ? byId.get(id) : allDetectors().find((x) => x.id === id);
     return d ? defaultAction(d) : 'warn';
   }
 
@@ -128,12 +136,13 @@
     const hidden = [];   // per "Kein sensibler Wert" ausgeblendet; zaehlen fuer Listen weiter (Auflage 2)
     const lists = [];
     for (const pid of packs) if (DLX.packs[pid]) lists.push(DLX.packs[pid].detectors);
+    const byId = detectorMap();
     if (cfg && cfg.org) lists.push(cfg.org);   // Richtlinie customPatterns, Aktion fest je Muster
     for (const detectors of lists) {
       for (const d of detectors) {
         if (d.derived) continue;
         if (strongOnly && !d.org && !strong(d, strongOnly)) continue;
-        const action = d.org ? d.act : actionFor(d.id, cfg);
+        const action = d.org ? d.act : actionFor(d.id, cfg, byId);
         if (action === 'off') continue;
         // pre: billige Vorpruefung des ganzen Texts (z. B. "enthaelt Buchstaben"); spart grosse Muster bei reinen Zahlenkolonnen.
         if (d.code && !isCode()) continue;
@@ -194,6 +203,15 @@
       const action = actionFor('custom_term', cfg);
       for (const f of r.findings) cand.push(Object.assign(f, { action, sure: true, prio: 2 }));
     }
+    // Interne Links (SharePoint/OneDrive, Intranet, Hosts ohne oeffentliche Endung, Richtlinie
+    // internalDomains); gleiches Zeitbudget, Timeout oder > 500 Links -> nicht pruefbar (Auflage 1).
+    if (actionFor('internal_link', cfg) !== 'off' && /:\/\/|sharepoint\./i.test(text)) {
+      const r = DLX.dictionary.scanLinks(text, cfg && cfg.domains, deadline, t);
+      if (r.timeout) { res.unscannable = true; res.reason = 'timeout'; return res; }
+      if (r.tooMany) { res.unscannable = true; res.reason = 'too_long'; return res; }
+      const action = actionFor('internal_link', cfg);
+      for (const f of r.findings) cand.push(Object.assign(f, { action, sure: true, prio: 2 }));
+    }
     // Eigene Label-Namen (Richtlinie labelNames, vorbereitet in engineConfig) als
     // conf_label, nur mit aktivem Paket marker; gleiches Zeitbudget.
     if (cfg && cfg.labels && cfg.labels.length && packs.indexOf('marker') !== -1 && actionFor('conf_label', cfg) !== 'off') {
@@ -213,7 +231,7 @@
     let derived = null;
     if (ctxOn) {
       try {
-        derived = DLX.context.derive(text, cand.concat(hidden), cfg || {}, deadline, t, (id) => actionFor(id, cfg));
+        derived = DLX.context.derive(text, cand.concat(hidden), cfg || {}, deadline, t, (id) => actionFor(id, cfg, byId));
       } catch (e) {
         derived = null;
         // Zeitbudget aufgebraucht (u. a. Tabellen-Erkennung) -> nicht pruefbar wie bei allen

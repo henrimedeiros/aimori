@@ -185,6 +185,20 @@ html, body.dlx-bar-seite { height: 100%; }
 .dlx-bar.dlx-bar-2 .dlx-bar-kern { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .dlx-bar.dlx-bar-2 .dlx-bar-aktionen { flex: 1 1 100%; flex-wrap: wrap; row-gap: 8px; }
 .dlx-bar.dlx-bar-2 .dlx-umbruch { display: block; flex: 0 0 100%; height: 0; }
+/* Kompakt fuer kleine Bildschirme (barCompact, Design-Review Warnleiste anpassbar 17.10.2026,
+   Auflage 5): 44 px, Knoepfe 30 px, Signet 24 px (nie kleiner, sonst nur Kachel ohne Wortmarke);
+   Kernsatz, Fundart und alle Knoepfe bleiben; nichts wird ausgeblendet, die Erklaerung steht hinten
+   im Text (bei Platzmangel mit ... gekuerzt, vollstaendig fuer Screenreader und im title). */
+.dlx-bar.dlx-kompakt { gap: var(--s2); padding: 0 6px 0 10px; border-radius: 12px; font-size: 0.8125rem; }
+.dlx-bar.dlx-kompakt.dlx-bar-2 { row-gap: 6px; padding: 6px 6px 6px 10px; }
+.dlx-bar.dlx-kompakt .dlx-knopf { height: 30px; padding: 0 10px; font-size: 0.8125rem; }
+.dlx-bar.dlx-kompakt .dlx-knopf.dlx-zu { width: 30px; padding: 0; }
+.dlx-bar.dlx-kompakt:not(.dlx-bar-2) .dlx-knopf::after { inset: -7px 0; }
+.dlx-bar.dlx-kompakt .dlx-logo { width: 24px; height: 24px; }
+.dlx-bar.dlx-kompakt .dlx-bar-marke { margin-left: -2px; padding-right: var(--s2); }
+.dlx-bar.dlx-kompakt .dlx-bar-text { min-width: 8em; }
+.dlx-bar.dlx-kompakt .dlx-mehr { font-size: 0.8125rem; }
+.dlx-bar.dlx-kompakt .dlx-bar-aktionen { gap: 6px; }
 
 /* Vollbild-Rueckfall und Popupfenster: Karte wie der Hinweis der Website */
 /* Karte scrollt innen, die Knopfzeile bleibt unten sichtbar (nie abgeschnitten). */
@@ -345,6 +359,11 @@ body.dlx-options { min-height: 100vh; background: var(--buehne), var(--bg); back
 .dlx-abschnitt > p.dlx-muted { margin-bottom: var(--s4); }
 .dlx-erklaerung { margin: 0 0 var(--s4); padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-small); }
 .dlx-erklaerung b { color: var(--ink-2); font-weight: 600; }
+/* Tastenkuerzel in den Einstellungen: Taste links, Funktion rechts */
+.dlx-kuerzel { margin: 0 0 var(--s3); padding: 0; list-style: none; display: grid; gap: var(--s2); }
+.dlx-kuerzel li { display: flex; align-items: center; gap: var(--s3); color: var(--ink); }
+.dlx-kuerzel kbd { min-width: 11em; padding: 2px var(--s2); border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface);
+  color: var(--ink-2); font: inherit; font-size: var(--fs-small); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dlx-muted { color: var(--muted); font-size: var(--fs-small); }
 .dlx-feld { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
 .dlx-gruppe + .dlx-gruppe { margin-top: var(--s4); }

@@ -17,7 +17,7 @@ const IBAN = 'CH9300762011623852957';      // SWIFT-Beispiel
 const AHV = '756.1234.5678.97';            // Beispiel der ZAS
 const tick = async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); };
 
-function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, noNonce = false, cfg = null, ignore = null, cover = null, aiBlocked = false } = {}) {
+function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, noNonce = false, cfg = null, ignore = null, cover = null, aiBlocked = false, pausedUntil = 0 } = {}) {
   const f = fakeDom();
   const { doc, el } = f;
   let composer, dictate, box, send = null, other = null;
@@ -41,6 +41,11 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
     composer = el('textarea', { id: 'userInput', 'aria-label': 'Message Copilot' });
     send = el('button', { type: 'submit', 'data-testid': 'submit-button', 'aria-label': 'Submit message' });
     box = el('form', {}, composer, send);
+  } else if (layout === 'perplexity') {
+    // Perplexity (Annahme Stand 17.10.2026): contenteditable #ask-input, Senden-Knopf aria-label Submit.
+    composer = el('div', { id: 'ask-input', contenteditable: 'true', role: 'textbox', 'data-lexical-editor': 'true' });
+    send = el('button', { type: 'button', 'aria-label': 'Submit' });
+    box = el('div', {}, el('div', {}, composer), el('div', {}, send));
   } else if (layout === 'chatgpt') {
     // Stand 13.10.2026: versteckte Rueckfall-textarea vor dem ProseMirror-Feld,
     // ohne Text nur Diktat-/Sprachknoepfe, kein Senden-Knopf.
@@ -65,7 +70,7 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
       sendMessage: (m) => {
         messages.push(m);
         if (breakLive && m.t === 'found' && m.mode === 'live') throw new Error('kaputt');
-        if (m.t === 'cfg' && (cfg || ignore || aiBlocked)) return Promise.resolve().then(() => ({ cfg: Object.assign(DLX.policy.defaults('de-CH'), cfg || {}), ignore, aiBlocked }));
+        if (m.t === 'cfg' && (cfg || ignore || aiBlocked || pausedUntil)) return Promise.resolve().then(() => ({ cfg: Object.assign(DLX.policy.defaults('de-CH'), cfg || {}), ignore, aiBlocked, pausedUntil }));
         return Promise.resolve(m.t === 'found' && !noNonce ? { nonce: 'n' } : {});
       },
       onMessage: { addListener: (fn) => { onMsg = fn; } },
@@ -73,7 +78,7 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
     storage: { onChanged: { addListener() {} } },
   };
   const ctx = {
-    window: f.win, top: f.win, document: doc, location: { hostname: host }, NodeFilter: { SHOW_TEXT: 4 }, navigator: { language: 'de-CH' }, chrome,
+    window: f.win, top: f.win, document: doc, location: { hostname: host }, NodeFilter: { SHOW_TEXT: 4 }, navigator: { language: 'de-CH' }, chrome, btoa,
     setTimeout: f.setTimeout, clearTimeout: f.clearTimeout, setInterval(fn) { intervals.push(fn); },
     getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1', position: 'fixed', transform: 'none', filter: 'none', clipPath: 'none', backgroundColor: '' }),
     getSelection: () => ({ removeAllRanges() {}, addRange() {} }),
@@ -103,9 +108,9 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
   const hint = () => (msgHost() && lastFound() && lastFound().mode === 'live' ? msgHost() : null);
   const dialogHost = () => (msgHost() && lastFound() && lastFound().mode !== 'live' ? msgHost() : null);
   // Entscheidung vom Service Worker (Absender ohne Tab).
-  const decide = (choice, nonce = 'n', sender = { id: 'x' }) => onMsg({ t: 'decision', nonce, choice }, sender);
+  const decide = (choice, nonce = 'n', sender = { id: 'x' }) => onMsg({ t: 'decision', nonce, choice }, sender, () => {});
   const tickStatus = () => intervals.forEach((fn) => fn());
-  return { ...f, DLX, onMsg: (m, respond) => onMsg(m, { id: 'x' }, respond), composer, dictate, send, other, box, messages, found, type, enter, hint, dialogHost, host: msgHost, decide, tickStatus, scans: () => scans };
+  return { ...f, DLX, onMsg: (m, respond = () => {}) => onMsg(m, { id: 'x' }, respond), onMsgFrom: (m, sender) => onMsg(m, sender, () => {}), composer, dictate, send, other, box, messages, found, type, enter, hint, dialogHost, host: msgHost, decide, tickStatus, scans: () => scans };
 }
 
 test('Tippen + Enter mit Fund (ChatGPT-ProseMirror, ohne Senden-Knopf): gestoppt, Dialog', async () => {
@@ -823,7 +828,7 @@ test('Hoehe vom Frame: nur mit der Nonce der angezeigten Meldung, Wache sofort, 
   const h = s.dialogHost();
   h.getBoundingClientRect = () => barRectOf(h);
   assert.equal(h.style.height, '100px', 'Startwert');
-  for (const [nonce, hh] of [['alt', 144], ['n', 55], ['n', 241], ['n', 1.5], ['n', '144'], ['n', 100]]) s.onMsg({ t: 'dlgSize', nonce, h: hh });
+  for (const [nonce, hh] of [['alt', 144], ['n', 43], ['n', 241], ['n', 1.5], ['n', '144'], ['n', '50'], ['n', NaN], ['n', 100]]) s.onMsg({ t: 'dlgSize', nonce, h: hh });
   assert.equal(h.style.height, '100px', 'fremde Nonce, ungueltige oder gleiche Hoehe: nichts');
   assert.equal(s.messages.filter((m) => m.t === 'moved').length, 0);
   s.onMsg({ t: 'dlgSize', nonce: 'n', h: 144 });
@@ -1244,7 +1249,9 @@ test('Upload: CSV und XLSX mit Personendaten werden angehalten (nur Art und Zeil
   assert.equal(drop(s, { name: 'export.csv', type: 'text/csv', size: csv.length, text: async () => csv }).defaultPrevented, true);
   for (let i = 0; i < 5; i++) await tick();
   const f = s.found().pop();
-  assert.deepEqual([f.mode, JSON.parse(JSON.stringify(f.items))], ['doc', [{ id: 'mass_list', cat: 'person', n: 12 }]]);
+  // Seit 17.10.2026 laufen Dateien auch durch die normalen Erkenner (Design-Review Datei-Uploads): Mails zaehlen mit.
+  // Seit 19.10.2026 mit hoechstens 5 Zeilennummern je Typ, nie Werte (Design-Review Bereinigen).
+  assert.deepEqual([f.mode, JSON.parse(JSON.stringify(f.items))], ['doc', [{ id: 'email', cat: 'kontakt', n: 12, lines: [2, 3, 4, 5, 6] }, { id: 'mass_list', cat: 'person', n: 12 }]]);
   assert.ok(!JSON.stringify(s.messages).includes('example.com'));
   const x = setup();
   await tick();
@@ -1253,5 +1260,145 @@ test('Upload: CSV und XLSX mit Personendaten werden angehalten (nur Art und Zeil
   // Entpacken laeuft ueber mehrere Ereignisrunden (DecompressionStream).
   for (let i = 0; i < 200 && !x.found().length; i++) await new Promise((r) => setTimeout(r, 10));
   const g = x.found().pop();
-  assert.deepEqual([g.mode, JSON.parse(JSON.stringify(g.items))], ['doc', [{ id: 'mass_list', cat: 'person', n: 12 }]]);
+  assert.deepEqual([g.mode, JSON.parse(JSON.stringify(g.items))], ['doc', [{ id: 'email', cat: 'kontakt', n: 12 }, { id: 'mass_list', cat: 'person', n: 12 }]]);
+});
+
+// Datei-Uploads (Design-Review Datei-Uploads 17.10.2026, Auflage 6): nie still durch.
+test('Upload: zu grosse Textdatei und PDF ohne Antwort des Service Workers gelten als nicht pruefbar', async () => {
+  const drop = (s, f) => s.fire('drop', s.composer, { dataTransfer: { files: [f], items: [{ kind: 'file' }], getData: () => '' } });
+  const s = setup({ cfg: { hiddenInstructionScan: false, tableScan: false } });
+  await tick();
+  assert.equal(drop(s, { name: 'gross.txt', type: 'text/plain', size: 100 * 1024 * 1024, text: async () => '' }).defaultPrevented, true);
+  for (let i = 0; i < 5; i++) await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(s.found().pop().items)), [{ id: 'unscannable', cat: 'unscannable', n: 1 }]);
+  const x = setup();
+  await tick();
+  const bytes = new Uint8Array([37, 80, 68, 70]);
+  assert.equal(drop(x, { name: 'bericht.pdf', type: 'application/pdf', size: bytes.length, arrayBuffer: async () => bytes.buffer }).defaultPrevented, true);
+  for (let i = 0; i < 50 && !x.found().length; i++) await new Promise((r) => setTimeout(r, 10));
+  const g = x.found().pop();
+  assert.deepEqual([g.mode, JSON.parse(JSON.stringify(g.items))], ['doc', [{ id: 'unscannable', cat: 'unscannable', n: 1 }]]);
+  assert.ok(x.messages.some((m) => m.t === 'doc' && m.kind === 'pdf'), 'PDF geht an den Service Worker');
+});
+
+// Seitenerkennung Perplexity: nur exakte Hosts, normalisiert (Design-Review Browser-KIs
+// 17.10.2026, Auflagen 4, 5). Der Host kommt wie im Content Script aus URL.hostname.
+test('Seitenerkennung: Perplexity genau auf perplexity.ai und www.perplexity.ai', async () => {
+  const s = setup({ host: 'perplexity.ai', layout: 'perplexity' });
+  const A = s.DLX.adapters;
+  const host = (u) => new URL(u).hostname;
+  for (const h of ['perplexity.ai', 'www.perplexity.ai', 'PERPLEXITY.AI', 'perplexity.ai.', host('https://WWW.Perplexity.AI/search')]) assert.equal(A.forHost(h) && A.forHost(h).id, 'perplexity', h);
+  for (const h of ['xperplexity.ai', 'labs.perplexity.ai', 'perplexity.ai.example.com', 'perplexity.ai.evil.com', host('https://evil.com/perplexity.ai'),
+    host('https://perplexity.ai@evil.com/'), host('https://perplex\u0456ty.ai/'), 'perplexity', '', null, undefined]) assert.equal(A.forHost(h), null, String(h));
+  // http:// gilt nie: das Manifest traegt nur https-Muster, der Service Worker nur https-Origins (manifest.test).
+  assert.equal(A.forHost('www.copilot.com'), null);
+  await tick();
+  s.type('IBAN ' + IBAN);
+  assert.equal(s.enter().defaultPrevented, true, 'Enter gestoppt');
+  await tick();
+  assert.equal(s.found().length, 1);
+  const s2 = setup({ host: 'www.perplexity.ai', layout: 'perplexity' });
+  await tick();
+  s2.type('IBAN ' + IBAN);
+  assert.equal(s2.fire('click', s2.send).defaultPrevented, true, 'Klick auf Senden gestoppt');
+  const s3 = setup({ host: 'perplexity.ai', layout: 'perplexity' });
+  await tick();
+  s3.tickStatus();
+  s3.composer.remove();
+  // Eine fremde textarea mit placeholder (z. B. Suche) zaehlt nie als Eingabefeld (Pflicht-Pruefung 17.10.2026).
+  s3.box.append(s3.el('textarea', { placeholder: 'Search' }));
+  s3.tickStatus();
+  assert.deepEqual(s3.messages.filter((m) => m.t === 'status').map((m) => m.active), [true, false], 'ohne Feld nicht aktiv, auch mit fremder textarea');
+});
+
+// --- Pause und Tastenkuerzel (Design-Review Alltag 14.10.2026, Auflagen 2, 3, 7) ---
+test('Pause: Warnungen und Live-Hinweis aus, block-Funde stoppen weiter; abgelaufen = aus', async () => {
+  const s = setup({ pausedUntil: Date.now() + 600000 });
+  await tick();
+  s.type('IBAN ' + IBAN);
+  assert.equal(s.enter().defaultPrevented, false, 'warn-Fund in der Pause geht durch');
+  assert.equal(s.found().length, 0, 'keine Meldung, kein Live-Hinweis');
+  const b = setup({ pausedUntil: Date.now() + 600000, cfg: { rules: { iban: 'block' } } });
+  await tick();
+  b.type('IBAN ' + IBAN);
+  assert.equal(b.enter().defaultPrevented, true, 'block bleibt in der Pause');
+  const old = setup({ pausedUntil: Date.now() - 1000 });
+  await tick();
+  old.type('IBAN ' + IBAN);
+  assert.equal(old.enter().defaultPrevented, true, 'abgelaufene Pause wirkt nicht');
+  const off = setup({ pausedUntil: Date.now() + 600000, cfg: { allowPause: false } });
+  await tick();
+  off.type('IBAN ' + IBAN);
+  assert.equal(off.enter().defaultPrevented, true, 'allowPause false: Pause wirkt nicht');
+});
+
+test('Pause: "Nur schwaerzen" und Warnungen ohne Trotzdem-Recht greifen weiter', async () => {
+  const until = Date.now() + 600000;
+  const r = setup({ pausedUntil: until, cfg: { rules: { iban: 'redact' } } });
+  await tick();
+  r.type('IBAN ' + IBAN);
+  assert.equal(r.enter().defaultPrevented, true, 'Nur schwaerzen bleibt');
+  const n = setup({ pausedUntil: until, cfg: { allowUserOverride: false } });
+  await tick();
+  n.type('IBAN ' + IBAN);
+  assert.equal(n.enter().defaultPrevented, true, 'allowUserOverride=false: Warnung bleibt');
+});
+
+test('Pause: Seitensperre, KI-Sperre und blockWhenInactive gelten weiter', async () => {
+  const until = Date.now() + 600000;
+  const site = setup({ pausedUntil: until, cfg: { allowedSites: ['claude'] } });
+  await tick();
+  site.type('Hallo');
+  assert.equal(site.enter().defaultPrevented, true, 'nicht freigegebene Seite');
+  const ai = setup({ pausedUntil: until, aiBlocked: true });
+  await tick();
+  ai.type('Hallo');
+  assert.equal(ai.enter().defaultPrevented, true, 'KI-Seite gesperrt');
+  const ina = setup({ host: 'copilot.cloud.microsoft', layout: 'm365', pausedUntil: until, cfg: { blockWhenInactive: true } });
+  ina.composer.remove();
+  await tick();
+  assert.equal(pasteText(ina, ina.other).defaultPrevented, true, 'Feld nicht erkannt');
+});
+
+test('Kuerzel ohne Meldung: nur vom Service Worker, nur Schwaerzen, nur auf erlaubter Seite', async () => {
+  const s = setup();
+  await tick();
+  s.type('Konto ' + IBAN + ' bitte');
+  for (const choice of ['override', 'notsensitive', 'pseudonym']) s.onMsg({ t: 'cmd', choice });
+  assert.ok(s.composer.textContent.includes(IBAN), 'nur redact');
+  let out = null;
+  s.onMsg({ t: 'cmd', choice: 'redact' }, (r) => { out = r; });
+  assert.ok(!s.composer.textContent.includes(IBAN), s.composer.textContent);
+  assert.equal(out, null, 'cmd antwortet nicht');
+  const g = setup({ cfg: { allowedSites: ['claude'] } });
+  await tick();
+  g.type('Konto ' + IBAN);
+  g.onMsg({ t: 'cmd', choice: 'redact' });
+  assert.ok(g.composer.textContent.includes(IBAN), 'nicht freigegebene Seite: nichts');
+  const ai = setup({ aiBlocked: true });
+  await tick();
+  ai.type('Konto ' + IBAN);
+  ai.onMsg({ t: 'cmd', choice: 'redact' });
+  assert.ok(ai.composer.textContent.includes(IBAN), 'gesperrte KI-Seite: nichts');
+});
+
+test('Kuerzel-Nachricht aus einem Tab (anderes Content Script) wird ignoriert', async () => {
+  const s = setup();
+  s.type('Konto ' + IBAN);
+  s.onMsgFrom({ t: 'cmd', choice: 'redact' }, { id: 'x', tab: { id: 3 } });
+  assert.ok(s.composer.textContent.includes(IBAN));
+});
+
+test('Entscheidung zur offenen Meldung wird bestaetigt (fuer Kuerzel im Service Worker)', async () => {
+  const s = setup();
+  s.type('IBAN ' + IBAN);
+  s.enter();
+  await tick();
+  let out = null;
+  s.onMsg({ t: 'decision', nonce: 'n', choice: 'redact' }, (r) => { out = r; });
+  assert.deepEqual(JSON.parse(JSON.stringify(out)), { ok: true });
+  assert.ok(!s.composer.textContent.includes(IBAN));
+  let none = null;
+  s.onMsg({ t: 'decision', nonce: 'n', choice: 'redact' }, (r) => { none = r; });
+  assert.equal(none, null, 'verbrauchte Nonce: keine Bestaetigung');
 });

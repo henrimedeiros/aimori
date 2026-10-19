@@ -22,7 +22,7 @@
   const st = await chrome.runtime.sendMessage({ t: 'state' }).catch(() => null);
   // Ungueltige Antwort: nur "Status unbekannt", nie "Schutz aktiv" (Auflage 5, fail-closed).
   if (!st || typeof st.cfg !== 'object' || !st.cfg || typeof st.locked !== 'object' || !st.locked || !st.cfg.branding) {
-    const l = DLX.i18n.resolveLang('auto', navigator.language);
+    const l = await DLX.i18n.ready('auto', navigator.language);
     document.documentElement.lang = l;
     document.body.append(h('main', { class: 'dlx-opt-leer' }, h('section', { class: 'dlx-status-karte dlx-status-warn', 'data-k': 'status-schutz' },
       h('h2', null, DLX.i18n.t(l, 'protUnknown')), h('p', { class: 'dlx-muted' }, DLX.i18n.t(l, 'protUnknownNote')))));
@@ -31,7 +31,7 @@
   const cfg = st.cfg;
   const locked = st.locked;
   const b = cfg.branding;
-  const lang = DLX.i18n.resolveLang(cfg.language, navigator.language);
+  const lang = await DLX.i18n.ready(cfg.language, navigator.language);
   const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: b.productName, company: b.companyName }, v || {}));
   document.documentElement.lang = lang;
   DLX.dom.applyBranding(b, dunkel());
@@ -63,6 +63,9 @@
     if (!locked.sensitiveSourceAction) settings.sensitiveSourceAction = srcAction.value;
     if (!locked.formGuardSites) settings.formGuardSites = formList.slice();
     if (!locked.copySidebarHint) settings.copySidebarHint = copyBox.checked;
+    if (!locked.barTheme) settings.barTheme = barThemeSel.value;
+    if (!locked.barCompact) settings.barCompact = barCompactSel.value;
+    if (!locked.screenShareGuard) settings.screenShareGuard = shareSel.value;
     await chrome.runtime.sendMessage({ t: 'save', settings });
     saved.textContent = T('saved');
   }
@@ -107,14 +110,14 @@
   // 3. Aktion je Datentyp
   const ruleSel = {};
   const groups = new Map();   // Paket -> Zeilen
-  for (const id of DLX.engine.allDetectors().map((d) => d.id).concat('dictionary', 'custom_term')) {
+  for (const id of DLX.engine.allDetectors().map((d) => d.id).concat('dictionary', 'custom_term', 'internal_link')) {
     const isLocked = !!locked.rules[id];
     const sel = h('select', { disabled: isLocked, 'aria-label': DLX.i18n.typeName(lang, id) },
       DLX.policy.ACTIONS.map((a) => h('option', { value: a, selected: a === DLX.engine.actionFor(id, cfg) }, T('act_' + a))));
     sel.addEventListener('change', () => { save(); summarize(); });
     ruleSel[id] = sel;
     const d = DLX.engine.findDetector(id);
-    const pack = d ? (DLX.policy.COUNTRY.includes(d.pack) ? region(d.pack) : T('pack_' + d.pack)) : T(id === 'custom_term' ? 'termGroup' : 'dictGroup');
+    const pack = d ? (DLX.policy.COUNTRY.includes(d.pack) ? region(d.pack) : T('pack_' + d.pack)) : T(id === 'custom_term' ? 'termGroup' : id === 'internal_link' ? 'pack_secrets' : 'dictGroup');
     if (!groups.has(pack)) groups.set(pack, []);
     sel.dataset.pack = pack;
     groups.get(pack).push(h('tr', null, h('td', null, DLX.i18n.typeName(lang, id)), h('td', null, lockNote(isLocked), ' ', sel)));
@@ -213,6 +216,23 @@
   });
   const aiOn = cfg.aiSiteMode === 'hint' || cfg.aiSiteMode === 'block';
   if (aiOn) showAi();
+  // Zugriff auf die Seiten mit Content Script (Firefox MV3: Opt-in, ohne ihn ist der
+  // Schutz still aus; Design-Review Firefox 17.10.2026, Auflage 9): nur diese Origins
+  // aus dem Manifest, nur auf echten Klick, ohne await davor (Firefox verlangt die
+  // Nutzeraktion direkt im Klick; schon erteilte Origins aendern nichts).
+  const csOrigins = [...new Set((chrome.runtime.getManifest().content_scripts || []).flatMap((c) => c.matches || []))];
+  const hostGrant = h('button', { type: 'button', class: 'dlx-knopf dlx-gross dlx-haupt', 'data-k': 'host-grant' }, T('hostGrant'));
+  const hostBox = h('div', { class: 'dlx-verwaltet dlx-eintrag', role: 'alert' }, h('p', null, T('popHostMissing')), h('div', { class: 'dlx-aktionen' }, hostGrant));
+  hostBox.hidden = true;
+  async function showHost() {
+    hostBox.hidden = !csOrigins.length || await chrome.permissions.contains({ origins: csOrigins });
+  }
+  hostGrant.addEventListener('click', async (e) => {
+    if (!e.isTrusted) return;
+    try { await chrome.permissions.request({ origins: csOrigins }); } catch (err) { /* abgelehnt */ }
+    showHost().catch(() => {});
+  });
+  showHost().catch(() => {});
 
   // Hinweis beim Kopieren (Design-Review Kopierwarnung 16.10.2026, Auflagen 3, 11): Zugriff auf
   // https://*/* nur auf Klick mit erklaerendem Text vorher, nie automatisch, kein Draengen.
@@ -231,6 +251,27 @@
     showCopy();
   });
   showCopy();
+
+  // Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026, Auflagen 6, 12): Zugriff
+  // nur auf die festen Meeting-Origins und nur auf Klick mit erklaerendem Text vorher.
+  const SHARE_ORIGINS = ['https://meet.google.com/*', 'https://teams.microsoft.com/*', 'https://teams.live.com/*', 'https://teams.cloud.microsoft/*',
+    'https://zoom.us/*', 'https://*.zoom.us/*'];
+  const shareSel = h('select', { disabled: !!locked.screenShareGuard, 'aria-label': T('optShare'), 'data-k': 'share-mode' },
+    DLX.policy.SHARE_MODES.map((m) => h('option', { value: m, selected: cfg.screenShareGuard === m }, T(m === 'off' ? 'shareModeOff' : m === 'warn' ? 'shareModeWarn' : 'shareModeMask'))));
+  const shareInfo = h('p', { class: 'dlx-muted', role: 'status', 'data-k': 'share-info' });
+  const shareGrant = h('button', { type: 'button', class: 'dlx-knopf dlx-gross dlx-haupt', 'data-k': 'share-grant' }, T('shareGrant'));
+  async function showShare() {
+    const on = await chrome.permissions.contains({ origins: SHARE_ORIGINS });
+    shareInfo.textContent = shareSel.value !== 'off' ? T(on ? 'shareActive' : 'shareInactive') : '';
+    shareGrant.hidden = shareSel.value === 'off' || on;
+  }
+  shareSel.addEventListener('change', async () => { await save(); showShare(); });
+  shareGrant.addEventListener('click', async (e) => {
+    if (!e.isTrusted) return;
+    try { await chrome.permissions.request({ origins: SHARE_ORIGINS }); } catch (err) { /* abgelehnt */ }
+    showShare();
+  });
+  showShare();
 
   // KI-Antworten pruefen (Design-Review Antwort/Zwischenablage 16.10.2026).
   const answerBox = h('input', { type: 'checkbox', checked: cfg.answerCheck !== 'off', disabled: !!locked.answerCheck });
@@ -391,6 +432,18 @@
     ignored = section(T('ignoredTitle'), T('ignoredCount', { n: String(st.ignored) }), h('div', { class: 'dlx-aktionen' }, del));
   }
 
+  // Warnleiste: Farbe und Kompakt (Design-Review Warnleiste anpassbar 17.10.2026); nur feste Werte,
+  // gesperrt, wenn verwaltet; ungueltiger Richtlinienwert nur als Hinweis, nie der Wert selbst.
+  const barSel = (k, werte) => {
+    const s = h('select', { disabled: !!locked[k], 'aria-label': T(k === 'barTheme' ? 'optBarTheme' : 'optBarCompact'), 'data-k': k },
+      werte.map((v) => h('option', { value: v, selected: cfg[k] === v }, T(k + '_' + v))));
+    s.addEventListener('change', save);
+    return s;
+  };
+  const barThemeSel = barSel('barTheme', DLX.policy.BAR_THEMES);
+  const barCompactSel = barSel('barCompact', DLX.policy.BAR_COMPACT);
+  const barInvalid = (k) => (Array.isArray(st.barInvalid) && st.barInvalid.includes(k) ? h('span', { class: 'dlx-lock', 'data-k': k + '-invalid' }, T('barInvalid')) : null);
+
   // Darstellung: System, Hell oder Dunkel (nur diese Seite, Auflage 4).
   const themaSel = h('select', { 'aria-label': T('optTheme'), 'data-k': 'thema' },
     THEMEN.map((v) => h('option', { value: v, selected: thema() === v }, T('theme_' + v))));
@@ -450,16 +503,34 @@
     kiKarte = neu;
   });
 
+  // Tastenkuerzel (manifest commands, Design-Review Alltag 14.10.2026, Auflage 4): Anzeige
+  // per textContent, aendern nur auf der festen Kuerzel-Seite des Browsers.
+  const SC_NAMES = { 'redact-all': 'scRedact', 'toggle-pause': 'scPause', _execute_action: 'scPopup' };
+  const scUl = h('ul', { class: 'dlx-kuerzel', 'data-k': 'kuerzel' });
+  chrome.commands.getAll().then((list) => {
+    for (const c of list) if (Object.hasOwn(SC_NAMES, c.name)) scUl.append(h('li', { 'data-k': 'kuerzel-' + c.name }, h('kbd', null, c.shortcut || T('scNone')), h('span', null, T(SC_NAMES[c.name]))));
+  }).catch(() => {});
+  const scChange = h('button', { type: 'button', class: 'dlx-knopf', 'data-k': 'kuerzel-aendern' }, T('scChange'));
+  scChange.addEventListener('click', () => { chrome.tabs.create({ url: /\bEdg\//.test(navigator.userAgent) ? 'edge://extensions/shortcuts' : 'chrome://extensions/shortcuts' }).catch(() => {}); });
+  const scPause = cfg.allowPause !== true ? T('scPauseOff') : st.pausedUntil > Date.now()
+    ? T('scPaused', { time: new Date(st.pausedUntil).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' }) }) + ' ' + T('scPauseNote') : T('scPauseNote');
+  const kuerzel = section(T('scTitle'), T('scNote'), scUl, h('p', { class: 'dlx-muted', 'data-k': 'kuerzel-pause' }, scPause), h('div', { class: 'dlx-aktionen' }, scChange));
+
   // Bereiche des Seitenmenues. Navigation ohne Hash: die Adresse der Seite bleibt exakt
   // options.html, weil der Service Worker userTerms und ignoreReset nur von genau dieser
   // Adresse annimmt; zeige() nimmt nur Werte aus der festen Liste (Auflage 1).
   const BEREICHE = [
     ['uebersicht', 'navOverview', [
       status,
+      hostBox,
       st.managed ? h('p', { class: 'dlx-verwaltet dlx-eintrag' }, b.companyName ? T('managed') : T('managedNoName')) : null,
       section(T('secGeneral'), T('secGeneralNote'),
         h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optLanguage')), langSel, lockNote(locked.language)),
-        h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optTheme')), themaSel))]],
+        h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optTheme')), themaSel)),
+      section(T('optBar'), T('optBarNote'),
+        h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optBarTheme')), barThemeSel, lockNote(locked.barTheme), barInvalid('barTheme')),
+        h('div', { class: 'dlx-feld' }, h('span', { class: 'dlx-feld-name' }, T('optBarCompact')), barCompactSel, lockNote(locked.barCompact), barInvalid('barCompact'))),
+      kuerzel]],
     ['erkennung', 'navDetect', [
       section(T('optKi'), T('optKiNote'), h('div', { class: 'dlx-feld' }, h('label', null, kiBox, ' ', T('kiOn')), lockNote(locked.detection)),
         kiZeile),
@@ -478,8 +549,13 @@
         srcInfo, h('p', { class: 'dlx-muted' }, T('sourcesMissing')), h('div', { class: 'dlx-aktionen' }, srcGrant)),
       section(T('optForms'), T('optFormsNote'), lockNote(formLocked), formUl, formLocked ? null : h('div', { class: 'dlx-aktionen' }, formInput, formAdd), formMsg,
         formInfo, h('div', { class: 'dlx-aktionen' }, formGrant)),
+      // Eingebaute KI-Seitenleisten sind fuer Erweiterungen nicht erreichbar: nur statischer
+      // Hinweis, kein Link (Design-Review Browser-KIs 17.10.2026, Auflage 8).
+      section(T('optSidebar'), T('optSidebarNote')),
       section(T('optCopy'), T('optCopyNote'), h('div', { class: 'dlx-feld' }, h('label', null, copyBox, ' ', T('copyOn')), lockNote(locked.copySidebarHint)),
         copyInfo, h('div', { class: 'dlx-aktionen' }, copyGrant)),
+      section(T('optShare'), T('optShareNote'), h('div', { class: 'dlx-feld' }, shareSel, lockNote(locked.screenShareGuard)),
+        shareInfo, h('div', { class: 'dlx-aktionen' }, shareGrant)),
       section(T('notCovered'), T('notCoveredText')),
       ignored]],
     ['dateien', 'navFiles', [

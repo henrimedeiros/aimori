@@ -7,7 +7,7 @@
 
   const KEEP_DAYS = 90;
   const DECISIONS = ['redact', 'pseudonym', 'cancel', 'override', 'notsensitive', 'blocked', 'file', 'inactive', 'site'];
-  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'];
+  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity'];
   const ID = /^[a-z][a-z-]{1,20}$/;
 
   const day = (d) => d.toISOString().slice(0, 10);

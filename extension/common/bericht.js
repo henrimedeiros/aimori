@@ -12,8 +12,8 @@
   const FRAMEWORKS = ['revdsg', 'dsgvo', 'hipaa', 'euaiact', 'iso27001'];
   const DAYS = [7, 30, 90];
   const DEFAULT_DAYS = 30;
-  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'];
-  const SITE_NAMES = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot', m365copilot: 'Microsoft 365 Copilot' };
+  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity'];
+  const SITE_NAMES = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot', m365copilot: 'Microsoft 365 Copilot', perplexity: 'Perplexity' };
   const CATS = ['finanz', 'sozial', 'gesundheit', 'firma', 'kontakt', 'steuer', 'technik', 'reise', 'id-national', 'person', 'unscannable', 'file', 'site', 'inactive', 'voice'];
   const ACTIONS = ['redacted', 'stopped', 'allowed'];
   // Entscheidung der Tageszaehler -> Aktion im Bericht.
@@ -31,8 +31,8 @@
     tableScan: 'bool', deobfuscation: 'bool', allowRephrase: 'bool', tableRedaction: ['columns', 'rows'], tableMinRows: 'set', tableMinColumns: 'set',
     detection: ['ki', 'regeln'], uncertainFindings: ['hint', 'warn', 'enforce'], aiSiteMode: ['off', 'hint', 'block'], language: ['auto', 'en', 'de', 'fr', 'it', 'pt', 'es'],
     allowedSites: 'list', countryPacks: 'list', globalPacks: 'list', allowedAiSites: 'list', blockedAiSites: 'list', complianceFrameworks: 'list',
-    rules: 'list', accountRules: 'list', labelNames: 'list', voiceMode: ['allow', 'warn', 'block'], documentFingerprints: 'set',
-    dictionary: 'set', customTerms: 'set', branding: 'set', massListMin: 'set', identityMinParts: 'set', complianceReportDays: 'set',
+    rules: 'list', accountRules: 'list', labelNames: 'list', voiceMode: ['allow', 'warn', 'block'], screenShareGuard: ['off', 'warn', 'mask'], documentFingerprints: 'set',
+    dictionary: 'set', customTerms: 'set', internalDomains: 'set', branding: 'set', massListMin: 'set', identityMinParts: 'set', complianceReportDays: 'set',
   };
   const STATES = /^(on|off|set|[a-z]{2,7}|[0-9]{1,4})$/;
 
@@ -139,84 +139,47 @@
     return out;
   }
 
-  // --- Texte (DE/EN; die uebrigen Sprachen zeigen Englisch) ----------------------
-  // Nie "konform", "erfuellt", "compliant", "certified" (Auflage 10; Test ui-texte/bericht).
-  const T = {
-    en: {
-      title: 'Data protection measures for AI use – self-declared report',
-      intro: 'This report shows, in numbers only, how {product} protected entries on AI sites on this device and which rules of your organisation are active. It contains no entered text, no values and no names.',
-      note: 'Self-declared report, not legal advice. The numbers are counted locally on this device and are not protected against changes. The mapping shows which requirements the measures relate to; it does not state that obligations are met and does not replace your own assessment, training or a data protection impact assessment.',
-      org: 'Organisation', period: 'Period', created: 'Created', days: 'Last {n} days', framework: 'Laws and standards',
-      totalsTitle: 'Detections by action', catTitle: 'Detections by data type', siteTitle: 'Detections by AI site', polTitle: 'Active rules of your organisation',
-      polNone: 'No rules set by your organisation (personal use or default settings).', empty: 'No detections in this period.',
-      a_redacted: 'redacted', a_stopped: 'stopped', a_allowed: 'allowed', total: 'Total', type: 'Data type', site: 'AI site', rule: 'Rule', state: 'State',
-      s_on: 'on', s_off: 'off', s_set: 'set', s_count: '{n} entries',
-      ctlRef: 'Requirement', ctlMeasure: 'Measure', ctlEvidence: 'Evidence in this report',
-      print: 'Print or save as PDF', download: 'Download HTML', off: 'Your organisation has turned off this report.',
-      locked: 'Set by your organisation', file: 'report',
-    },
-    de: {
-      title: 'Datenschutz-Massnahmen bei KI-Nutzung – Selbstauskunft',
-      intro: 'Dieser Bericht zeigt nur in Zahlen, wie {product} auf diesem Gerät Eingaben auf KI-Seiten geschützt hat und welche Regeln Ihrer Organisation aktiv sind. Er enthält keine eingegebenen Texte, keine Werte und keine Namen.',
-      note: 'Selbstauskunft, keine Rechtsberatung. Die Zahlen werden lokal auf diesem Gerät gezählt und sind nicht gegen Veränderung geschützt. Die Zuordnung zeigt, auf welche Anforderungen sich die Massnahmen beziehen; sie sagt nicht, dass Pflichten eingehalten sind, und ersetzt weder eigene Beurteilung noch Schulung oder Datenschutz-Folgenabschätzung.',
-      org: 'Organisation', period: 'Zeitraum', created: 'Erstellt', days: 'Letzte {n} Tage', framework: 'Gesetze und Normen',
-      totalsTitle: 'Treffer nach Aktion', catTitle: 'Treffer nach Datentyp', siteTitle: 'Treffer nach KI-Seite', polTitle: 'Aktive Regeln Ihrer Organisation',
-      polNone: 'Keine Regeln Ihrer Organisation gesetzt (Eigengebrauch oder Standardeinstellungen).', empty: 'Keine Treffer in diesem Zeitraum.',
-      a_redacted: 'geschwärzt', a_stopped: 'gestoppt', a_allowed: 'erlaubt', total: 'Summe', type: 'Datentyp', site: 'KI-Seite', rule: 'Regel', state: 'Zustand',
-      s_on: 'an', s_off: 'aus', s_set: 'gesetzt', s_count: '{n} Einträge',
-      ctlRef: 'Anforderung', ctlMeasure: 'Massnahme', ctlEvidence: 'Beleg in diesem Bericht',
-      print: 'Drucken oder als PDF speichern', download: 'HTML herunterladen', off: 'Ihre Organisation hat diesen Bericht ausgeschaltet.',
-      locked: 'Von Ihrer Organisation festgelegt', file: 'bericht',
-    },
-  };
-
-  // Vorlagen: je Gesetz/Norm Anforderungen mit Massnahme und Beleg (Text DE/EN).
+  // --- Texte: rep_* in _locales/<sprache>/messages.json (DLX.i18n, Design-Review Sprachen 17.10.2026).
+  // Nie "konform", "erfuellt", "compliant", "certified" (Auflage 10; Test bericht.test.mjs).
+  // Vorlagen: je Gesetz/Norm Anforderungen mit Beleg; Name rep_fw_<id>, Massnahme rep_fw_<id>_<nr>.
   // Ausfuehrlich mit Quellen in docs/compliance/<id>.md.
-  const EV = {
-    de: { tot: 'Treffer nach Aktion', cat: 'Treffer nach Datentyp', site: 'Treffer nach KI-Seite', pol: 'Aktive Regeln' },
-    en: { tot: 'Detections by action', cat: 'Detections by data type', site: 'Detections by AI site', pol: 'Active rules' },
-  };
   const FW = {
-    revdsg: { name: { de: 'Schweiz: Datenschutzgesetz (revDSG, SR 235.1) und Datenschutzverordnung (DSV)', en: 'Switzerland: Federal Act on Data Protection (FADP, SR 235.1) and Ordinance (DPO)' }, ctl: [
-      ['Art. 7 revDSG', { de: 'Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen: Prüfung vor dem Senden ist standardmässig aktiv.', en: 'Data protection by design and by default: checking before sending is on by default.' }, ['pol']],
-      ['Art. 8 revDSG, Art. 1–3 DSV', { de: 'Datensicherheit: Personendaten werden vor der Weitergabe an KI-Dienste erkannt, geschwärzt oder gestoppt.', en: 'Data security: personal data is detected, redacted or stopped before it reaches AI services.' }, ['tot', 'cat']],
-      ['Art. 9 revDSG', { de: 'Bearbeitung durch Auftragsbearbeiter: weniger Personendaten gehen an KI-Anbieter.', en: 'Processing by processors: less personal data goes to AI providers.' }, ['site', 'tot']],
-      ['Art. 16–17 revDSG', { de: 'Bekanntgabe ins Ausland: Daten bleiben auf dem Gerät, bis die Person entscheidet; gesperrte KI-Seiten nach Richtlinie.', en: 'Disclosure abroad: data stays on the device until the user decides; AI sites blocked by policy.' }, ['site', 'pol']],
-      ['Art. 5 Bst. c revDSG', { de: 'Besonders schützenswerte Daten (z. B. Gesundheit) werden eigens erkannt.', en: 'Sensitive personal data (e.g. health) is detected separately.' }, ['cat']],
+    revdsg: { ctl: [
+      ['Art. 7 revDSG', ['pol']],
+      ['Art. 8 revDSG, Art. 1–3 DSV', ['tot', 'cat']],
+      ['Art. 9 revDSG', ['site', 'tot']],
+      ['Art. 16–17 revDSG', ['site', 'pol']],
+      ['Art. 5 Bst. c revDSG', ['cat']],
     ] },
-    dsgvo: { name: { de: 'EU: Datenschutz-Grundverordnung (DSGVO, Verordnung (EU) 2016/679)', en: 'EU: General Data Protection Regulation (GDPR, Regulation (EU) 2016/679)' }, ctl: [
-      ['Art. 5 Abs. 1 lit. c und f', { de: 'Datenminimierung sowie Integrität und Vertraulichkeit: Schwärzen vor dem Senden.', en: 'Data minimisation, integrity and confidentiality: redaction before sending.' }, ['tot', 'cat']],
-      ['Art. 24', { de: 'Verantwortung des Verantwortlichen: technische Massnahme mit Nachweis in Zahlen.', en: 'Responsibility of the controller: technical measure documented in numbers.' }, ['tot', 'pol']],
-      ['Art. 25', { de: 'Datenschutz durch Technikgestaltung und Voreinstellungen.', en: 'Data protection by design and by default.' }, ['pol']],
-      ['Art. 32', { de: 'Sicherheit der Verarbeitung: Schutz vor unbeabsichtigter Offenlegung an KI-Dienste.', en: 'Security of processing: protection against unintended disclosure to AI services.' }, ['tot', 'site']],
-      ['Art. 9, Art. 44 ff.', { de: 'Besondere Kategorien und Übermittlung in Drittländer: Erkennung von Gesundheitsdaten, Sperre nicht freigegebener KI-Seiten.', en: 'Special categories and transfers to third countries: health data detection, blocking of unapproved AI sites.' }, ['cat', 'pol']],
+    dsgvo: { ctl: [
+      ['Art. 5 Abs. 1 lit. c und f', ['tot', 'cat']],
+      ['Art. 24', ['tot', 'pol']],
+      ['Art. 25', ['pol']],
+      ['Art. 32', ['tot', 'site']],
+      ['Art. 9, Art. 44 ff.', ['cat', 'pol']],
     ] },
-    hipaa: { name: { de: 'USA: HIPAA (45 CFR Part 160 und 164) – nur Zuordnung', en: 'USA: HIPAA (45 CFR Parts 160 and 164) – mapping only' }, ctl: [
-      ['45 CFR 164.308(a)(1)(ii)(D)', { de: 'Überprüfung der Systemaktivität: Zahlen zu erkannten und gestoppten Eingaben.', en: 'Information system activity review: counts of detected and stopped entries.' }, ['tot', 'site']],
-      ['45 CFR 164.308(a)(5)', { de: 'Sicherheitsbewusstsein: jede Warnung erklärt, warum ein Wert heikel ist.', en: 'Security awareness: every warning explains why a value is sensitive.' }, ['tot']],
-      ['45 CFR 164.312(e)(1)', { de: 'Übertragungssicherheit: Gesundheitsdaten werden vor der Übertragung an KI-Dienste erkannt.', en: 'Transmission security: health data is detected before transmission to AI services.' }, ['cat']],
-      ['45 CFR 164.502(b), 164.530(c)', { de: 'Minimum Necessary und Schutzmassnahmen: Schwärzen und Sperren nach Richtlinie.', en: 'Minimum necessary and safeguards: redaction and blocking by policy.' }, ['tot', 'pol']],
+    hipaa: { ctl: [
+      ['45 CFR 164.308(a)(1)(ii)(D)', ['tot', 'site']],
+      ['45 CFR 164.308(a)(5)', ['tot']],
+      ['45 CFR 164.312(e)(1)', ['cat']],
+      ['45 CFR 164.502(b), 164.530(c)', ['tot', 'pol']],
     ] },
-    euaiact: { name: { de: 'EU: KI-Verordnung (EU AI Act, Verordnung (EU) 2024/1689) Art. 4 KI-Kompetenz', en: 'EU: AI Act (Regulation (EU) 2024/1689) Art. 4 AI literacy' }, ctl: [
-      ['Art. 4', { de: 'Massnahmen zur KI-Kompetenz: Erklärung bei jeder Warnung im Alltag; Lernmomente im KI-Kompetenz-Nachweis.', en: 'AI literacy measures: an explanation with every warning in daily use; learning moments in the AI literacy record.' }, ['tot', 'cat']],
-      ['Art. 4', { de: 'Regeln der Organisation für die Nutzung von KI-Diensten (freigegebene und gesperrte KI-Seiten).', en: 'Organisational rules for using AI services (approved and blocked AI sites).' }, ['pol', 'site']],
+    euaiact: { ctl: [
+      ['Art. 4', ['tot', 'cat']],
+      ['Art. 4', ['pol', 'site']],
     ] },
-    iso27001: { name: { de: 'ISO/IEC 27001:2022 Anhang A', en: 'ISO/IEC 27001:2022 Annex A' }, ctl: [
-      ['A.5.10', { de: 'Zulässige Nutzung von Informationen: Regeln für KI-Seiten und Datentypen.', en: 'Acceptable use of information: rules for AI sites and data types.' }, ['pol']],
-      ['A.5.12', { de: 'Klassifizierung: Erkennung von Vertraulichkeitsvermerken und Datentypen.', en: 'Classification of information: detection of confidentiality markings and data types.' }, ['cat']],
-      ['A.5.14', { de: 'Informationsübertragung: Prüfung vor der Übertragung an KI-Dienste.', en: 'Information transfer: check before transfer to AI services.' }, ['site', 'tot']],
-      ['A.5.34', { de: 'Privatsphäre und Schutz personenbezogener Daten.', en: 'Privacy and protection of PII.' }, ['cat']],
-      ['A.6.3', { de: 'Sensibilisierung und Schulung: Erklärung bei jeder Warnung.', en: 'Awareness, education and training: explanation with every warning.' }, ['tot']],
-      ['A.8.12', { de: 'Verhinderung von Datenabfluss (DLP) im Browser.', en: 'Data leakage prevention in the browser.' }, ['tot', 'cat', 'site']],
+    iso27001: { ctl: [
+      ['A.5.10', ['pol']],
+      ['A.5.12', ['cat']],
+      ['A.5.14', ['site', 'tot']],
+      ['A.5.34', ['cat']],
+      ['A.6.3', ['tot']],
+      ['A.8.12', ['tot', 'cat', 'site']],
     ] },
   };
 
-  const L = (lang) => (lang === 'de' ? 'de' : 'en');
-  function t(lang, key, vars) {
-    let s = Object.hasOwn(T[L(lang)], key) ? T[L(lang)][key] : key;
-    if (vars) for (const [k, v] of Object.entries(vars)) s = s.split('{' + k + '}').join(String(v));
-    return s;
-  }
+  const L = (lang) => DLX.i18n.resolveLang(lang, 'en');
+  const t = (lang, key, vars) => DLX.i18n.t(L(lang), 'rep_' + key, vars);
 
   // Neutrales Modell des Berichts (Bloecke), gerendert von der Seite (DOM) und vom Export (HTML-String).
   // catName(id) liefert den Anzeigenamen einer Kategorie (aus DLX.i18n).
@@ -240,10 +203,10 @@
     }
     blocks.push({ k: 'h2', text: t(l, 'polTitle') });
     if (!d.policies.length) blocks.push({ k: 'p', text: t(l, 'polNone') });
-    else tbl([t(l, 'rule'), t(l, 'state')], d.policies.map(([k, st]) => [k, /^\d+$/.test(st) ? t(l, 's_count', { n: st }) : Object.hasOwn(T[l], 's_' + st) ? t(l, 's_' + st) : st]));
+    else tbl([t(l, 'rule'), t(l, 'state')], d.policies.map(([k, st]) => [k, /^\d+$/.test(st) ? t(l, 's_count', { n: st }) : DLX.i18n.has(l, 'rep_s_' + st) ? t(l, 's_' + st) : st]));
     for (const f of d.frameworks) {
-      blocks.push({ k: 'h2', text: FW[f].name[l] });
-      tbl([t(l, 'ctlRef'), t(l, 'ctlMeasure'), t(l, 'ctlEvidence')], FW[f].ctl.map(([ref, m, ev]) => [ref, m[l], ev.map((e) => EV[l][e]).join(', ')]));
+      blocks.push({ k: 'h2', text: t(l, 'fw_' + f) });
+      tbl([t(l, 'ctlRef'), t(l, 'ctlMeasure'), t(l, 'ctlEvidence')], FW[f].ctl.map(([ref, ev], i) => [ref, t(l, 'fw_' + f + '_' + i), ev.map((e) => t(l, 'ev_' + e)).join(', ')]));
     }
     return blocks;
   }
@@ -289,6 +252,6 @@
     try { return validate(JSON.parse(m[1])); } catch (e) { return null; }
   }
 
-  DLX.bericht = { SCHEMA, FRAMEWORKS, DAYS, DEFAULT_DAYS, SITES, CATS, ACTIONS, ACTION_OF, POLICY_KIND, TEXT: T, FW,
+  DLX.bericht = { SCHEMA, FRAMEWORKS, DAYS, DEFAULT_DAYS, SITES, CATS, ACTIONS, ACTION_OF, POLICY_KIND, FW,
     summarize, policies, exportId, data, validate, merge, t, model, exportHtml, fileName, extract, esc, jsonSafe, logoOk };
 })(globalThis);

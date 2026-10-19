@@ -11,7 +11,7 @@
   const B = DLX.bericht;
   const st = await chrome.runtime.sendMessage({ t: 'bericht' });
   const b = st.branding;
-  const lang = DLX.i18n.resolveLang(st.language, navigator.language) === 'de' ? 'de' : 'en';
+  const lang = await DLX.i18n.ready(st.language, navigator.language);
   const product = DLX.dom.productName(b);
   const T = (k, v) => B.t(lang, k, Object.assign({ product }, v || {}));
   document.documentElement.lang = lang;
@@ -33,7 +33,7 @@
   const days = h('select', { id: 'dlx-ber-tage', disabled: st.lockedDays }, B.DAYS.map((d) => h('option', { value: String(d), selected: d === st.days }, T('days', { n: d }))));
   const fwBoxes = B.FRAMEWORKS.map((f) => {
     const box = h('input', { type: 'checkbox', 'data-fw': f, checked: st.frameworks.indexOf(f) !== -1, disabled: st.lockedFrameworks });
-    return { f, box, label: h('label', { class: 'dlx-chip dlx-ber-fw' }, box, B.FW[f].name[lang]) };
+    return { f, box, label: h('label', { class: 'dlx-chip dlx-ber-fw' }, box, B.t(lang, 'fw_' + f)) };
   });
   const out = h('div', { id: 'dlx-ber-inhalt' });
   const kopf = h('dl', { class: 'dlx-rec-kopf' });

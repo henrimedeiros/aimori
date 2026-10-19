@@ -1,4 +1,5 @@
-// Erzeugt ADMX/ADML (en-US, de-DE) fuer Chrome und Edge aus
+// Erzeugt ADMX/ADML (en-US, de-DE und je Datei in enterprise/admx-texte/<locale>.json,
+// z. B. fr-FR, it-IT, es-ES, pt-BR) fuer Chrome und Edge aus
 // extension/managed_schema.json. Registry-Ziel je Browser:
 //   HKLM\Software\Policies\Google\Chrome\3rdparty\extensions\<ID>\policy
 //   HKLM\Software\Policies\Microsoft\Edge\3rdparty\extensions\<ID>\policy
@@ -14,6 +15,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXT = path.join(ROOT, 'extension');
 const OUT = path.join(ROOT, 'enterprise', 'admx');
+// Weitere ADML-Sprachen: { supported (mit {browser}), description, policies: { schluessel: [Titel, Erklaerung] } }.
+const TEXTE = path.join(ROOT, 'enterprise', 'admx-texte');
 
 export const STORE_ID = 'lefajbhockjgdhaohnacgaggfepianjh';
 
@@ -63,7 +66,7 @@ const DE = {
   competenceRecord: ['KI-Kompetenz-Nachweis', 'Bei true erklaert die Erweiterung jede Warnung und zaehlt lokal je Datentyp-Gruppe und Monat, wie viele Erklaerungen gesehen und wie oft Werte geschwaerzt, das Senden abgebrochen oder trotzdem gesendet wurde (nur Zahlen, 13 Monate, verlaesst das Geraet nie). Benutzer koennen eine Selbstauskunft drucken. Bei false wird nichts gezaehlt und die lokalen Zaehler werden geloescht. Standard: true (Benutzer duerfen abschalten).'],
   detection: ['Erkennung', 'ki = Regeln plus lokales KI-Modell fuer Namen, Firmen, Adressen und Gesundheitsangaben (laeuft auf dem Geraet, nichts wird gesendet; bei Fehlern nur Regeln); regeln = nur Regeln. Die Regeln gelten immer. Standard: ki.'],
   uncertainFindings: ['Unsichere Funde', 'Funde ohne Kontextwort oder mit mehrdeutigem Format (z. B. Telefonnummern, unformatierte Kartennummern): hint = nur dezenter Hinweis beim Tippen, haelt das Senden nie an; warn = Dialog hoechstens mit Warnen; enforce = Regeln gelten wie fuer sichere Funde. Standard: hint.'],
-  allowedSites: ['Erlaubte KI-Seiten', 'Welche der unterstuetzten KI-Seiten genutzt werden duerfen (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot). Eingaben auf den anderen unterstuetzten Seiten werden gesperrt. Standard: alle.'],
+  allowedSites: ['Erlaubte KI-Seiten', 'Welche der unterstuetzten KI-Seiten genutzt werden duerfen (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot, perplexity). Eingaben auf den anderen unterstuetzten Seiten werden gesperrt. Standard: alle.'],
   blockWhenInactive: ['Sperren, wenn Schutz inaktiv', 'Wird das Eingabefeld einer unterstuetzten Seite nicht erkannt (Seitenumbau), Senden und Einfuegen sperren. Standard: false.'],
   blockUncheckedFiles: ['Ungepruefte Dateien sperren', 'Dateien ausser PNG-, JPEG- und WebP-Bildern kann diese Version nicht pruefen (Bilder: siehe imageScan; bei true haben nicht pruefbare Bilder nur Abbrechen). Bei true werden Datei-Uploads, -Ablagen und eingefuegte Dateien auf den KI-Seiten gesperrt. Standard: false.'],
   answerCheck: ['KI-Antworten pruefen', 'off = KI-Antworten werden nicht geprueft; hint = die letzte Antwort auf den unterstuetzten KI-Seiten wird lokal mit Regeln und Katalog geprueft; heikle Daten (Schluessel, Personendaten ...) werden dezent unterstrichen und in einer Hinweis-Leiste genannt (nur Typ und Anzahl, vor und nach dem Kopieren). Kopieren wird nie gesperrt, nichts wird gesendet, gespeichert oder gezaehlt. Ein ungueltiger Wert gilt als hint. Standard: hint.'],
@@ -71,6 +74,9 @@ const DE = {
   sensitiveSourceAction: ['Einfuegen aus vertraulichen Quellen', 'warn = deutliche Warnung, Benutzer koennen verwerfen oder trotzdem einfuegen (nur mit allowUserOverride); block = Einfuegen in KI-Seiten wird gestoppt. Ein ungueltiger Wert in der Richtlinie gilt als block. Standard: warn.'],
   hiddenInstructionScan: ['Versteckte Anweisungen pruefen', 'Bei true werden eingefuegter Text (auch HTML) und hochgeladene Textdokumente (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, hoechstens 2 MB) auf den KI-Seiten lokal auf Hinweise auf versteckte Anweisungen geprueft: unsichtbare Zeichen (Zero-Width, Bidi-Steuerzeichen, Unicode-Tag-Zeichen; Emoji-, Flaggen-, RTL- und indische Schriften sowie BOM ausgenommen), versteckter Text in eingefuegtem HTML und typische Umgehungssaetze in 6 Sprachen. Nur Heuristik, nicht jede Manipulation wird gefunden. Die Meldung nennt Art und Anzahl, nie Ausschnitte; nichts wird gespeichert. Standard: true.'],
   hiddenInstructionAction: ['Aktion bei versteckten Anweisungen', 'warn = Meldung, Benutzer koennen verwerfen oder fortfahren (nur mit allowUserOverride); block = Einfuegen bzw. Hochladen wird gestoppt. Text oder Dokumente ueber den Grenzen (2 MB, Zeitbudget) gelten als Fund. Ungueltiger Wert in der Richtlinie gilt als block. Standard: warn.'],
+  barTheme: ['Farbe der Warnleiste', 'Farbe der Warnleiste ueber dem Eingabefeld auf KI-Seiten. auto = folgt dem Seitenhintergrund (hell oder dunkel); light = immer hell; dark = immer dunkel. Nur das Aussehen aendert sich, die Pruefung bleibt gleich. Per Richtlinie gesetzt, koennen Benutzer sie nicht aendern. Ungueltiger Wert gilt als auto. Standard: auto.'],
+  barCompact: ['Kompakte Warnleiste', 'Kompakte Warnleiste fuer kleine Bildschirme: 44 statt 56 px hoch, kleinere Knoepfe (30 px); Kernsatz, erkannte Datenart und alle Entscheidungsknoepfe bleiben sichtbar, die Erklaerung bleibt fuer Screenreader und ueber Mehr erfahren lesbar. auto = kompakt, wenn die Leiste schmaler als 640 px ist; on = immer kompakt; off = nie kompakt. Per Richtlinie gesetzt, koennen Benutzer sie nicht aendern. Ungueltiger Wert gilt als auto. Standard: auto.'],
+  screenShareGuard: ['Warnung beim Bildschirmteilen', 'Wird der Bildschirm im Browser mit Google Meet, Microsoft Teams oder Zoom (Webfassungen) geteilt und ist eine KI-Seite mit erkannten sensiblen Daten im Eingabefeld oder in der letzten Antwort sichtbar, nennt ein Hinweis die Arten (nie Werte) und bietet an, die Treffer auf dem Bildschirm zu verdecken. Verdecken aendert nur die Darstellung; der Text wird nicht geaendert, gespeichert oder gesendet. off = kein Hinweis; warn = Hinweis mit Knopf zum Verdecken; mask = Treffer werden waehrend des Teilens sofort verdeckt. Wirkt erst, wenn der Benutzer in den Einstellungen den optionalen Zugriff auf diese Meeting-Seiten erteilt hat; eine Richtlinie kann ihn nicht erteilen. Erkannt wird ueber eine Huelle um die Browser-Funktion zum Bildschirmteilen auf diesen Seiten; gelesen wird nur, ob geteilt wird und welche Art Flaeche, nie Bild oder Ton. Nicht abgedeckt: Desktop-Apps (Teams, Zoom, Meet), andere Browser und Programme, andere Meeting-Seiten, Teilen aus iframes, Eingabefelder ohne Formatierung (textarea: nur Hinweis). Hilfe, kein Schutz (docs/bildschirm-teilen.md). Ungueltiger Wert gilt als mask. Standard: warn.'],
   voiceMode: ['Sprachmodus auf KI-Seiten', 'Im Sprachmodus (ChatGPT Voice, Gemini Live, Copilot-Sprache, Claude-Sprachmodus) geht Gesprochenes ohne Text im Eingabefeld direkt an die KI und kann nicht geprueft werden. Diktat ins Eingabefeld wird unabhaengig davon wie getippter Text geprueft. allow = keine Meldung; warn = Meldung beim Druck auf den Sprachmodus-Knopf, Benutzer koennen ihn einmal je Seitenaufruf trotzdem starten (nur mit allowUserOverride, sonst wie block); block = der Knopf wird gestoppt. Erkannt ueber feste Selektoren je Seite: nach Seitenumbauten geaenderte Knoepfe, Tastenkuerzel sowie Desktop- und Handy-Apps sind nicht abgedeckt (docs/sprache-und-diktat.md). Ungueltiger Wert gilt als block. Standard: warn.'],
   documentFingerprints: ['Fingerabdruecke von Firmendokumenten', 'Erkennt, wenn groessere Teile vertraulicher Firmendokumente auf KI-Seiten eingefuegt, gesendet oder als Textdokument hochgeladen werden. Erzeugen mit scripts/dokumente-fingerabdruck.mjs aus den Dokumenten (lokal, ohne Netz): nur gesalzene, auf 32 Bit gekuerzte Werte von SHA-256(Salz + Zeilenumbruch + 8 normalisierte Woerter), ausgeduennt, sortiert, Base64; kein Klartext, keine Dateinamen, keine Reihenfolge. Salz und Werte sind fuer lokale Benutzer lesbar: ein vermuteter Text laesst sich bestaetigen, darum keine Dokumente aufnehmen, deren Wortlaut selbst geheim ist. Kein DLP-Ersatz: Umformulieren, Uebersetzen oder Bilder umgehen es. Ein ungueltiges Feld verwirft die ganze Richtlinie. Die Meldung nennt nur die Art, nie Dokument oder Abschnitt. Hoechstens 100000 Werte (Weg ueber GPO/Intune geprueft bis 50000).'],
   'documentFingerprints.salt': ['Salz', 'Genau 64 Hex-Zeichen (32 Zufallsbytes). Ein neues Salz macht alle Werte ungueltig.'],
@@ -112,6 +118,9 @@ const DE = {
   customTerms: ['Eigene Begriffe', 'Eigene Begriffe (Kundennamen, Projekt-Codenamen, interne Domains, Kuerzel) nur als gesalzene SHA-256-Pruefsummen, nie im Klartext: Hex(SHA-256(Salz + normalisierter Begriff)). Erzeugen mit scripts/begriffe-hashen.mjs. Normalisierung: Kleinbuchstaben, Umlaute als ae/oe/ue/ss, Akzente entfernt; Leerzeichen, Bindestriche, Punkte und andere Trennzeichen trennen Woerter; 1-5 Woerter, nur ganze Woerter. Das Salz ist fuer Benutzer lesbar: schuetzt nur vor beilaeufigem Lesen. Datentyp custom_term (Regeln).'],
   'customTerms.salt': ['Salz', 'Genau 64 Hex-Zeichen (32 Zufallsbytes), eines je Organisation. Ein neues Salz macht alle Pruefsummen ungueltig.'],
   'customTerms.hashes': ['Pruefsummen', 'Bis zu 20000 SHA-256-Hexwerte.'],
+  internalDomains: ['Interne Domains', 'Interne Domains der Organisation (z. B. Intranet- oder Dateiserver-Domains) nur als gesalzene SHA-256-Pruefsummen, nie im Klartext: Hex(SHA-256(Salz + Domain)). Erzeugen mit scripts/begriffe-hashen.mjs --domains. Normalisierung: unsichtbare Zeichen entfernt, NFKC, Kleinbuchstaben, IDN als Punycode, ohne Punkt am Ende; mindestens zwei Labels. Links mit passendem Host oder passender uebergeordneter Domain = Datentyp internal_link (Regeln). Eigenes Salz, nicht das von customTerms (sonst wird das Feld verworfen). Das Salz ist fuer Benutzer lesbar und interne Domainnamen sind oft erratbar: schuetzt nur vor beilaeufigem Lesen, nicht vor einem Woerterbuchangriff.'],
+  'internalDomains.salt': ['Salz', 'Genau 64 Hex-Zeichen (32 Zufallsbytes, klein), anders als das Salz von customTerms.'],
+  'internalDomains.hashes': ['Pruefsummen', 'Bis zu 5000 SHA-256-Hexwerte (klein).'],
   massListMin: ['Schwelle Kundenliste', 'Mindestzahl verschiedener Eintraege (Mailadressen, Telefonnummern, IBANs oder Zeilen einer Tabelle mit Vor-/Nachname-Spalte), ab der ein Text als Kundenliste/Export gilt (Datentyp mass_list, Paket context). Gleiche Werte zaehlen einmal. Erlaubt 3-1000, Standard 10; Werte ausserhalb bleiben beim Standard.'],
   identityMinParts: ['Identitaet: noetige Teile', 'Ab wie vielen Teilen Name + Geburtsdatum als Identitaet gelten (Datentyp identity_combo, Paket context): 2 = Name und Geburtsdatum, 3 = dazu Adresse, Telefon, Mail oder Ausweisnummer (Standard), 4 = dazu zwei davon. Erlaubt 2-4; Werte ausserhalb bleiben beim Standard.'],
   tableScan: ['Tabellen-Erkennung', 'Bei true (Standard) gelten eingefuegte oder hochgeladene Tabellen (TSV/CSV, Markdown, HTML, JSON, XLSX) mit vielen Personenzeilen als Massenleck, auch ohne einzelne Nummern (Spaltenkoepfe und Wertformen; Datentypen mass_list und mass_table).'],
@@ -119,6 +128,7 @@ const DE = {
   tableMinColumns: ['Tabellen: Mindestzahl heikler Spalten', 'So viele heikle Spalten (Name, E-Mail, Telefon, Geburtsdatum, Adresse, Lohn, Diagnose ...) braucht eine Tabelle, mindestens eine davon identifizierend. Erlaubt 1-10, Standard 2.'],
   tableRedaction: ['Tabellen: Schwaerzen', 'columns (Standard) = nur die Zellen der heiklen Spalten ersetzen; rows = zusaetzlich nach Kopf und 3 Zeilen kuerzen (auch dort heikle Zellen geschwaerzt).'],
   deobfuscation: ['Verschleierte Daten erkennen', 'Bei true (Standard) prueft die Erweiterung auch Varianten des Textes: unsichtbare Zeichen, Vollbreite/Doppelgaenger, Trennzeichen zwischen Ziffern, ausgeschriebene Ziffern, rueckwaerts, Base64/Hex/URL-Kodierung sowie ueber mehrere Nachrichten verteilte Teile (nur fluechtig im Speicher).'],
+  allowPause: ['Pause erlauben', 'Bei true (Standard) koennen Benutzer den Schutz per Tastenkuerzel 15 Minuten pausieren; in der Pause fallen nur Warnungen weg, die Benutzer ohnehin uebergehen duerfen; block, Nur schwaerzen, alle Funde bei allowUserOverride=false, gesperrte KI-Seiten, Seitenfreigabe und blockWhenInactive gelten weiter. Pausen werden nicht gezaehlt. Bei false ist keine Pause moeglich, eine laufende endet sofort.'],
   allowRephrase: ['Sicher umformulieren erlauben', 'Bei true (Standard) bietet die Meldung den Knopf "Sicher umformulieren": heikle Details werden lokal durch allgemeine Beschreibungen ersetzt, die Frage bleibt gleich; Vorschau im Eingabefeld, Rueckgaengig moeglich.'],
   competenceHideSensitive: ['KI-Kompetenz-Nachweis: sensible Gruppen immer ausblenden', 'Bei true zeigt der Nachweis die Gruppen Gesundheit, Personendaten und nationale ID nie (Benutzer koennen sie nicht einblenden). Zahlen je Person zu Gesundheit oder Gesinnung koennten sonst eine Mitarbeiterueberwachung ermoeglichen. Standard: false (Benutzer entscheiden).'],
   customPatterns: ['Eigene Erkennungsmuster', 'Eigene regulaere Ausdruecke der Organisation, gemeldet als Datentyp "Eigenes Muster (Organisation)" (das Muster selbst wird nie angezeigt). Nur per Richtlinie. Max. 50 Eintraege, je Zeile ein JSON-Objekt: id (org_ + 2-40 Zeichen a-z 0-9 _), regex (JavaScript, max. 300 Zeichen, nur begrenzte Quantoren {n,m} bis 64, kein * + {n,}, keine Rueckverweise/Lookarounds, Trefferlaenge 3-256), flags ("" oder "i"), category (Standard firma), context (max. 20 Woerter), requireContext (true/false), action (warn, redact, block; Standard warn). Ein ungueltiger Eintrag verwirft die ganze Liste. Siehe docs/muster-mitmachen.md.'],
@@ -186,7 +196,7 @@ function admx(b, id, policies) {
   const key = `${b.reg}\\${id}\\policy`;
   const L = [];
   L.push('<?xml version="1.0" encoding="utf-8"?>');
-  L.push('<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">');
+  L.push('<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">');
   L.push(`  <policyNamespaces>\n    <target prefix="${b.prefix}" namespace="${b.ns}" />\n  </policyNamespaces>`);
   L.push('  <resources minRequiredRevision="1.0" />');
   L.push('  <supportedOn>\n    <definitions>\n      <definition name="SUPPORTED_MV3" displayName="$(string.SUPPORTED_MV3)" />\n    </definitions>\n  </supportedOn>');
@@ -222,21 +232,23 @@ function admx(b, id, policies) {
   return L.join('\r\n') + '\r\n';
 }
 
-function adml(b, lang, policies, product) {
+function adml(b, lang, policies, product, tx) {
   const de = lang === 'de-DE';
+  // Uebersetzte Sprache: Titel/Erklaerung aus tx.policies, {ids} = gueltige KI-Seiten-IDs.
+  const TX = tx ? (k) => tx.policies[k].map((v) => v.split('{ids}').join(AI_IDS)) : null;
   const S = [];
   const str = (id, v) => S.push(`      <string id="${id}">${esc(v)}</string>`);
-  str('SUPPORTED_MV3', de ? `${b.label} mit Manifest-V3-Erweiterungen (ab Version 110)` : `${b.label} with Manifest V3 extensions (version 110 or later)`);
+  str('SUPPORTED_MV3', tx ? tx.supported.split('{browser}').join(b.label) : de ? `${b.label} mit Manifest-V3-Erweiterungen (ab Version 110)` : `${b.label} with Manifest V3 extensions (version 110 or later)`);
   str('cat_root', `${product} (${b.label})`);
   const P = [];
   for (const p of policies) {
-    const [t, d] = de ? DE[p.name] : [p.title, p.desc];
+    const [t, d] = TX ? TX(p.name) : de ? DE[p.name] : [p.title, p.desc];
     str(p.name, t);
     str(`${p.name}_help`, d);
     if (!p.elements.length) continue;
     P.push(`      <presentation id="${p.name}">`);
     for (const e of p.elements) {
-      const label = esc(de && e.key ? DE[e.key][0] : de ? DE[p.name][0] : e.label);
+      const label = esc(TX ? TX(e.key || p.name)[0] : de && e.key ? DE[e.key][0] : de ? DE[p.name][0] : e.label);
       if (e.kind === 'text') P.push(`        <textBox refId="${e.id}">\n          <label>${label}</label>\n        </textBox>`);
       else if (e.kind === 'decimal') P.push(`        <decimalTextBox refId="${e.id}" defaultValue="${e.def}">${label}</decimalTextBox>`);
       else if (e.kind === 'list') P.push(`        <listBox refId="${e.id}">${label}</listBox>`);
@@ -248,9 +260,9 @@ function adml(b, lang, policies, product) {
     P.push('      </presentation>');
   }
   return ['<?xml version="1.0" encoding="utf-8"?>',
-    '<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">',
+    '<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">',
     `  <displayName>${esc(product)}</displayName>`,
-    `  <description>${esc(de ? 'Richtlinien der Browser-Erweiterung' : 'Browser extension policies')}</description>`,
+    `  <description>${esc(tx ? tx.description : de ? 'Richtlinien der Browser-Erweiterung' : 'Browser extension policies')}</description>`,
     '  <resources>', '    <stringTable>', ...S, '    </stringTable>', '    <presentationTable>', ...P, '    </presentationTable>', '  </resources>',
     '</policyDefinitionResources>'].join('\r\n') + '\r\n';
 }
@@ -266,11 +278,25 @@ export function build(idOverride) {
     if (!DE[p.name]) throw new Error('missing German text: ' + p.name);
     for (const e of p.elements) if (e.key && !DE[e.key]) throw new Error('missing German text: ' + e.key);
   }
+  const extra = {};
+  for (const f of fs.existsSync(TEXTE) ? fs.readdirSync(TEXTE).sort() : []) {
+    const m = /^([a-z]{2}-[A-Z]{2})\.json$/.exec(f);
+    if (!m) continue;
+    const tx = JSON.parse(fs.readFileSync(path.join(TEXTE, f), 'utf8'));
+    const ok = (k, n) => Array.isArray(tx.policies[k]) && tx.policies[k].length >= n && tx.policies[k].every((v) => typeof v === 'string' && v);
+    if (typeof tx.supported !== 'string' || typeof tx.description !== 'string') throw new Error('missing text: ' + f);
+    for (const p of policies) {
+      if (!ok(p.name, 2)) throw new Error('missing text: ' + f + ' ' + p.name);
+      for (const e of p.elements) if (e.key && !ok(e.key, 1)) throw new Error('missing text: ' + f + ' ' + e.key);
+    }
+    extra[m[1]] = tx;
+  }
   const files = {};
   for (const b of BROWSERS) {
     files[`dlx-${b.id}.admx`] = admx(b, id, policies);
     files[`en-US/dlx-${b.id}.adml`] = adml(b, 'en-US', policies, product);
     files[`de-DE/dlx-${b.id}.adml`] = adml(b, 'de-DE', policies, product);
+    for (const [l, tx] of Object.entries(extra)) files[`${l}/dlx-${b.id}.adml`] = adml(b, l, policies, product, tx);
   }
   return { id, files };
 }

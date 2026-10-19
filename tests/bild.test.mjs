@@ -196,8 +196,9 @@ function sw() {
     storage: { local: area(), session: area(), managed: area(), onChanged: on() },
     permissions: { getAll: async () => ({ origins: [] }), onAdded: on(), onRemoved: on() },
     scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {}, unregisterContentScripts: async () => {} },
+    alarms: { create: async () => {}, clear: async () => true, onAlarm: { addListener() {} } }, commands: { onCommand: { addListener() {} } },
     action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
-    tabs: { sendMessage: async () => {}, onRemoved: on() }, windows: { create: async () => ({}), remove: async () => {}, onRemoved: on() },
+    tabs: { sendMessage: async () => {}, onRemoved: on(), onUpdated: on() }, windows: { create: async () => ({}), remove: async () => {}, onRemoved: on() },
   };
   const ctx = vm.createContext({ chrome, crypto: webcrypto, navigator: { language: 'de-CH' }, TextEncoder, performance, URL, Date, clearTimeout,
     setTimeout: (f, ms) => { const x = setTimeout(f, ms); x.unref(); return x; } });

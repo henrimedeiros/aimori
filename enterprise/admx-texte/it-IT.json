@@ -1,0 +1,344 @@
+{
+ "supported": "{browser} con estensioni Manifest V3 (versione 110 o successiva)",
+ "description": "Criteri dell’estensione del browser",
+ "policies": {
+  "branding": [
+   "Branding",
+   "Aspetto white label mostrato nel popup, nella pagina delle impostazioni e nella finestra di avviso."
+  ],
+  "branding.productName": [
+   "Nome del prodotto"
+  ],
+  "branding.companyName": [
+   "Nome dell’azienda"
+  ],
+  "branding.logo": [
+   "Logo"
+  ],
+  "branding.primaryColor": [
+   "Colore primario"
+  ],
+  "branding.accentColor": [
+   "Colore di accento"
+  ],
+  "branding.supportUrl": [
+   "Link di assistenza"
+  ],
+  "branding.supportText": [
+   "Testo di assistenza"
+  ],
+  "branding.aiNoticeText": [
+   "Testo dell’avviso sui siti di IA"
+  ],
+  "branding.aiNoticeUrl": [
+   "Link dell’avviso sui siti di IA"
+  ],
+  "branding.aiNoticeLinkText": [
+   "Testo del link dell’avviso sui siti di IA"
+  ],
+  "language": [
+   "Lingua",
+   "Lingua dell’interfaccia utente. auto = lingua del browser."
+  ],
+  "countryPacks": [
+   "Pacchetti per paese",
+   "Pacchetti di rilevamento per paese e regione. Se impostato, ha sempre la precedenza e disattiva la selezione automatica. Predefinito: automatico (fuso orario e regione linguistica, solo in locale)."
+  ],
+  "autoCountryPacks": [
+   "Pacchetti per paese automatici",
+   "true: i pacchetti per paese seguono il fuso orario locale e le regioni linguistiche (nessuna rete, nessun accesso alla posizione); gli utenti non possono passare alla selezione manuale. false: nessuna selezione automatica, gli utenti scelgono i pacchetti. Ignorato se countryPacks è impostato. Predefinito: automatico, gli utenti possono modificarlo."
+  ],
+  "globalPacks": [
+   "Pacchetti globali",
+   "Pacchetti di rilevamento globali (finance, secrets, contact, travel, marker = diciture ed etichette di riservatezza, context = rischi di contesto: combinazioni di identità, salute/dati del personale/convinzioni di una persona, elenchi di clienti, community = modelli della community dal catalogo firmato fornito con l’estensione). Predefinito: tutti."
+  ],
+  "rules": [
+   "Regole per tipo di dato",
+   "Azione per ID di tipo di dato (vedere docs/datentypen.md): off, warn, redact o block."
+  ],
+  "allowUserOverride": [
+   "Consenti «Invia comunque»",
+   "Se false, gli utenti non possono inviare o incollare comunque i dati rilevati (solo oscurare o annullare). Predefinito: true."
+  ],
+  "allowNotSensitive": [
+   "Consenti «Valore non sensibile»",
+   "Se false, gli utenti non possono contrassegnare i valori rilevati come non sensibili e l’elenco locale viene eliminato. Efficace solo insieme ad allowUserOverride. Predefinito: true."
+  ],
+  "allowPlaceholders": [
+   "Consenti segnaposto",
+   "Se false, gli utenti non possono sostituire i valori rilevati con segnaposto come [IBAN_1] né visualizzare le risposte dell’IA con i valori reali; l’associazione in memoria viene scartata. Il sito di IA viene a conoscenza del tipo e del numero dei valori sostituiti. Predefinito: true."
+  ],
+  "competenceRecord": [
+   "Registro di alfabetizzazione IA",
+   "Se true, l’estensione spiega ogni avviso e conta localmente, per gruppo di tipi di dati e per mese, quante spiegazioni sono state viste e quante volte i valori sono stati oscurati, l’invio è stato annullato o i dati sono stati inviati comunque (solo numeri, 13 mesi, non lascia mai il dispositivo). Gli utenti possono stampare un’autodichiarazione. Se false, non viene conteggiato nulla e i contatori locali vengono eliminati. Predefinito: true (gli utenti possono disattivarlo)."
+  ],
+  "imageScan": [
+   "Controllo delle immagini",
+   "Se true, le immagini PNG, JPEG e WebP incollate, trascinate o caricate (ad es. screenshot) vengono lette localmente con il riconoscimento del testo e controllate come un testo; il sito di IA riceve l’immagine solo dopo il controllo (originale, copia oscurata o nulla). Le immagini che non possono essere controllate in tempo o sono troppo grandi mostrano un messaggio invece di passare senza segnalazione. Se false, le immagini sono trattate come gli altri file (blockUncheckedFiles). Predefinito: true."
+  ],
+  "detection": [
+   "Rilevamento",
+   "ki = regole più un modello di IA locale per nomi, aziende, indirizzi e dati sanitari (funziona sul dispositivo, non viene inviato nulla; in caso di errori restano solo le regole); regeln = solo regole. Le regole valgono sempre. Predefinito: ki."
+  ],
+  "uncertainFindings": [
+   "Rilevamenti incerti",
+   "Rilevamenti senza parola di contesto o con formato ambiguo (ad es. numeri di telefono, numeri di carta non formattati): hint = solo un avviso discreto durante la digitazione, non ferma mai l’invio; warn = finestra di dialogo al massimo con l’azione Avvisa; enforce = le regole valgono come per i rilevamenti certi. Predefinito: hint."
+  ],
+  "allowedSites": [
+   "Siti di IA consentiti",
+   "Quali dei siti di IA supportati possono essere usati (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot). Gli input sugli altri siti supportati vengono bloccati. Predefinito: tutti."
+  ],
+  "blockWhenInactive": [
+   "Blocca se la protezione non è attiva",
+   "Se il campo di inserimento di un sito supportato non viene riconosciuto (riprogettazione del sito), blocca l’invio e l’inserimento. Predefinito: false."
+  ],
+  "blockUncheckedFiles": [
+   "Blocca i file non controllati",
+   "I file diversi dalle immagini PNG, JPEG e WebP non possono essere controllati (immagini: vedere imageScan; con true, le immagini non controllabili offrono solo Annulla). Se true, il caricamento, il trascinamento e l’inserimento di file sui siti di IA supportati vengono bloccati. Predefinito: false."
+  ],
+  "aiSiteMode": [
+   "Controllo dei siti di IA",
+   "Siti di IA noti (vedere docs/ki-seiten-liste.md) che non sono in allowedAiSites: off = nessun controllo; hint = barra di avviso con testo e link dal branding; block = la pagina viene sostituita da una pagina di blocco. La pagina di blocco è solo una sovrapposizione; per un blocco rigido usare anche il criterio del browser URLBlocklist. Sui siti diversi dai siti di IA supportati, gli utenti devono consentire l’accesso una volta nelle impostazioni dell’estensione (autorizzazioni host facoltative). Se un qualsiasi campo relativo ai siti di IA è impostato tramite criterio, le impostazioni locali sui siti di IA vengono ignorate. Predefinito: off."
+  ],
+  "allowedAiSites": [
+   "Siti di IA approvati",
+   "ID dei siti di IA approvati dall’elenco (ad es. m365copilot, chatgpt). Su questi siti nessun avviso e nessun blocco. Gli ID sconosciuti vengono ignorati. Al massimo 500 voci."
+  ],
+  "blockedAiSites": [
+   "Siti di IA bloccati",
+   "ID dei siti di IA sempre bloccati finché aiSiteMode non è off, anche in modalità di avviso. Ha la precedenza su allowedAiSites. Gli ID sconosciuti vengono ignorati. Al massimo 500 voci."
+  ],
+  "suggestedAiSite": [
+   "Sito di IA approvato suggerito",
+   "ID del sito di IA approvato verso cui vengono indirizzati gli utenti (ad es. m365copilot; elenco: docs/ki-seiten-liste.md). È considerato approvato. Sui siti di IA non approvati (aiSiteMode hint = avviso o block = blocco) l’avviso o la pagina di blocco mostra un pulsante «Passa a <nome>» che apre la pagina iniziale di questo sito dall’elenco integrato (solo con un clic). branding.aiNoticeUrl ha la precedenza. Gli ID sconosciuti e gli ID presenti in blockedAiSites vengono ignorati. Efficace solo come criterio; senza criterio non succede nulla. Predefinito: nessuno. ID validi: {ids}."
+  ],
+  "answerCheck": [
+   "Controllo delle risposte dell’IA",
+   "off = le risposte dell’IA non vengono controllate; hint = l’ultima risposta sui siti di IA supportati viene controllata localmente con le regole e il catalogo; i dati delicati (chiavi, dati personali, …) vengono sottolineati in modo discreto e indicati in una barra di avviso (solo tipo e numero, prima della copia e di nuovo dopo la copia). La copia non viene mai bloccata, nulla viene inviato, salvato o conteggiato. Un valore non valido vale come hint. Predefinito: hint."
+  ],
+  "sensitiveSources": [
+   "Fonti riservate (appunti)",
+   "Nomi host di fonti riservate, ad es. bank.example.com o *.hr.example.com (solo https, senza percorso né porta, al massimo un *. iniziale, almeno due etichette, nessun sito di IA, nessun indirizzo IP). Il testo copiato lì riceve un contrassegno temporaneo (solo somma di controllo con salt, 30 minuti, solo nella memoria del browser, nessun contenuto). Se lo stesso testo viene incollato in un sito di IA, compare un avviso ben visibile (vedere sensitiveSourceAction). Gli utenti devono consentire l’accesso a questi siti una volta nelle impostazioni dell’estensione (autorizzazioni host facoltative; le installazioni gestite non le ricevono in anticipo). Se impostato tramite criterio, gli utenti non possono aggiungere né rimuovere fonti. Al massimo 100 voci. Predefinito: vuoto."
+  ],
+  "sensitiveSourceAction": [
+   "Inserimento da fonti riservate",
+   "warn = avviso ben visibile, gli utenti possono scartare o incollare comunque (solo con allowUserOverride); block = l’inserimento nei siti di IA viene fermato. Un valore non valido nel criterio vale come block. Predefinito: warn."
+  ],
+  "hiddenInstructionScan": [
+   "Controllo delle istruzioni nascoste",
+   "Se true, il testo incollato (semplice e HTML) e i documenti di testo caricati (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, al massimo 2 MB) sui siti di IA supportati vengono controllati localmente alla ricerca di indizi di istruzioni nascoste: caratteri invisibili (zero-width, caratteri di controllo bidi, caratteri tag Unicode; escluse sequenze di emoji, bandiere, RTL e scritture indiane nonché un BOM iniziale), testo nascosto nell’HTML incollato (display:none, visibility:hidden, hidden, opacità 0, carattere minuscolo, testo nel colore dello sfondo, molto fuori dallo schermo) e tipiche frasi di aggiramento in 6 lingue. Solo euristica: non tutte le manipolazioni vengono individuate. Il messaggio indica tipo e numero, mai estratti. Non viene salvato nulla. Predefinito: true."
+  ],
+  "hiddenInstructionAction": [
+   "Azione in caso di istruzioni nascoste",
+   "warn = messaggio, gli utenti possono scartare o proseguire (solo con allowUserOverride); block = l’inserimento o il caricamento viene fermato. Testi o documenti oltre i limiti (2 MB, tempo massimo) valgono come rilevamento. Un valore non valido nel criterio vale come block. Predefinito: warn."
+  ],
+  "formGuardSites": [
+   "Siti del controllo dei moduli",
+   "Nomi host dei siti i cui moduli vengono controllati al momento dell’invio, ad es. portal.example.com o *.hr.example.com (solo https, senza percorso né porta, al massimo un *. iniziale, almeno due etichette, nessun sito di IA, nessun indirizzo IP). All’invio, i campi di testo, le aree di testo e le aree modificabili del modulo (non i campi password, file o nascosti) vengono controllati localmente con lo stesso rilevamento dei siti di IA, sia che li abbia compilati una persona sia un agente di IA. In caso di rilevamento l’invio viene fermato e una finestra separata dell’estensione chiede Non inviare / Consenti l’invio una volta (solo con allowUserOverride). Non coperti: pagine che inviano dati tramite script invece che con l’invio di un modulo, form.submit(), campi nascosti. Gli utenti devono consentire l’accesso a questi siti una volta nelle impostazioni dell’estensione (autorizzazioni host facoltative). Se impostato tramite criterio, gli utenti non possono aggiungere né rimuovere siti. Al massimo 20 voci. Predefinito: vuoto."
+  ],
+  "copySidebarHint": [
+   "Avviso durante la copia di dati sensibili (pannelli laterali di IA)",
+   "Se true, quando si copia un testo contenente dati sensibili su una qualsiasi pagina https compare un piccolo avviso che i pannelli laterali di IA e le estensioni di IA (ad es. Copilot in Edge, Gemini in Chrome, Claude in Chrome) non vengono controllati. Funziona solo dopo che l’utente ha concesso nelle impostazioni l’accesso facoltativo a tutti i siti https; un criterio non può concederlo. Il testo selezionato viene controllato localmente e scartato; nulla viene salvato o inviato. Non coperti: pagine http, iframe, copia in altri programmi. Predefinito: true."
+  ],
+  "voiceMode": [
+   "Modalità vocale sui siti di IA",
+   "La modalità vocale (ChatGPT Voice, Gemini Live, voce di Copilot, modalità vocale di Claude) invia il parlato direttamente all’IA senza testo nel campo di inserimento, quindi non può essere controllata. La dettatura nel campo di inserimento viene controllata come il testo digitato, indipendentemente da questo criterio. allow = nessun messaggio; warn = messaggio quando si preme il pulsante della modalità vocale, gli utenti possono avviarla comunque una volta per caricamento della pagina (solo con allowUserOverride, altrimenti come block); block = il pulsante viene fermato. Riconoscimento tramite selettori fissi per sito: non sono coperti i pulsanti modificati da un aggiornamento del sito, le scorciatoie da tastiera e le app per desktop e dispositivi mobili (docs/sprache-und-diktat.md). Un valore non valido vale come block. Predefinito: warn."
+  ],
+  "documentFingerprints": [
+   "Impronte dei documenti aziendali",
+   "Rileva quando parti consistenti di documenti aziendali riservati vengono incollate, inviate o caricate come documenti di testo sui siti di IA. Da creare con scripts/dokumente-fingerabdruck.mjs a partire dai documenti (in locale, senza rete): solo valori con salt troncati a 32 bit di SHA-256(salt + a capo + 8 parole normalizzate), campionati, ordinati, in base64; nessun testo in chiaro, nessun nome di file, nessun ordine. Salt e valori sono leggibili dagli utenti locali: un testo ipotizzato può essere confermato, quindi non includere documenti il cui solo testo è segreto. Non sostituisce una soluzione DLP: riformulazioni, traduzioni o immagini lo aggirano. Un campo non valido scarta l’intero criterio. Il messaggio indica solo il tipo, mai il documento o il passaggio. Al massimo 100000 valori (percorso testato tramite GPO/Intune: fino a 50000)."
+  ],
+  "documentFingerprints.salt": [
+   "Salt"
+  ],
+  "documentFingerprints.shingle": [
+   "Parole per impronta"
+  ],
+  "documentFingerprints.sample": [
+   "Campionamento"
+  ],
+  "documentFingerprints.minMatches": [
+   "Numero minimo di corrispondenze"
+  ],
+  "documentFingerprints.action": [
+   "Azione"
+  ],
+  "documentFingerprints.data": [
+   "Dati delle impronte"
+  ],
+  "accountRules": [
+   "Regole per account",
+   "Regole diverse per account aziendali e personali dello stesso sito di IA, riconosciuti solo da segnali visibili nella pagina (nome del workspace o contrassegno nell’area dell’account, host). Per sito: workspaces, markers, business, personal, unknown. Account non riconosciuto = livello più restrittivo. Le voci di sito non valide tornano a normal. La pagina o l’utente possono falsificare l’area dell’account: preferire hint ad allow e i nomi dei workspace ai contrassegni. Se è impostato un qualsiasi criterio, le regole locali per account vengono ignorate. Vedere docs/konto-regeln.md. L’estensione applica comunque i limiti (al massimo 4 siti, al massimo 20 nomi di workspace da 1 a 80 caratteri, allow solo per business con nomi di workspace o contrassegno dell’host; le voci non valide tornano a normal); gli schemi dei criteri di Chrome non supportano maxItems/maxLength, quindi la lunghezza viene verificata tramite pattern."
+  ],
+  "accountRules.chatgpt.workspaces": [
+   "ChatGPT: nomi dei workspace"
+  ],
+  "accountRules.chatgpt.markers": [
+   "ChatGPT: contrassegni"
+  ],
+  "accountRules.chatgpt.business": [
+   "ChatGPT: account aziendale"
+  ],
+  "accountRules.chatgpt.personal": [
+   "ChatGPT: account personale"
+  ],
+  "accountRules.chatgpt.unknown": [
+   "ChatGPT: account non riconosciuto"
+  ],
+  "accountRules.claude.workspaces": [
+   "Claude: nomi dei workspace"
+  ],
+  "accountRules.claude.markers": [
+   "Claude: contrassegni"
+  ],
+  "accountRules.claude.business": [
+   "Claude: account aziendale"
+  ],
+  "accountRules.claude.personal": [
+   "Claude: account personale"
+  ],
+  "accountRules.claude.unknown": [
+   "Claude: account non riconosciuto"
+  ],
+  "accountRules.copilot.workspaces": [
+   "Microsoft Copilot (copilot.com): nomi dei workspace"
+  ],
+  "accountRules.copilot.markers": [
+   "Microsoft Copilot (copilot.com): contrassegni"
+  ],
+  "accountRules.copilot.business": [
+   "Microsoft Copilot (copilot.com): account aziendale"
+  ],
+  "accountRules.copilot.personal": [
+   "Microsoft Copilot (copilot.com): account personale"
+  ],
+  "accountRules.copilot.unknown": [
+   "Microsoft Copilot (copilot.com): account non riconosciuto"
+  ],
+  "accountRules.m365copilot.workspaces": [
+   "Microsoft 365 Copilot: nomi dei workspace"
+  ],
+  "accountRules.m365copilot.markers": [
+   "Microsoft 365 Copilot: contrassegni"
+  ],
+  "accountRules.m365copilot.business": [
+   "Microsoft 365 Copilot: account aziendale"
+  ],
+  "accountRules.m365copilot.personal": [
+   "Microsoft 365 Copilot: account personale"
+  ],
+  "accountRules.m365copilot.unknown": [
+   "Microsoft 365 Copilot: account non riconosciuto"
+  ],
+  "dictionary": [
+   "Dizionario aziendale",
+   "Termini aziendali come somme di controllo SHA-256: esadecimale minuscolo di SHA-256(salt + termine normalizzato). Protegge solo da una lettura casuale."
+  ],
+  "dictionary.salt": [
+   "Salt"
+  ],
+  "dictionary.hashes": [
+   "Somme di controllo dei termini"
+  ],
+  "customTerms": [
+   "Termini personalizzati",
+   "Termini propri (nomi di clienti, nomi in codice di progetti, domini interni, sigle) solo come somme di controllo SHA-256 con salt, mai in chiaro: esadecimale minuscolo di SHA-256(UTF-8(salt + termine normalizzato)). Da creare con scripts/begriffe-hashen.mjs. Normalizzazione: NFKC, minuscole, ae/oe/ue/ss per le dieresi, accenti rimossi; spazi, trattini, punti e altri separatori dividono le parole; da 1 a 5 parole, solo parole intere. Il salt è leggibile dagli utenti: protegge solo da una lettura casuale. I rilevamenti usano il tipo di dato custom_term (regole)."
+  ],
+  "customTerms.salt": [
+   "Salt"
+  ],
+  "customTerms.hashes": [
+   "Somme di controllo dei termini"
+  ],
+  "customPatterns": [
+   "Modelli di rilevamento propri",
+   "Espressioni regolari proprie dell’organizzazione, segnalate come tipo di dato «Modello proprio (organizzazione)» (il modello stesso non viene mai mostrato). Solo tramite criterio (gli utenti non possono impostarlo). Al massimo 50 voci; ogni voce è un oggetto JSON: id (org_ + 2-40 caratteri tra a-z 0-9 _), regex (sorgente JavaScript, al massimo 300 caratteri, solo quantificatori limitati {n,m} fino a 64, niente * + {n,}, niente riferimenti all’indietro o lookaround, lunghezza della corrispondenza 3-256), flags ('' o 'i'), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; predefinito firma), context (al massimo 20 parole da 1 a 40 caratteri), requireContext (true = solo vicino a una parola di contesto), action (warn, redact o block; predefinito warn). Una voce non valida scarta l’intero elenco. Vedere docs/muster-mitmachen.md."
+  ],
+  "labelNames": [
+   "Nomi di etichette di riservatezza propri",
+   "Nomi delle etichette di riservatezza proprie dell’organizzazione (ad es. etichette di Microsoft Purview) che compaiono come testo nei documenti copiati; segnalati come tipo di dato conf_label (pacchetto marker). Qui vanno solo nomi di etichette, mai nomi di clienti o di progetti – per quelli usare customTerms (somme di controllo). Testo in chiaro, solo tramite criterio (gli utenti non possono impostarlo), non mostrato da nessuna parte. Confronto senza distinzione tra maiuscole e minuscole, solo parole intere. Le diciture integrate (Confidential, Internal, Vertraulich, Streng vertraulich …) non richiedono alcuna voce. Al massimo 50 nomi da 2 a 64 caratteri (lettere, cifre, spazio . - _ ( ) & \\ /); una voce non valida scarta l’intero elenco."
+  ],
+  "massListMin": [
+   "Soglia elenco clienti",
+   "Numero minimo di voci distinte (indirizzi e-mail, numeri di telefono, IBAN o righe di una tabella con una colonna nome/cognome) a partire dal quale un testo vale come elenco clienti / esportazione (tipo di dato mass_list, pacchetto context). I duplicati contano una volta. Consentito 3-1000, predefinito 10; i valori fuori intervallo mantengono il predefinito."
+  ],
+  "tableScan": [
+   "Rilevamento di tabelle",
+   "Se true (predefinito), le tabelle incollate o caricate (TSV/CSV, Markdown, HTML, JSON, XLSX) con molte righe di dati personali valgono come fuga di dati di massa, anche senza singoli numeri (intestazioni di colonna e forme dei valori; tipi di dati mass_list e mass_table, pacchetto context). I file XLSX caricati vengono solo letti (fogli, stringhe condivise, commenti), mai eseguiti; i file insoliti o troppo grandi valgono come non controllabili."
+  ],
+  "tableMinRows": [
+   "Tabelle: numero minimo di righe",
+   "Numero di righe di dati a partire dal quale una tabella con dati personali vale come fuga di dati di massa. Consentito 3-1000, predefinito 10; i valori fuori intervallo mantengono il predefinito."
+  ],
+  "tableMinColumns": [
+   "Tabelle: numero minimo di colonne sensibili",
+   "Numero di colonne sensibili (nome, e-mail, telefono, data di nascita, indirizzo, stipendio, diagnosi …) necessarie in una tabella, di cui almeno una identificativa. Consentito 1-10, predefinito 2; i valori fuori intervallo mantengono il predefinito."
+  ],
+  "tableRedaction": [
+   "Tabelle: oscuramento",
+   "columns (predefinito) = Oscura sostituisce solo le celle delle colonne sensibili; rows = mantiene inoltre solo l’intestazione e 3 righe (anche le loro celle sensibili vengono oscurate) e sostituisce il resto con il numero di righe rimosse."
+  ],
+  "deobfuscation": [
+   "Rileva dati offuscati",
+   "Se true (predefinito), l’estensione controlla anche varianti del testo: caratteri invisibili, lettere a larghezza piena e simili, separatori tra le cifre, cifre scritte in lettere, testo al contrario, codifica Base64/esadecimale/URL e parti distribuite su più messaggi nella stessa chat (conservate solo in memoria per 10 minuti, mai salvate). Nelle varianti contano solo valori convalidati da cifra di controllo, segreti, indirizzi e-mail e IBAN."
+  ],
+  "allowRephrase": [
+   "Consenti «Riformula in modo sicuro»",
+   "Se true (predefinito), l’avviso offre «Riformula in modo sicuro»: i dettagli delicati vengono sostituiti localmente con descrizioni generiche (ad es. un paziente di mezza età con una malattia cronica) mentre la domanda resta la stessa. Il risultato viene mostrato nel campo di inserimento come anteprima e può essere annullato; all’invio viene controllato di nuovo. Non offerto quando l’azione è Blocca."
+  ],
+  "identityMinParts": [
+   "Combinazione di identità: parti necessarie",
+   "Numero di parti a partire dal quale nome + data di nascita valgono come identità (tipo di dato identity_combo, pacchetto context): 2 = nome e data di nascita, 3 = in più indirizzo, telefono, e-mail o numero di documento (predefinito), 4 = in più due di questi. Consentito 2-4; i valori fuori intervallo mantengono il predefinito."
+  ],
+  "competenceHideSensitive": [
+   "Registro di alfabetizzazione IA: nascondi sempre i gruppi sensibili",
+   "Se true, il registro di alfabetizzazione IA non mostra mai i gruppi salute, dati personali e ID nazionale (gli utenti non possono mostrarli). Conteggi per utente su salute o convinzioni potrebbero altrimenti consentire il monitoraggio dei dipendenti. Predefinito: false (decidono gli utenti)."
+  ],
+  "complianceReport": [
+   "Rapporto di evidenze",
+   "Se true (predefinito), gli utenti possono aprire un rapporto locale con soli numeri (rilevamenti per tipo di dato, sito di IA e azione, regole attive) con la relativa corrispondenza a leggi e norme, stamparlo o scaricarlo come file HTML. L’estensione non salva mai file di propria iniziativa; raccogliere i file esportati solo con strumenti propri, unirli con scripts/bericht-sammeln.mjs, eliminare poi i singoli file, usare i numeri solo come evidenza (non per il controllo delle prestazioni o del comportamento) e informare preventivamente i dipendenti. False: la pagina del rapporto mostra solo un avviso."
+  ],
+  "complianceFrameworks": [
+   "Rapporto di evidenze: modelli",
+   "Modelli di corrispondenza mostrati nel rapporto, fissi per gli utenti: revdsg (nLPD svizzera), dsgvo (RGPD UE), hipaa (HIPAA USA), euaiact (regolamento UE sull’IA, art. 4), iso27001 (ISO/IEC 27001:2022 Allegato A). Valori sconosciuti scartano l’elenco (predefinito: tutti)."
+  ],
+  "trainingAmpel": [
+   "Semaforo dell’addestramento dell’IA",
+   "Se true (predefinito), sui siti di IA noti l’icona nella barra degli strumenti mostra se gli input vengono usati per impostazione predefinita per addestrare i modelli (verde = no, giallo = in parte o non chiaro, rosso = sì), tenendo conto del tipo di account da accountRules; il popup lo spiega e rimanda all’impostazione di opt-out del fornitore. I dati sono forniti con l’estensione (fonte del fornitore e data per sito), non viene scaricato nulla. False: nessun semaforo e nessuna sezione nel popup."
+  ],
+  "complianceReportDays": [
+   "Rapporto di evidenze: periodo in giorni",
+   "Periodo del rapporto, fisso per gli utenti: 7, 30 o 90 giorni. Gli altri valori mantengono il predefinito 30."
+  ],
+  "reportingUrl": [
+   "URL di reporting (riservato)",
+   "Riservato a un futuro endpoint di reporting (ad es. CIPP). Non usato da questa versione; l’estensione non ha accesso alla rete."
+  ],
+  "barTheme": [
+   "Colore della barra di avviso",
+   "Colore della barra di avviso sopra il campo di inserimento sui siti di IA. auto = segue lo sfondo della pagina (chiaro o scuro); light = sempre chiara; dark = sempre scura. Cambia solo l’aspetto, il controllo resta lo stesso. Se impostato tramite criterio, gli utenti non possono modificarlo. Un valore non valido vale come auto. Predefinito: auto."
+  ],
+  "barCompact": [
+   "Barra di avviso compatta",
+   "Barra di avviso compatta per schermi piccoli: 44 px invece di 56 px, pulsanti più piccoli (30 px); la frase principale, il tipo di dato rilevato e tutti i pulsanti di decisione restano visibili, la spiegazione resta leggibile per i lettori di schermo e tramite Ulteriori informazioni. auto = compatta quando la barra è più stretta di 640 px; on = sempre compatta; off = mai compatta. Se impostato tramite criterio, gli utenti non possono modificarlo. Un valore non valido vale come auto. Predefinito: auto."
+  ],
+  "screenShareGuard": [
+   "Avviso durante la condivisione dello schermo",
+   "Se lo schermo viene condiviso nel browser con Google Meet, Microsoft Teams o Zoom (versioni web) ed è visibile un sito di IA con dati sensibili rilevati nel campo di inserimento o nell’ultima risposta, un avviso indica i tipi (mai i valori) e propone di coprire i rilevamenti sullo schermo. La copertura cambia solo la visualizzazione; il testo non viene modificato, salvato o inviato. off = nessun avviso; warn = avviso con un pulsante per coprire; mask = i rilevamenti vengono coperti subito durante la condivisione. Funziona solo dopo che l’utente ha concesso nelle impostazioni l’accesso facoltativo a questi siti di riunione; un criterio non può concederlo. Il rilevamento avvolge la funzione del browser per la condivisione dello schermo su questi siti e legge solo se qualcosa viene condiviso e il tipo di superficie, mai immagine o audio. Non coperto: app desktop (Teams, Zoom, Meet), altri browser e programmi, altri siti di riunione, condivisione avviata in iframe, campi di inserimento senza formattazione (textarea: solo avviso). Un aiuto, non una protezione (docs/bildschirm-teilen.md). Un valore non valido vale come mask. Predefinito: warn."
+  ],
+  "internalDomains": [
+   "Domini interni",
+   "Domini interni dell’organizzazione (ad es. domini della intranet o dei file server) solo come somme di controllo SHA-256 con salt, mai in chiaro: esadecimale minuscolo di SHA-256(UTF-8(salt + dominio)). Da creare con scripts/begriffe-hashen.mjs --domains. Normalizzazione: caratteri invisibili rimossi, NFKC, minuscole, IDN come punycode, senza punto finale; almeno due etichette. Un link il cui host o dominio superiore corrisponde viene segnalato come tipo di dato internal_link (regole). Solo tramite criterio. Usare un salt proprio, diverso da quello di customTerms (altrimenti il campo viene scartato). Il salt è leggibile dagli utenti e i nomi di dominio interni sono spesso facili da indovinare: protegge solo da una lettura casuale, non da un attacco a dizionario."
+  ],
+  "internalDomains.salt": [
+   "Salt"
+  ],
+  "internalDomains.hashes": [
+   "Somme di controllo dei domini"
+  ],
+  "allowPause": [
+   "Consentire la pausa",
+   "Se true (predefinito), gli utenti possono sospendere la protezione per 15 minuti con la scorciatoia da tastiera; vengono sospesi solo gli avvisi che l’utente può comunque ignorare. Restano in vigore le regole di blocco e di sola oscuratura, tutti i rilevamenti quando allowUserOverride è false, i siti di IA bloccati, l’approvazione dei siti e blockWhenInactive. Le pause non vengono conteggiate. Se false, la pausa non è possibile e una pausa in corso termina subito."
+  ]
+ }
+}

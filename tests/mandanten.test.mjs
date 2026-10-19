@@ -230,7 +230,7 @@ test('Ausgabe im Repo nur in gitignorierten Ordnern, ohne --force nichts uebersc
   try {
     const erg = erzeuge(BEISPIEL);
     const r = schreibeAlles(erg, ziel, false);
-    assert.equal(r.dateien, 33);
+    assert.equal(r.dateien, 41);   // +8 ADML fr-FR/it-IT/es-ES/pt-BR je Browser (17.10.2026)
     assert.throws(() => schreibeAlles(erg, ziel, false), /existiert bereits/);
     fs.writeFileSync(path.join(ziel, 'alpenbau', 'eigene-notiz.txt'), 'x');
     schreibeAlles(erg, ziel, true);

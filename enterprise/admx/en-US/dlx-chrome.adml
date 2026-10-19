@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
   <displayName>AImori</displayName>
   <description>Browser extension policies</description>
   <resources>
@@ -81,6 +81,21 @@
       <string id="formGuardSites_help">Host names of sites whose forms are checked when submitted, e.g. portal.example.com or *.hr.example.com (only https, no path or port, at most one leading *., at least two labels, no AI sites, no IP addresses). On submit, text fields, text areas and editable areas of the form (not password, file or hidden fields) are checked locally with the same detection as on AI sites, whether a person or an AI agent filled them in. If something is found, submitting is stopped and a separate extension window asks Do not send / Allow sending once (only with allowUserOverride). Not covered: pages that send data with scripts instead of a form submission, form.submit(), hidden fields. Users must allow access to these sites once in the extension settings (optional host permissions). If set by policy, users cannot add or remove sites. Max. 20 entries. Default: empty.</string>
       <string id="copySidebarHint">Hint when copying sensitive data (AI side panels)</string>
       <string id="copySidebarHint_help">If true, copying text that contains sensitive data on any https page shows a small notice that AI side panels and AI extensions (e.g. Copilot in Edge, Gemini in Chrome, Claude in Chrome) are not checked. Only works after the user has granted the optional access to all https sites in the settings; a policy cannot grant it. The selected text is checked locally and discarded; nothing is stored or sent. Not covered: http pages, iframes, copying in other programs. Default: true.</string>
+      <string id="barTheme">Warning bar colour</string>
+      <string id="barTheme_help">Colour of the warning bar above the input field on AI sites. auto = follows the page background (light or dark); light = always light; dark = always dark. Only the look changes, the check stays the same. If set by policy, users cannot change it. Invalid value counts as auto. Default: auto.</string>
+      <string id="barTheme_auto">auto</string>
+      <string id="barTheme_light">light</string>
+      <string id="barTheme_dark">dark</string>
+      <string id="barCompact">Compact warning bar</string>
+      <string id="barCompact_help">Compact warning bar for small screens: 44 px instead of 56 px, smaller buttons (30 px); the core sentence, the detected data type and all decision buttons stay visible, the explanation stays readable for screen readers and via Learn more. auto = compact when the bar is narrower than 640 px; on = always compact; off = never compact. If set by policy, users cannot change it. Invalid value counts as auto. Default: auto.</string>
+      <string id="barCompact_auto">auto</string>
+      <string id="barCompact_on">on</string>
+      <string id="barCompact_off">off</string>
+      <string id="screenShareGuard">Warning when sharing the screen</string>
+      <string id="screenShareGuard_help">When the screen is shared in the browser with Google Meet, Microsoft Teams or Zoom (web versions) and an AI site with detected sensitive data in the input field or the last answer is visible, a notice names the types (never values) and offers to cover the matches on screen. Covering only changes the display; the text is not changed, stored or sent. off = no notice; warn = notice with a button to cover; mask = matches are covered immediately while sharing. Only works after the user has granted the optional access to these meeting sites in the settings; a policy cannot grant it. Detection wraps the browser function for screen sharing on these sites and reads only whether something is shared and the kind of surface, never image or sound. Not covered: desktop apps (Teams, Zoom, Meet), other browsers and programs, other meeting sites, sharing started in iframes, input fields without formatting (textarea: notice only). Help, not protection (docs/bildschirm-teilen.md). Invalid value counts as mask. Default: warn.</string>
+      <string id="screenShareGuard_off">off</string>
+      <string id="screenShareGuard_warn">warn</string>
+      <string id="screenShareGuard_mask">mask</string>
       <string id="voiceMode">Voice mode on AI sites</string>
       <string id="voiceMode_help">Voice mode (ChatGPT Voice, Gemini Live, Copilot voice, Claude voice mode) sends speech straight to the AI without text in the input field, so it cannot be checked. Dictation into the input field is checked like typed text, independent of this policy. allow = no message; warn = message when the voice-mode button is pressed, users can start it once per page load (only with allowUserOverride, otherwise like block); block = the button is stopped. Detected via fixed selectors per site: buttons that change after a site update, keyboard shortcuts, desktop and mobile apps are not covered (docs/sprache-und-diktat.md). Invalid value counts as block. Default: warn.</string>
       <string id="voiceMode_allow">allow</string>
@@ -136,6 +151,8 @@
       <string id="dictionary_help">Company terms as SHA-256 checksums: lowercase hex of SHA-256(salt + normalised term). Protects against casual reading only.</string>
       <string id="customTerms">Custom terms</string>
       <string id="customTerms_help">Own terms (customer names, project code names, internal domains, initials) as salted SHA-256 checksums only, never as clear text: lowercase hex of SHA-256(UTF-8(salt + normalised term)). Create with scripts/begriffe-hashen.mjs. Normalisation: NFKC, lowercase, ae/oe/ue/ss for umlauts, accents removed; spaces, hyphens, dots and other separators split words; 1-5 words, whole words only. The salt is readable by users: protects against casual reading only. Findings use data type custom_term (rules).</string>
+      <string id="internalDomains">Internal domains</string>
+      <string id="internalDomains_help">Your organisation&apos;s internal domains (e.g. intranet or file-server domains) as salted SHA-256 checksums only, never as clear text: lowercase hex of SHA-256(UTF-8(salt + domain)). Create with scripts/begriffe-hashen.mjs --domains. Normalisation: invisible characters removed, NFKC, lowercase, IDN as punycode, no trailing dot; at least two labels. A link whose host or parent domain matches is reported as data type internal_link (rules). Policy only. Use a salt of its own, not the one of customTerms (otherwise the field is discarded). The salt is readable by users and internal domain names are often guessable: protects against casual reading only, not against a dictionary attack.</string>
       <string id="customPatterns">Own detection patterns</string>
       <string id="customPatterns_help">Own regular expressions of your organisation, reported as data type &apos;Own pattern (organisation)&apos; (the pattern itself is never shown). Policy only (users cannot set it). Max. 50 entries; each entry is a JSON object: id (org_ + 2-40 of a-z 0-9 _), regex (JavaScript source, max. 300 characters, only bounded quantifiers {n,m} up to 64, no * + {n,}, no backreferences or lookarounds, match length 3-256), flags (&apos;&apos; or &apos;i&apos;), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; default firma), context (max. 20 words of 1-40 characters), requireContext (true = only near a context word), action (warn, redact or block; default warn). One invalid entry discards the whole list. See docs/muster-mitmachen.md.</string>
       <string id="labelNames">Own sensitivity label names</string>
@@ -154,6 +171,8 @@
       <string id="tableRedaction_rows">rows</string>
       <string id="deobfuscation">Detect obfuscated data</string>
       <string id="deobfuscation_help">If true (default), the extension also checks variants of the text: invisible characters, full-width and look-alike letters, separators between digits, digits written as words, reversed text, Base64/hex/URL encoding, and parts spread over several messages in the same chat (kept only in memory for 10 minutes, never stored). Only checksum-validated values, secrets, e-mail addresses and IBANs count in variants.</string>
+      <string id="allowPause">Allow pause</string>
+      <string id="allowPause_help">If true (default), users can pause protection for 15 minutes with the keyboard shortcut; only warnings the user may override anyway are suspended. Block and redact-only rules, all findings when allowUserOverride is false, blocked AI sites, site approval and blockWhenInactive stay in force. Pauses are not counted. If false, pausing is not possible and a running pause ends immediately.</string>
       <string id="allowRephrase">Allow &quot;Rephrase safely&quot;</string>
       <string id="allowRephrase_help">If true (default), the notice offers &quot;Rephrase safely&quot;: sensitive details are replaced locally with generic descriptions (e.g. a patient of middle age with a chronic condition) while the question stays the same. The result is shown in the input field as a preview and can be undone; sending checks it again. Not offered when the action is Block.</string>
       <string id="identityMinParts">Identity combination: required parts</string>
@@ -254,6 +273,15 @@
       <presentation id="formGuardSites">
         <listBox refId="formGuardSites">Form guard sites</listBox>
       </presentation>
+      <presentation id="barTheme">
+        <dropdownList refId="barTheme" noSort="true">Warning bar colour</dropdownList>
+      </presentation>
+      <presentation id="barCompact">
+        <dropdownList refId="barCompact" noSort="true">Compact warning bar</dropdownList>
+      </presentation>
+      <presentation id="screenShareGuard">
+        <dropdownList refId="screenShareGuard" noSort="true">Warning when sharing the screen</dropdownList>
+      </presentation>
       <presentation id="voiceMode">
         <dropdownList refId="voiceMode" noSort="true">Voice mode on AI sites</dropdownList>
       </presentation>
@@ -300,6 +328,12 @@
           <label>Salt</label>
         </textBox>
         <listBox refId="customTerms_hashes">Term checksums</listBox>
+      </presentation>
+      <presentation id="internalDomains">
+        <textBox refId="internalDomains_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="internalDomains_hashes">Domain checksums</listBox>
       </presentation>
       <presentation id="customPatterns">
         <listBox refId="customPatterns">Own detection patterns</listBox>

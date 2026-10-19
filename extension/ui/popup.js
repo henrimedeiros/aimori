@@ -12,7 +12,7 @@
   const { h } = DLX.dom;
   const st = await chrome.runtime.sendMessage({ t: 'state' });
   const b = st.cfg.branding;
-  const lang = DLX.i18n.resolveLang(st.cfg.language, navigator.language);
+  const lang = await DLX.i18n.ready(st.cfg.language, navigator.language);
   const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: b.productName, company: b.companyName }, v || {}));
   document.documentElement.lang = lang;
   DLX.dom.applyBranding(b, matchMedia('(prefers-color-scheme: dark)').matches);
@@ -38,7 +38,7 @@
     if (tab.id !== undefined) off = (await chrome.action.getBadgeText({ tabId: tab.id })) === '!';
   } catch (e) { /* ohne Tab-Bezug: allgemeiner Status */ }
   // Nicht freigegebene grosse KI-Seite im aktiven Tab: Status ehrlich als Warnung statt "Geschuetzt".
-  const excluded = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'].filter((s) => st.cfg.allowedSites.indexOf(s) === -1);
+  const excluded = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity'].filter((s) => st.cfg.allowedSites.indexOf(s) === -1);
   const blocked = !!tab.site && excluded.includes(tab.site);
   const warn = off || blocked;
 
@@ -78,6 +78,15 @@
     kiP,
     h('div', { class: 'dlx-zaehler' }, counter('foundToday', DLX.stats.totals(st.stats, today)), counter('found30', DLX.stats.totals(st.stats, from30))));
   const main = h('main', null, status);
+
+  // Zugriff auf die Seiten mit Content Script fehlt (Firefox MV3: Opt-in): Schutz still aus,
+  // deutlich warnen; erbeten wird er in den Einstellungen (Design-Review Firefox 17.10.2026, Auflage 9).
+  const csOrigins = [...new Set((chrome.runtime.getManifest().content_scripts || []).flatMap((c) => c.matches || []))];
+  if (csOrigins.length && chrome.permissions.contains && !(await chrome.permissions.contains({ origins: csOrigins }).catch(() => true))) {
+    const go = h('button', { type: 'button', class: 'dlx-popup-hinweis', id: 'dlx-host' }, DLX.dom.icon('alert'), h('span', null, T('popHostMissing')));
+    go.addEventListener('click', () => chrome.runtime.openOptionsPage());
+    main.append(go);
+  }
 
   // KI-Seiten-Kontrolle: fehlender Zugriff nur als kurzer Hinweis; erbeten wird er in den Einstellungen.
   if (st.cfg.aiSiteMode === 'hint' || st.cfg.aiSiteMode === 'block') {

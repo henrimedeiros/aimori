@@ -160,11 +160,14 @@ test('Sammel-Skript: Duplikate einmal, leere und ungueltige verworfen, unter 5 A
 });
 
 test('Texte: Selbstauskunft, keine Rechtsberatung, nie konform/erfuellt/compliant/certified', () => {
-  const all = JSON.stringify([B.TEXT, B.FW]);
-  assert.ok(!/konform|erfüllt|erfuellt|compliant|certified|zertifiziert|garant/i.test(all));
-  assert.match(B.TEXT.de.note, /Selbstauskunft, keine Rechtsberatung/);
-  assert.match(B.TEXT.en.note, /not legal advice/);
-  assert.match(B.FW.hipaa.name.de, /nur Zuordnung/);
+  // Alle Sprachen (rep_* in _locales): auch conforme/certifié/cumple/certificato/em conformidade.
+  for (const l of DLX.i18n.LANGS) for (const [k, s] of Object.entries(DLX.i18n.STRINGS[l])) {
+    if (k.startsWith('rep_')) assert.ok(!/konform|erfüllt|erfuellt|compliant|certifi|zertifiziert|garant|conformit|conformidad|cumple/i.test(s), l + ' ' + k);
+  }
+  assert.match(B.t('de', 'note'), /Selbstauskunft, keine Rechtsberatung/);
+  assert.match(B.t('en', 'note'), /not legal advice/);
+  assert.match(B.t('de', 'fw_hipaa'), /nur Zuordnung/);
+  for (const f of B.FRAMEWORKS) B.FW[f].ctl.forEach((c, i) => { for (const l of DLX.i18n.LANGS) assert.ok(DLX.i18n.STRINGS[l]['rep_fw_' + f + '_' + i], l + ' ' + f + i); });
   for (const f of B.FRAMEWORKS) assert.ok(fs.existsSync(path.join(ROOT, 'docs', 'compliance', f + '.md')), f);
   for (const s of Object.values(DLX.i18n.STRINGS)) assert.ok(!/conformit|konform/i.test(s.reportOpen));
 });
@@ -182,10 +185,11 @@ function sw(managed = {}) {
     runtime: { id: 'testid', onMessage: { addListener: (f) => { listener = f; } }, onStartup: { addListener() {} }, onInstalled: { addListener() {} },
       getManifest: () => ({ content_scripts: [] }), getURL: (p) => 'chrome-extension://testid/' + p, sendMessage: async () => {} },
     storage: { local: area('local'), session: area('session'), managed: area('managed'), onChanged: { addListener() {} } },
+    alarms: { create: async () => {}, clear: async () => true, onAlarm: { addListener() {} } }, commands: { onCommand: { addListener() {} } },
     action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
     permissions: { getAll: async () => ({ origins: [] }), onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
     scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {}, unregisterContentScripts: async () => {} },
-    tabs: { sendMessage: async () => {}, onRemoved: { addListener() {} } },
+    tabs: { sendMessage: async () => {}, onRemoved: { addListener() {} }, onUpdated: { addListener() {} } },
     windows: { create: async () => ({ id: 9, tabs: [{ id: 99 }] }), remove: async () => {}, onRemoved: { addListener() {} } },
   };
   const ctx = vm.createContext({ chrome, crypto: webcrypto, navigator: { language: 'de-CH' }, TextEncoder, performance, URL, setTimeout, Date, Intl });
@@ -249,7 +253,7 @@ async function openPage(reply) {
   Node.prototype.click = function () { clicks.push({ href: this.href, download: this.download }); };
   const ctx = { document: doc, window: win, chrome, navigator: { language: 'de-CH' }, Intl, Date, Blob, URL, crypto: webcrypto };
   load(['branding.js', 'common/i18n.js', 'common/dom.js', 'common/bericht.js', 'ui/bericht.js'], ctx);
-  for (let i = 0; i < 8; i++) await Promise.resolve();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
   const restore = () => { Node.prototype.click = proto; };
   return { doc, sent, blobs, clicks, revoked, printed: () => printed, find: (p) => doc.body.all(p), restore };
 }
@@ -322,4 +326,11 @@ test('Seite ist nicht web_accessible, ohne Inline-Skript, Sammel-Skript laedt da
   assert.ok(!/<script>(?!<)/.test(src) && !/ on[a-z]+=/.test(src));
   for (const [, ref] of src.matchAll(/(?:src|href)="([^"]+)"/g)) assert.ok(fs.existsSync(path.join(EXT, 'ui', ref)), ref);
   assert.equal(loadBericht().SCHEMA, 'dlx-bericht/1');
+});
+
+test('Bericht kennt fuer jede Site-ID einen Anzeigenamen (auch perplexity, 17.10.2026)', () => {
+  const src = fs.readFileSync(path.join(EXT, 'common', 'bericht.js'), 'utf8');
+  const names = [...src.match(/const SITE_NAMES = \{([^}]+)\}/)[1].matchAll(/(\w+): '/g)].map((m) => m[1]);
+  assert.deepEqual(names, J(B.SITES));
+  assert.deepEqual(J(B.SITES), J(DLX.policy.SITES));
 });

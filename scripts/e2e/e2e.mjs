@@ -17,6 +17,9 @@ import { startFakeSite, PAGES } from './fake-site.mjs';
 import { DRAW, rechnung } from '../lib/testbilder.mjs';
 import { ladeLogo } from '../mandanten.mjs';
 import { KORPUS, parse as parseKorpus } from '../../tests/helpers/ki-korpus.mjs';
+import { beispieldateien } from '../../tests/helpers/beispieldateien.mjs';
+import { pdf as testPdf } from '../../tests/helpers/dokumente.mjs';
+import { load as loadEngine, ENGINE_FILES } from '../../tests/helpers/load.mjs';
 import { DOKUMENT, AUSZUG, FREMD } from '../../tests/helpers/firmendokument.mjs';
 import { buildPolicy } from '../dokumente-fingerabdruck.mjs';
 import { workbook } from '../../tests/helpers/xlsx.mjs';
@@ -65,12 +68,14 @@ const spki = crypto.createHash('sha256')
   .update(new crypto.X509Certificate(fs.readFileSync(crtFile)).publicKey.export({ type: 'spki', format: 'der' }))
   .digest('base64');
 const site = await startFakeSite(fs.readFileSync(keyFile), fs.readFileSync(crtFile));
+// Bildschirmteilen: Edge waehlt im Wegwerf-Profil den Tab mit diesem Titel ohne Auswahldialog (nur Test, Auflage 11).
+const TEIL_TITEL = 'AImori Teiltest';
 
 const profile = path.join(tmp, 'edge-profil');
 const edge = spawn(EDGE, [
   '--headless=new', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--no-proxy-server', '--disable-sync', '--disable-background-networking',
-  '--disable-component-update', `--ignore-certificate-errors-spki-list=${spki}`, '--lang=de-CH',
+  '--disable-component-update', `--ignore-certificate-errors-spki-list=${spki}`, '--lang=de-CH', `--auto-select-tab-capture-source-by-title=${TEIL_TITEL}`,
   `--host-resolver-rules=${HOSTS.map((h) => `MAP ${h}:443 127.0.0.1:${site.port}`).join(', ')}, MAP * ~NOTFOUND`,
   '--disable-features=DisableLoadExtensionCommandLineSwitch', `--load-extension=${extKopie}`, 'about:blank',
 ], { windowsHide: true, stdio: 'ignore' });
@@ -85,7 +90,9 @@ async function connect(wsUrl) {
   const ws = new WebSocket(wsUrl);
   await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
   let id = 0; const waiting = new Map();
-  ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } };
+  // Konsolenausgaben nur sammeln (Diktat-Senden prueft, dass kein Wert dort landet).
+  const konsole = [];
+  ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && waiting.has(d.id)) { waiting.get(d.id)(d); waiting.delete(d.id); } else if (d.method === 'Runtime.consoleAPICalled') konsole.push(JSON.stringify(d.params.args)); };
   // Geschlossenes Ziel (Frame entfernt) oder keine Antwort nach 8 s: leeres Ergebnis statt Haengen.
   const empty = { result: { result: {} } };
   ws.onclose = () => { for (const r of waiting.values()) r(empty); waiting.clear(); };
@@ -95,7 +102,7 @@ async function connect(wsUrl) {
     setTimeout(() => { if (waiting.has(i)) { waiting.delete(i); r(empty); } }, 8000);
   });
   const ev = async (expr) => { const r = await call('Runtime.evaluate', { expression: expr, awaitPromise: true }); return r.result && r.result.result ? r.result.result.value : undefined; };
-  return { call, ev, close: () => ws.close() };
+  return { call, ev, konsole, close: () => ws.close() };
 }
 
 // Meldungs-Frame (Leiste oder Vollbild) als eigenes DevTools-Ziel.
@@ -781,6 +788,32 @@ async function begriffe() {
   T.close();
 }
 
+// Interne Links (Design-Review interne Links 17.10.2026, Auflage 10): SharePoint-Link und Intranet-Host
+// gestoppt, Leiste nur mit Typ und eigener Erklaerung, Platzhalter gesendet; oeffentlicher Beispiel-Link
+// geht durch; Netzwerk-Wache ohne Anfrage nach aussen (die Erweiterung ruft keinen Link auf).
+async function links() {
+  const wache = await netzWache();
+  await closeDialogs();
+  const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+  const { val, log, type, enter, clear } = T;
+  await type('Anleitung auf https://www.example.com/hilfe?x=1 lesen'); await enter(); await sleep(600);
+  check('Links: oeffentlicher Beispiel-Link geht direkt durch', (await log()).includes('SENT:Anleitung auf https://www.example.com/hilfe?x=1 lesen|'), await log());
+  await clear();
+  await type('Plan auf https://contoso.sharepoint.com/sites/Zeder/Plan.docx und http://wiki/Zeder pruefen'); await enter(); await sleep(900);
+  const d = await dialog();
+  const txt = d ? await d.text() : '';
+  check('Links: Leiste "Interner Link" mit eigener Erklaerung, kein Wert', /Interner Link/.test(txt) && /Interne Links verraten/.test(txt) && !/contoso|wiki\/|sharepoint\.com/i.test(txt), txt.slice(0, 160));
+  check('Links: Leiste mit Knopf Platzhalter', !!d && await d.has('pseudonym'));
+  if (d) { await d.click('pseudonym'); d.close(); await sleep(800); }
+  check('Links: Platzhalter im Feld', (await val()) === 'Plan auf [INTERNAL_LINK_1] und [INTERNAL_LINK_2] pruefen', await val());
+  await enter(); await sleep(600);
+  check('Links: Platzhalter gesendet', (await log()).includes('SENT:Plan auf [INTERNAL_LINK_1] und [INTERNAL_LINK_2] pruefen|'), await log());
+  await closeDialogs();
+  T.close();
+  wache.close();
+  check(`Links-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
+}
+
 // --- KI-Seiten-Kontrolle (Design-Review KI-Seiten 14.10.2026, Auflagen 5, 8, 10) ---
 // Modus per lokaler Einstellung (gleicher Codepfad wie die Richtlinie, kein Testschalter);
 // erlaubt (chatgpt), Hinweis (claude), gesperrt (gemini) auf den Attrappen.
@@ -798,7 +831,8 @@ async function kiseiten() {
   const prev = JSON.parse((await swEval(`chrome.storage.local.get('dlx.settings').then((x) => JSON.stringify(x['dlx.settings'] || {}))`)) || '{}');
   const setLocal = (v) => swEval(`chrome.storage.local.set({ 'dlx.settings': ${JSON.stringify(v)} }).then(() => 'ok')`);
   // Ohne die Kopierwache: sie ist nur in der Testkopie wegen des festen https://*/* registriert (Design-Review Kopierwarnung 16.10.2026).
-  const registered = async () => JSON.parse((await swEval(`chrome.scripting.getRegisteredContentScripts().then((x) => JSON.stringify(x.filter((y) => y.id !== 'dlx-kopierwache')))`)) || '[]');
+  // Nur die Waechter der KI-Seiten zaehlen; Kopierwache und Bildschirmteilen (breites Recht der Testkopie) haben eigene Schritte.
+  const registered = async () => JSON.parse((await swEval(`chrome.scripting.getRegisteredContentScripts().then((x) => JSON.stringify(x.filter((y) => y.id !== 'dlx-kopierwache' && !y.id.startsWith('dlx-teilen'))))`)) || '[]');
   // Saubere Einstellungen (fruehere Schritte setzen eigene Werte); danach zurueck.
   await setLocal({ aiSiteMode: 'hint', allowedAiSites: ['chatgpt'], blockedAiSites: ['gemini'] });
   await sleep(1000);
@@ -985,6 +1019,48 @@ async function konten() {
   await closeDialogs();
   await setLocal(prev);
   await sleep(500);
+}
+
+// Sprachen (Design-Review Sprachen 17.10.2026): je Sprache Popup und Warnleiste aus
+// _locales, keine rohen Schluessel; mit E2E_BILDER Bilder popup-<sprache>.png (Attrappe, Testwert).
+async function sprachen() {
+  await closeDialogs();
+  const prev = JSON.parse((await swEval(`chrome.storage.local.get('dlx.settings').then((x) => JSON.stringify(x['dlx.settings'] || {}))`)) || '{}');
+  const setLocal = (v) => swEval(`chrome.storage.local.set({ 'dlx.settings': ${JSON.stringify(v)} }).then(() => 'ok')`);
+  const head = (s) => s.split('{')[0].trim();
+  const EN = JSON.parse(fs.readFileSync(path.join(EXT, '_locales', 'en', 'messages.json'), 'utf8'));
+  const RAW = /\b(settings|statusOn|statusOff|kiStatus|trainHead|popManaged|type_[a-z]|cat_[a-z])\b/;
+  for (const [l, dir] of Object.entries({ en: 'en', de: 'de', fr: 'fr', it: 'it', es: 'es', pt: 'pt_BR' })) {
+    const m = JSON.parse(fs.readFileSync(path.join(EXT, '_locales', dir, 'messages.json'), 'utf8'));
+    await setLocal(Object.assign({}, prev, { language: l }));
+    await sleep(400);
+    const P = await openTab(`chrome-extension://${ID}/ui/popup.html`, 'document.body');
+    await P.page.call('Emulation.setDeviceMetricsOverride', { width: 340, height: 430, deviceScaleFactor: 1, mobile: false });
+    await P.page.ev('location.reload()'); await sleep(1200);
+    const txt = String(await P.page.ev('document.body.innerText'));
+    // mindestens drei Texte, die es nur in dieser Sprache gibt (nicht gleich Englisch)
+    const own = Object.keys(m).filter((k) => l === 'en' || m[k].message !== EN[k].message).filter((k) => head(m[k].message).length > 5 && txt.includes(head(m[k].message))).length >= 3;
+    check(`Sprache ${l}: Popup in der Sprache, keine rohen Schluessel`, own && !RAW.test(txt) && !txt.includes('[object'), txt.slice(0, 200));
+    if (process.env.E2E_BILDER) {
+      const hgt = await P.page.ev('Math.ceil(document.body.scrollHeight)');
+      await shot(P.page, `popup-${l}.png`, { x: 0, y: 0, width: 340, height: Math.min(430, hgt) });
+    }
+    P.close();
+    // Warnleiste beim Senden: Datentyp-Name und Knopf aus derselben Sprache.
+    const ED = `document.querySelector('.ProseMirror')`;
+    const T = await openTab('https://chatgpt.com/?sprache=' + l, ED);
+    await T.page.ev(`localStorage.removeItem('draft'); ${ED}.replaceChildren(document.createElement('p'))`); await sleep(300);
+    await T.type('IBAN CH9300762011623852957'); await T.enter(); await sleep(1200);
+    const d = await dialog();
+    const dt = d ? await d.text() : '';
+    check(`Sprache ${l}: Warnleiste mit Erklaerung der Sprache, nicht gesendet, kein Wert`,
+      dt.includes(m.why_finanz.message.slice(0, 25)) && !dt.includes('CH93') && (await T.log()) === '', dt.slice(0, 200));
+    if (d) { await d.click('cancel'); d.close(); }
+    await closeDialogs(); await sleep(300);
+    T.close();
+  }
+  await setLocal(prev);
+  await sleep(400);
 }
 
 async function shot(page, file, clip) {
@@ -1316,6 +1392,128 @@ async function lastFileOcr(T) {
     const t = DLX.bild.textOf(r.lines || []).text; return JSON.stringify({ err: r.error || null, ids: Array.from(DLX.engine.scan(t, eng).findings, (f) => f.id), worte: t.split(/\\s+/).length }); })`) || '{}');
 }
 
+// --- Datei-Uploads (Design-Review Datei-Uploads 17.10.2026, Auflagen 4, 10) ------------------
+// Synthetische Beispieldateien (TXT, CSV, PDF, DOCX, XLSX) ueber das Datei-Feld der Attrappe:
+// mit Test-IBAN/Muster-AHV angehalten (Leiste ohne Werte, Auswahl geleert, Abbrechen = nichts),
+// saubere kommen unveraendert an; Ablegen + Trotzdem gibt genau die Originaldatei weiter.
+// Ein Seiten-Handler im Capture-Modus auf window sieht die Datei vor dem Urteil nie.
+async function dateien() {
+  await closeDialogs();
+  const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+  await T.page.ev(`(() => { const cap = (e) => { const f = (e.target && e.target.files) || (e.dataTransfer && e.dataTransfer.files); if (f && f.length) document.getElementById('log').textContent += 'CAP|'; };
+    window.addEventListener('change', cap, true); window.addEventListener('drop', cap, true); return 'ok'; })()`);
+  const clear = () => T.page.ev(`document.getElementById('log').textContent = ''`);
+  for (const f of beispieldateien()) {
+    const file = path.join(tmp, f.name);
+    fs.writeFileSync(file, f.bytes);
+    await clear();
+    await T.page.call('DOM.setFileInputFiles', { files: [file], backendNodeId: await nodeOf(T, '#datei') });
+    if (f.heikel) {
+      const b = await imageBar(/IBAN/, 15000);
+      check(`Datei ${f.ext}: Leiste nennt IBAN und AHV, ohne Werte`, /IBAN/.test(b.text) && /AHV/.test(b.text) && !/CH93|0076|756\.1234/.test(b.text), b.text.slice(0, 200));
+      check(`Datei ${f.ext}: Auswahl geleert, Seite (auch Capture-Handler) hat nichts`, (await T.page.ev(`document.getElementById('datei').files.length`)) === 0 && (await T.log()) === '', await T.log());
+      check(`Datei ${f.ext}: Knoepfe Abbrechen und Trotzdem`, !!b.d && await b.d.has('cancel') && await b.d.has('override'));
+      if (b.d) { await b.d.click('cancel'); b.d.close(); }
+      await sleep(800);
+      check(`Datei ${f.ext}: Abbrechen -> nichts weitergegeben`, (await T.log()) === '', await T.log());
+    } else {
+      let got = '';
+      for (let i = 0; i < 50 && !/INPUT:/.test(got); i++) { await sleep(200); got = await T.log(); }
+      check(`Datei ${f.ext} sauber: Original kommt an, keine Meldung`, got.endsWith(`INPUT:${f.name}:${shortHash(Buffer.from(f.bytes))}|`) && !/"mode":"doc/.test(await swPending()), got);
+    }
+  }
+  // Ablegen (PDF mit IBAN) -> Trotzdem (zwei Klicks) -> genau die Originaldatei
+  await closeDialogs();
+  await clear();
+  const pdf = path.join(tmp, 'beispiel-heikel.pdf');
+  const box = JSON.parse(await T.page.ev(`JSON.stringify(document.querySelector('.ProseMirror').getBoundingClientRect())`));
+  const at = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  const data = { items: [], files: [pdf], dragOperationsMask: 1 };
+  for (const type of ['dragEnter', 'dragOver', 'drop']) await T.page.call('Input.dispatchDragEvent', Object.assign({ type, data }, at));
+  const b = await imageBar(/IBAN/, 15000);
+  check('Ablegen (PDF): Leiste mit IBAN, Seite hat nichts', /IBAN/.test(b.text) && (await T.log()) === '', b.text.slice(0, 120) + ' / ' + (await T.log()));
+  if (b.d) { await b.d.click('override'); await sleep(700); await b.d.click('override'); b.d.close(); }
+  await sleep(1500);
+  const log = await T.log();
+  check('Ablegen (PDF): Trotzdem -> Originaldatei wird abgelegt', log.endsWith(`DROP:beispiel-heikel.pdf:${shortHash(fs.readFileSync(pdf))}|`), log);
+  T.close();
+}
+
+// --- Bereinigte Version hochladen (Design-Review Bereinigen 19.10.2026) ------------------------
+// Synthetische TXT/CSV/PDF/DOCX mit Test-IBAN/Muster-AHV: "Bereinigte Version hochladen" gibt der
+// Seite eine neue Datei gleichen Namens ohne Treffer (geprueft mit engine/datei.js + Erkennern),
+// nie das Original; PDF mit Layout-Hinweis. XLSX ohne Knopf, Scan-PDF ohne Text = nicht pruefbar
+// ohne Knopf, Ablegen (DOCX) gleich wie das Datei-Feld.
+async function bereinigen() {
+  await closeDialogs();
+  const open = () => openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+  let T = await open();
+  const L = loadEngine([...ENGINE_FILES, 'engine/datei.js', 'common/quellen.js', 'common/policy.js'], { TextDecoder, DecompressionStream, Uint8Array, setTimeout, URL });
+  const eng = L.policy.engineConfig(L.policy.defaults('de-CH'));
+  const clear = () => T.page.ev(`document.getElementById('log').textContent = ''`);
+  const lastFile = async () => Buffer.from(await T.page.ev(`(async () => { const f = window.__files[window.__files.length - 1]; const b = new Uint8Array(await f.arrayBuffer());
+    let s = ''; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, b.subarray(i, i + 32768)); return btoa(s); })()`), 'base64');
+  const textOf = async (name, type, buf) => {
+    const kind = L.datei.kindOf(name, type);
+    return kind === 'text' ? buf.toString('utf8') : (await L.datei.extract(new Uint8Array(buf), kind)).text;
+  };
+  const waitLog = async (re, ms = 15000) => { let got = ''; for (const until = Date.now() + ms; Date.now() < until && !re.test(got); await sleep(200)) got = await T.log(); return got; };
+  const checkClean = async (label, f, got) => {
+    const buf = await lastFile();
+    const text = await textOf(f.name, f.type, buf);
+    const ids = Array.from(L.engine.scan(text, eng).findings, (x) => x.id);
+    check(label + ': Seite bekommt eine neue Datei gleichen Namens, nie das Original', new RegExp('(INPUT|DROP):' + f.name.replace(/\./g, '\\.') + ':[0-9a-f]{8}\\|$').test(got) && !got.includes(shortHash(Buffer.from(f.bytes))), got);
+    check(label + ': bereinigte Datei ohne IBAN/AHV, mit Platzhalter, Rest lesbar', !ids.includes('iban') && !ids.includes('ch_ahv') && /\[[^\]]+\]/.test(text) && /ueberweisen/.test(text), ids.join(',') + ' / ' + text.slice(0, 120));
+  };
+  for (const f of beispieldateien().filter((x) => x.heikel)) {
+    const file = path.join(tmp, f.name);
+    fs.writeFileSync(file, f.bytes);
+    await clear();
+    const t0 = Date.now();
+    await T.page.call('DOM.setFileInputFiles', { files: [file], backendNodeId: await nodeOf(T, '#datei') });
+    const b = await imageBar(/IBAN/, 15000);
+    console.log('INFO Bereinigen ' + f.ext + ' bis Leiste: ' + (Date.now() - t0) + ' ms');
+    if (f.ext === 'xlsx') {
+      check('Bereinigen xlsx: kein Knopf "Bereinigte Version" (Tabellen werden nie umgeschrieben)', !!b.d && !(await b.d.has('redact')) && await b.d.has('cancel'), b.text.slice(0, 160));
+      if (b.d) { await b.d.click('cancel'); b.d.close(); }
+      continue;
+    }
+    check(`Bereinigen ${f.ext}: Leiste mit Knopf "Bereinigte Version hochladen"`, !!b.d && await b.d.has('redact') && /Bereinigte Version hochladen/.test(b.text), b.text.slice(0, 200));
+    check(`Bereinigen ${f.ext}: Hinweis nach erkannten Datentypen` + (f.ext === 'pdf' ? ', Layout geht verloren' : ''), /erkannten Datentypen/.test(b.text) && (f.ext === 'pdf') === /Layout/.test(b.text), b.text.slice(0, 260));
+    if (!b.d) continue;
+    await b.d.click('redact');
+    b.d.close();
+    const got = await waitLog(/(INPUT|DROP):/);
+    await checkClean('Bereinigen ' + f.ext, f, got);
+  }
+  // Frischer Tab fuer die naechsten Faelle (nach vielen Ablagen im Gesamtlauf stabiler).
+  T.close();
+  T = await open();
+  // Scan-PDF ohne Text: bisheriger Hinweis "nicht pruefbar", kein Bereinigen, Seite hat nichts.
+  await closeDialogs();
+  await clear();
+  const scan = path.join(tmp, 'scan.pdf');
+  fs.writeFileSync(scan, testPdf(['']));
+  await T.page.call('DOM.setFileInputFiles', { files: [scan], backendNodeId: await nodeOf(T, '#datei') });
+  const s1 = await imageBar(/prüf/i, 15000);
+  check('Scan-PDF ohne Text: Meldung nicht pruefbar, kein Bereinigen, Seite hat nichts', !!s1.d && !(await s1.d.has('redact')) && (await T.log()) === '', s1.text.slice(0, 160) + ' / ' + (await T.log()));
+  if (s1.d) { await s1.d.click('cancel'); s1.d.close(); }
+  // Ablegen (DOCX mit IBAN) -> Bereinigte Version -> neue Datei per Drop
+  await closeDialogs();
+  await clear();
+  const dx = beispieldateien().find((x) => x.heikel && x.ext === 'docx');
+  const dfile = path.join(tmp, dx.name);
+  const box = JSON.parse(await T.page.ev(`JSON.stringify(document.querySelector('.ProseMirror').getBoundingClientRect())`));
+  const at = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  const data = { items: [], files: [dfile], dragOperationsMask: 1 };
+  for (const type of ['dragEnter', 'dragOver', 'drop']) await T.page.call('Input.dispatchDragEvent', Object.assign({ type, data }, at));
+  const b2 = await imageBar(/IBAN/, 15000);
+  check('Ablegen (DOCX): Leiste mit Bereinigen, Seite hat nichts', !!b2.d && await b2.d.has('redact') && (await T.log()) === '', b2.text.slice(0, 120) + ' / ' + (await T.log()));
+  if (b2.d) { await b2.d.click('redact'); b2.d.close(); }
+  await checkClean('Ablegen (DOCX)', dx, await waitLog(/DROP:/));
+  T.close();
+}
+
 async function bildpruefung() {
   await closeDialogs();
   const ED = `document.querySelector('.ProseMirror')`;
@@ -1601,6 +1799,64 @@ async function leiste() {
     for (const sprache of ['fr', 'pt']) {
       await setLocal(Object.assign({}, prev, { language: sprache })); await sleep(800);
       for (const [W, H] of [[800, 600], [1280, 720]]) await leisteFall('chatgpt', W, H, sprache);
+    }
+  } finally {
+    await setLocal(prev); await sleep(500);
+  }
+}
+
+// --- Warnleiste anpassbar (Design-Review Warnleiste anpassbar 17.10.2026, Auflagen 5, 6, 8) ---
+// Lokale Einstellung barTheme/barCompact (gleicher Codepfad wie die Richtlinie): Thema im Frame,
+// kompakte Leiste 44 px mit allen Knoepfen ganz im Bild, auto unter 640 px. Nur Attrappe und
+// offizielle Test-IBAN; mit E2E_BILDER Bilder warnleiste-<thema>[-kompakt]-<B>x<H>.png.
+async function warnleiste() {
+  const S = LEISTE_SEITEN.chatgpt;
+  const HOST = `[...document.documentElement.children].find((n) => n.tagName !== 'HEAD' && n.tagName !== 'BODY' && n.style.position === 'fixed')`;
+  const prev = JSON.parse((await swEval(`chrome.storage.local.get('dlx.settings').then((x) => JSON.stringify(x['dlx.settings'] || {}))`)) || '{}');
+  const setLocal = (v) => swEval(`chrome.storage.local.set({ 'dlx.settings': ${JSON.stringify(v)} }).then(() => 'ok')`);
+  const FAELLE = [
+    { barTheme: 'light', barCompact: 'off', W: 1280, H: 720, thema: 'hell', kompakt: false, bild: 'warnleiste-hell-1280x720.png' },
+    { barTheme: 'dark', barCompact: 'off', W: 1280, H: 720, thema: 'dunkel', kompakt: false, bild: 'warnleiste-dunkel-1280x720.png' },
+    { barTheme: 'light', barCompact: 'on', W: 1280, H: 720, thema: 'hell', kompakt: true, bild: 'warnleiste-hell-kompakt-1280x720.png' },
+    { barTheme: 'dark', barCompact: 'on', W: 1280, H: 720, thema: 'dunkel', kompakt: true, bild: 'warnleiste-dunkel-kompakt-1280x720.png' },
+    { barTheme: 'dark', barCompact: 'auto', W: 640, H: 800, thema: 'dunkel', kompakt: true, bild: 'warnleiste-dunkel-kompakt-auto-640x800.png' },
+    { barTheme: 'light', barCompact: 'auto', W: 1280, H: 720, thema: 'hell', kompakt: false, bild: null },
+  ];
+  try {
+    for (const f of FAELLE) {
+      await setLocal(Object.assign({}, prev, { barTheme: f.barTheme, barCompact: f.barCompact })); await sleep(600);
+      const tag = `Warnleiste ${f.barTheme}/${f.barCompact} ${f.W}x${f.H}`;
+      await closeDialogs();
+      const T = await openTab(S.url, S.ed);
+      await T.page.call('Emulation.setDeviceMetricsOverride', { width: f.W, height: f.H, deviceScaleFactor: 1, mobile: false });
+      await T.page.ev(S.leer); await sleep(300);
+      await T.type('Bitte die IBAN CH9300762011623852957 erfassen.'); await sleep(1500);
+      const d = await dialog();
+      const t = d ? await d.text() : '';
+      const sitz = d ? JSON.parse(await d.ev(`(() => { const bar = document.querySelector('.dlx-bar'); const kn = [...document.querySelectorAll('button')].filter((b) => b.getClientRects().length > 0).map((b) => b.getBoundingClientRect());
+        const warum = document.querySelector('.dlx-bar-warum');
+        return JSON.stringify({ thema: document.documentElement.getAttribute('data-theme'), kompakt: !!bar && bar.classList.contains('dlx-kompakt'), hoehe: innerHeight, n: kn.length,
+          kn: Math.min(...kn.map((r) => r.height)), aus: kn.some((r) => r.width === 0 || r.left < -0.5 || r.right > innerWidth + 0.5 || r.top < -0.5 || r.bottom > innerHeight + 0.5),
+          over: document.documentElement.scrollWidth > innerWidth + 1, warum: !!warum && warum.textContent.length > 3,
+          kontrast: (() => { const c = (s) => s.match(/[\\d.]+/g).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+            const L = (a) => 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; const lead = document.querySelector('.dlx-bar-text');
+            const a = L(c(getComputedStyle(lead).color)), b = L(c(getComputedStyle(bar).backgroundColor)); return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100; })() }); })()`) || '{}') : {};
+      check(`${tag}: IBAN erkannt, Produktname sichtbar, kein Wert`, !!d && /IBAN/.test(t) && t.includes('AImori') && !t.includes('CH93'), t.slice(0, 120));
+      check(`${tag}: Thema ${f.thema} im Frame`, sitz.thema === f.thema, String(sitz.thema));
+      // Normal: eine Zeile 56 px, bei langem Text zwei und mehr (wie Schritt leiste, hoechstens 240 px); kompakt fest 44 px.
+      check(`${tag}: ${f.kompakt ? 'kompakt, 44 px' : 'normal, 56 bis 240 px'}`, sitz.kompakt === f.kompakt && (f.kompakt ? sitz.hoehe === 44 : sitz.hoehe >= 56 && sitz.hoehe <= 240), JSON.stringify({ k: sitz.kompakt, h: sitz.hoehe }));
+      check(`${tag}: alle ${sitz.n} sichtbaren Knoepfe ganz im Bild, mindestens ${f.kompakt ? 30 : 36} px, nichts laeuft ueber`, sitz.n >= 2 && sitz.aus === false && sitz.over === false && sitz.kn >= (f.kompakt ? 30 : 36), JSON.stringify(sitz));
+      check(`${tag}: Erklaerung bleibt im Frame (Screenreader), Textkontrast AA`, sitz.warum === true && sitz.kontrast >= 4.5, String(sitz.kontrast));
+      if (process.env.E2E_BILDER && f.bild) {
+        fs.mkdirSync(process.env.E2E_BILDER, { recursive: true });
+        const lage = JSON.parse(await T.page.ev(`(() => { const h = ${HOST}; const ed = ${S.ed}; const f = (ed.closest('form, fieldset') || ed.parentElement).getBoundingClientRect(); const b = h.getBoundingClientRect();
+          return JSON.stringify({ y: Math.min(b.top, f.top), b: Math.max(b.bottom, f.bottom) }); })()`) || '{}');
+        const y = Math.max(0, Math.floor(lage.y - 16));
+        await shot(T.page, f.bild, { x: 0, y, width: f.W, height: Math.min(f.H - y, Math.ceil(lage.b + 16 - y)) });
+      }
+      if (d) d.close();
+      await closeDialogs(); await sleep(300);
+      T.close();
     }
   } finally {
     await setLocal(prev); await sleep(500);
@@ -1919,7 +2175,8 @@ async function versteckt() {
   await sleep(1500);
   check('Versteckt Dokument: sauberes .txt geht nach der Pruefung an die Seite', /PASTE:notiz\.txt/.test(await T.log()), await T.log());
   const info = await dialog();
-  check('Versteckt Dokument: Hinweis "Dateien werden nicht geprüft" bleibt', !!info && /nicht geprüft/.test(await info.text()));
+  // Seit 19.10.2026 (Bereinigen): gepruefte saubere Dateien gehen still durch, kein Hinweis "nicht geprueft" mehr.
+  check('Versteckt Dokument: gepruefte saubere Datei ohne Hinweis "Dateien werden nicht geprüft"', !info || !/nicht geprüft/.test(await info.text()));
   if (info) { await clickIn(info, 'ok'); info.close(); }
   await sleep(500);
   await closeDialogs();
@@ -2084,6 +2341,119 @@ async function kopierwarnung() {
   check(`Kopierwarnung-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
 }
 
+// --- Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026, docs/sicherheit/design-review-bildschirmteilen.md) ---
+// Attrappe meet.google.com (127.0.0.1) startet echtes getDisplayMedia per Mausklick; Edge waehlt nur im
+// Wegwerf-Profil per Flag den Tab mit dem Titel TEIL_TITEL (Auflage 11). Verdecken per Pixeltest: Anteil
+// der Pixel in Abdeckfarbe im Bereich des Treffers (Auflage 8). Netzwerk-Sperrtest ueber den ganzen Schritt.
+async function schattenKnopf(T, text) {
+  const r = await T.page.call('DOM.getDocument', { depth: -1, pierce: true });
+  let hit = null;
+  const walk = (n, inShadow) => {
+    if (inShadow && n.nodeName === 'BUTTON' && (n.children || []).some((c) => c.nodeType === 3 && c.nodeValue === text)) hit = n.backendNodeId;
+    for (const c of n.children || []) walk(c, inShadow);
+    for (const s of n.shadowRoots || []) walk(s, true);
+  };
+  walk(r.result.root, false);
+  if (hit) await T.clickBackend(hit);
+  return !!hit;
+}
+// Bereich des Testwerts im Feld (Seitenwelt: nur der eigene Text der Attrappe), in CSS-Pixeln samt Fensterbreite.
+const IBAN_TEIL = 'CH93 0076 2011 6238 5295 7';
+async function ibanRect(T) {
+  return JSON.parse(await T.page.ev(`(() => { const ed = document.querySelector('.ProseMirror'); const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) { const i = n.data.indexOf(${JSON.stringify(IBAN_TEIL)}); if (i < 0) continue;
+      const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + ${IBAN_TEIL.length}); const b = r.getBoundingClientRect();
+      return JSON.stringify({ x: b.left + 2, y: b.top + 2, w: b.width - 4, h: b.height - 4, vw: innerWidth }); } return 'null'; })()`));
+}
+// Anteil der Pixel nahe der Abdeckfarbe #1c1c20 im Bereich des Treffers: ganzes Fenster aufnehmen und den
+// Bereich mit dem Faktor Bildbreite/Fensterbreite umrechnen (Geraete-Skalierung); Dekodieren im Attrappen-Tab.
+async function abgedeckt(T, M) {
+  const r = await ibanRect(T);
+  if (!r) return -1;
+  const png = (await T.page.call('Page.captureScreenshot', { format: 'png' })).result.data;
+  return M.page.ev(`(async () => { const img = new Image(); img.src = 'data:image/png;base64,${png}'; await img.decode();
+    const k = img.width / ${r.vw}; const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+    const d = x.getImageData(Math.round(${r.x} * k), Math.round(${r.y} * k), Math.max(1, Math.round(${r.w} * k)), Math.max(1, Math.round(${r.h} * k))).data; let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 28) + Math.abs(d[i + 1] - 28) + Math.abs(d[i + 2] - 32) < 30) n++;
+    return Math.round(n / (d.length / 4) * 1000) / 1000; })()`);
+}
+async function teilen() {
+  const wache = await netzWache();
+  const prev = JSON.parse((await swEval(`chrome.storage.local.get('dlx.settings').then((x) => JSON.stringify(x['dlx.settings'] || {}))`)) || '{}');
+  const setLocal = (v) => swEval(`chrome.storage.local.set({ 'dlx.settings': ${JSON.stringify(Object.assign({}, prev, v))} }).then(() => 'ok')`);
+  const reg = () => swEval(`chrome.scripting.getRegisteredContentScripts().then((l) => JSON.stringify(l.filter((x) => x.id.startsWith('dlx-teilen')).map((x) => [x.id, x.world, x.allFrames, x.matches.includes('https://meet.google.com/*')])))`);
+  await setLocal({ language: 'de', screenShareGuard: 'warn' });
+  await sleep(1200);
+  const r1 = await reg();
+  check('Teilen: Huelle (MAIN) und Weiterleitung (isoliert) nur im Hauptframe der Meeting-Seiten', r1 === '[["dlx-teilen-seite","MAIN",false,true],["dlx-teilen","ISOLATED",false,true]]', r1);
+  const A = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+  await A.page.ev(`document.title = ${JSON.stringify(TEIL_TITEL)}`);
+  await A.type('Bitte zahlen auf ' + IBAN_TEIL + ' heute');
+  await sleep(1500);
+  const vorher = await abgedeckt(A, { page: A.page });
+  check('Teilen: ohne Teilen kein Hinweis, Treffer sichtbar', !/Bildschirm geteilt/.test(await schattenText(A)) && vorher >= 0 && vorher < 0.3, 'Abdeckung ' + vorher);
+  const M = await openTab('https://meet.google.com/', 'document.body');
+  await M.clickSel('#teilen');
+  await sleep(2500);
+  const mlog = await M.log();
+  check('Teilen: getDisplayMedia der Seite funktioniert unveraendert (gleiches Promise, Tab-Flaeche)', /^START\|AN:browser\|/.test(mlog), mlog);
+  await A.page.call('Page.bringToFront');
+  await sleep(2500);
+  const h1 = await schattenText(A);
+  check('Teilen: Hinweis im KI-Tab nennt Typ und Anzahl, keinen Wert', /Bildschirm geteilt: sensible Daten sichtbar/.test(h1) && /IBAN[^,]*\(1\)/.test(h1) && /Treffer verdecken/.test(h1) && !/2011|6238|5295/.test(h1), h1.slice(0, 200));
+  const seite = await A.page.ev(`(() => { const h = document.documentElement.lastElementChild; return [h.tagName, h.shadowRoot === null, h.id, h.className, document.body.innerText.includes('Bildschirm geteilt')].join('|'); })()`);
+  check('Teilen: Seite sieht nur ein neutrales Element (closed)', seite === 'DIV|true|||false', seite);
+  check('Teilen: Knopf per echtem Mausklick', await schattenKnopf(A, 'Treffer verdecken'));
+  await sleep(600);
+  const nachher = await abgedeckt(A, M);
+  const h2 = await schattenText(A);
+  check('Teilen: Treffer im Bild verdeckt (Pixeltest), Text unveraendert', nachher > 0.9 && (await A.val()).includes(IBAN_TEIL) && /Treffer verdeckt/.test(h2), `vorher ${vorher}, nachher ${nachher}`);
+  await A.page.ev(`document.querySelector('.ProseMirror').style.setProperty('-webkit-text-fill-color', '#0a7d32')`);
+  await sleep(300);
+  const fill = await abgedeckt(A, M);
+  check('Teilen: Seiten-Textfuellfarbe holt den Wert nicht zurueck', fill > 0.9, 'Abdeckung ' + fill);
+  await A.page.ev(`document.querySelector('.ProseMirror').style.removeProperty('-webkit-text-fill-color')`);
+  // Markierter Text (::selection) malt ueber dem Highlight: nur messen und dokumentieren (Auflage 8, docs/bildschirm-teilen.md).
+  await A.page.ev(`getSelection().selectAllChildren(document.querySelector('.ProseMirror'))`);
+  await sleep(300);
+  console.log('INFO Teilen: Abdeckung bei markiertem Text ' + (await abgedeckt(A, M)));
+  await A.page.ev(`getSelection().removeAllRanges()`);
+  // Ende ohne ended-Ereignis (track.stop() der Seite): 1-s-Abfrage meldet aus.
+  await M.page.ev(`window.teilStopp()`);
+  await sleep(3500);
+  const h3 = await schattenText(A);
+  const ende = await abgedeckt(A, M);
+  check('Teilen beendet: Hinweis weg, Treffer wieder sichtbar', !/Bildschirm geteilt/.test(h3) && ende < 0.3, 'Abdeckung ' + ende);
+  // Richtlinie mask (lokal gleicher Codepfad): sofort verdeckt.
+  await setLocal({ language: 'de', screenShareGuard: 'mask' });
+  await sleep(1500);
+  await M.page.call('Page.bringToFront');
+  await M.page.call('Page.reload');
+  await sleep(2000);
+  await M.clickSel('#teilen');
+  await sleep(2000);
+  await A.page.call('Page.bringToFront');
+  await sleep(2500);
+  const h4 = await schattenText(A);
+  const sofort = await abgedeckt(A, M);
+  check('Teilen mit mask: Treffer sofort verdeckt, Hinweis mit "Treffer zeigen"', sofort > 0.9 && /Treffer verdeckt/.test(h4) && /Treffer zeigen/.test(h4), 'Abdeckung ' + sofort);
+  // Meeting-Tab schliessen = Teilen vorbei.
+  M.close();
+  await fetch(`${base}/json/close/${(await list()).find((x) => x.url.startsWith('https://meet.google.com/')).id}`);
+  await sleep(2500);
+  check('Teilen: Meeting-Tab geschlossen -> Hinweis und Abdeckung weg', !/Bildschirm geteilt/.test(await schattenText(A)) && (await abgedeckt(A, A)) < 0.3);
+  await setLocal({ screenShareGuard: 'off' });
+  await sleep(1500);
+  check('Teilen aus: Skripte abgemeldet', (await reg()) === '[]', await reg());
+  A.close();
+  await setLocal({});
+  await sleep(1200);
+  wache.close();
+  const meetingHosts = wache.urls.filter((u) => /teams\.|zoom\.us/.test(u));
+  check(`Teilen-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen, keine an Teams/Zoom (${wache.urls.length} Anfragen)`,
+    wache.fremd.length === 0 && meetingHosts.length === 0 && wache.urls.length > 0, wache.fremd.concat(meetingHosts).slice(0, 5).join(' '));
+}
+
 // --- Sprache/Diktat und Fingerabdruecke (Design-Review Diktat und Fingerabdruecke 16.10.2026) ---
 // Richtlinie nur im Service Worker des Wegwerf-Profils simuliert (managed.get ueberschrieben,
 // kein Schalter im Code). Fingerabdruecke aus erfundenem Text (Auflage 16); Diktat = Text ohne
@@ -2173,6 +2543,80 @@ async function sprachedokument() {
   await sleep(500);
   wache.close();
   check(`Sprache/Dokument-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
+}
+
+// Diktat mit automatischem Senden (Design-Review Diktat-Senden 17.10.2026, Auflagen 1-8): die Seite
+// schreibt das Transkript ohne Tastatur- oder input-Ereignis ins Feld und sendet im selben Task selbst
+// (Knopf.click(), form.requestSubmit(), synthetisches Enter, pointerdown+click). Nachweis "nichts
+// gesendet" ueber den Sende-Zaehler der Attrappe plus Netzwerk-Sperrtest; Gemini registriert seinen
+// Sende-Handler zusaetzlich als Capture-Listener auf window (ungünstigste Reihenfolge, Auflage 3).
+// Ausgaben nennen nur Typ und Zaehler, nie den Wert. Offizielle Beispiel-IBAN, erfundener Text.
+const DIKTAT_IBAN = 'CH9300762011623852957';
+const DIKTAT_TEXT = 'Bitte ueberweisen Sie den Betrag auf ' + DIKTAT_IBAN + ' und bestaetigen Sie kurz.';
+const DIKTAT_SAUBER = 'Bitte fasse die Besprechung von heute kurz zusammen.';
+// Je Seite: Transkript schreiben (Feldtyp wie beim Vorbild) und die Sende-Wege der Seite.
+const DIKTAT_SEITEN = {
+  chatgpt: { schreib: `ed.replaceChildren(Object.assign(document.createElement('p'), { textContent: TEXT })); sync();`, knopf: `document.querySelector('[data-testid="send-button"]')`, wege: ['click', 'enter', 'pointer'] },
+  claude: { schreib: `ed.replaceChildren(Object.assign(document.createElement('p'), { textContent: TEXT }));`, knopf: `document.getElementById('send')`, wege: ['click', 'enter'] },
+  gemini: { schreib: `ed.replaceChildren(Object.assign(document.createElement('p'), { textContent: TEXT }));`, knopf: `document.querySelector('.send-button')`, wege: ['click', 'enter'],
+    capture: `window.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.send-button')) send(); }, true);` },
+  copilot: { schreib: `ed.value = TEXT;`, knopf: `document.querySelector('[data-testid="submit-button"]')`, wege: ['requestSubmit', 'click', 'enter'] },
+};
+const DIKTAT_SENDEN = {
+  click: (k) => `${k}.click();`,
+  requestSubmit: () => `document.getElementById('f').requestSubmit();`,
+  enter: () => `ed.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true, composed: true }));`,
+  pointer: (k) => `${k}.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, composed: true })); ${k}.click();`,
+};
+async function diktatsenden() {
+  const wache = await netzWache();
+  const sw = await connect((await list()).find((x) => x.type === 'service_worker' && x.url.includes(ID)).webSocketDebuggerUrl);
+  await sw.call('Runtime.enable');
+  const wert = (s) => /CH93|9300762|1623852957|2957/.test(s || '');
+  const sent = async (T) => ((await T.log()) || '').split('SENT:').length - 1;
+  const frames = async () => (await list()).filter((x) => x.url.startsWith(`chrome-extension://${ID}/ui/dialog.html`)).length;
+  const konsole = [];
+  for (const [name, D] of Object.entries(DIKTAT_SEITEN)) {
+    const S = LEISTE_SEITEN[name];
+    await closeDialogs();
+    const T = await openTab(S.url, S.ed);
+    current = T;
+    await T.page.ev(S.leer);
+    if (D.capture) await T.page.ev(D.capture);
+    // Schreiben und Senden in einem Ausdruck: kein Warten, kein input-Ereignis (Auflage 2).
+    const diktatSendet = (text, weg) => T.page.ev(`(() => { const ed = ${S.ed}; const TEXT = ${JSON.stringify(text)}; ${D.schreib} ${DIKTAT_SENDEN[weg](D.knopf)} return 'ok'; })()`);
+    for (const weg of D.wege) {
+      const vorher = await sent(T);
+      await diktatSendet(DIKTAT_TEXT, weg);
+      const d = await dialog();
+      const t = d ? await d.text() : '';
+      const n = await frames();
+      check(`Diktat-Senden ${name} ${weg}: Seite sendet selbst -> gestoppt, Meldung nennt IBAN ohne Wert${weg === 'pointer' ? ', nur eine Meldung' : ''}`,
+        !!d && (await sent(T)) === vorher && /IBAN/.test(t) && !wert(t) && (weg !== 'pointer' || n === 1), `gesendet ${(await sent(T)) - vorher}, Meldungen ${n}, ${t.slice(0, 120)}`);
+      if (d) { await clickIn(d, 'cancel'); d.close(); }
+      await sleep(800);
+      check(`Diktat-Senden ${name} ${weg}: nach Bearbeiten weiter nichts gesendet`, (await sent(T)) === vorher, `gesendet ${(await sent(T)) - vorher}`);
+      await T.page.ev(S.leer);
+      await sleep(300);
+    }
+    // Negativtest: sauberes Diktat sendet die Seite genau einmal, ohne Meldung (Auflage 5).
+    const vorher = await sent(T);
+    await diktatSendet(DIKTAT_SAUBER, D.wege[0]);
+    await sleep(1200);
+    check(`Diktat-Senden ${name} ${D.wege[0]}: sauberes Diktat genau einmal gesendet, keine Meldung`, (await sent(T)) === vorher + 1 && !(await dialog(4)), `gesendet ${(await sent(T)) - vorher}`);
+    // Kein Wert in Attributen, die auf der Seite liegen (auch der Meldungs-Host).
+    const attr = await T.page.ev(`[...document.querySelectorAll('*')].map((n) => [...n.attributes].map((a) => a.value).join(' ')).join(' ')`);
+    check(`Diktat-Senden ${name}: kein Wert in DOM-Attributen`, !wert(attr));
+    konsole.push(...T.page.konsole);
+    T.close();
+  }
+  const store = (await swEval(`Promise.all([chrome.storage.local.get(null), chrome.storage.session.get(null)]).then((x) => JSON.stringify(x))`)) || '';
+  konsole.push(...sw.konsole);
+  sw.close();
+  check(`Diktat-Senden: kein Wert in chrome.storage (local/session) und Konsole (${konsole.length} Ausgaben)`, store.length > 2 && !wert(store) && !konsole.some(wert));
+  await sleep(500);
+  wache.close();
+  check(`Diktat-Senden-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
 }
 
 // Tabellen, verschleierte Daten, Sicher umformulieren (Design-Review Tabellen/Verschleierung/Umformen
@@ -2469,6 +2913,78 @@ async function kiseite() {
   check(`KI-Seite/Status-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
 }
 
+// --- Tastenkuerzel und Pause (Design-Review Alltag 14.10.2026, docs/sicherheit/design-review-kuerzel-17-10.md).
+// Kuerzel zuerst als echter Tastendruck; loest der Browser im Headless-Modus keine
+// Erweiterungs-Kuerzel aus, ueber den Kuerzel-Handler des Service Workers (gleicher
+// Codepfad ab chrome.commands.onCommand) – das Ergebnis nennt den Weg.
+async function kuerzel() {
+  await closeDialogs();
+  const tabId = async () => Number(await swEval(`chrome.tabs.query({ active: true, lastFocusedWindow: true }).then((t) => t[0] ? t[0].id : -1)`));
+  const cmdWay = { way: '' };
+  async function shortcut(T, name, key, vk, changed) {
+    const before = await changed();
+    await T.page.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', key, code: 'Key' + key.toUpperCase(), windowsVirtualKeyCode: vk, modifiers: 9 });
+    await T.page.call('Input.dispatchKeyEvent', { type: 'keyUp', key, code: 'Key' + key.toUpperCase(), windowsVirtualKeyCode: vk, modifiers: 9 });
+    await sleep(900);
+    if ((await changed()) !== before) { cmdWay.way = 'Tastendruck'; return; }
+    await T.page.call('Page.bringToFront');
+    const id = await tabId();
+    await swEval(`onCommand('${name}', { id: ${id} }).then(() => 'ok')`);
+    cmdWay.way = 'Kuerzel-Handler';
+    await sleep(900);
+  }
+  const names = await swEval(`chrome.commands.getAll().then((c) => JSON.stringify(c.map((x) => x.name + '=' + x.shortcut)))`);
+  // Edge zeigt Kuerzel in Browsersprache ("ALT+UMSCHALTTASTE+S"); geprueft wird Alt + Buchstabe.
+  check('Kuerzel: Schwaerzen Alt+Shift+S, Pause Alt+Shift+O, Popup Alt+Shift+K vom Browser vergeben',
+    /redact-all=ALT\+[^"]*\+S"/i.test(names) && /toggle-pause=ALT\+[^"]*\+O"/i.test(names) && /_execute_action=ALT\+[^"]*\+K"/i.test(names), names);
+
+  // 1) Schwaerzen ohne Meldung: Feldtext wird ersetzt, nichts gesendet.
+  const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+  await T.page.ev(`localStorage.removeItem('draft'); document.querySelector('.ProseMirror').replaceChildren(document.createElement('p'))`);
+  await T.type('Konto CH9300762011623852957 bitte'); await sleep(200);
+  const logBefore = await T.log();
+  await shortcut(T, 'redact-all', 's', 83, T.val);
+  check('Kuerzel Alt+Shift+S: Text vor dem Senden geschwaerzt (' + cmdWay.way + ')', !(await T.val()).includes('CH93') && (await T.val()).includes('Konto') && (await T.log()) === logBefore, await T.val());
+  await T.clear();
+
+  // 2) Pause: Warnung bleibt aus, Senden geht durch; erneut = Schutz wieder an.
+  const pauseVal = () => swEval(`chrome.storage.local.get('dlx.pause').then((x) => JSON.stringify(x['dlx.pause'] || null))`);
+  await shortcut(T, 'toggle-pause', 'o', 79, pauseVal);
+  const pause = JSON.parse((await pauseVal()) || 'null');
+  check('Kuerzel Alt+Shift+O: Pause 15 Minuten gesetzt (' + cmdWay.way + ')', !!pause && pause.until > Date.now() + 14 * 60000 && pause.until <= Date.now() + 15 * 60000 + 2000, JSON.stringify(pause));
+  await sleep(500);
+  await T.type('IBAN CH9300762011623852957'); await T.enter(); await sleep(900);
+  check('Pause: IBAN wird ohne Meldung gesendet', (await T.log()).includes('SENT:IBAN CH93') && !(await sendPending()), await T.log());
+
+  // 3) Einstellungen zeigen die Kuerzel und den Pausenstand.
+  const O = await openTab(`chrome-extension://${ID}/ui/options.html`, 'document.body');
+  await sleep(500);
+  const kt = JSON.parse(await O.page.ev(`JSON.stringify(Array.from(document.querySelectorAll('[data-k="kuerzel"] li'), (li) => [li.dataset.k, li.querySelector('kbd').textContent, li.querySelector('span').textContent]))`));
+  const kOk = (name, letter, re) => kt.some(([k, key, text]) => k === 'kuerzel-' + name && new RegExp('^ALT\\+.*\\+' + letter + '$', 'i').test(key) && re.test(text));
+  check('Einstellungen: drei Tastenkuerzel mit Tasten aufgelistet', kt.length === 3 && kOk('redact-all', 'S', /schwärzen/) && kOk('toggle-pause', 'O', /pausieren/) && kOk('_execute_action', 'K', /öffnen/), JSON.stringify(kt));
+  if (process.env.E2E_BILDER) {
+    await O.page.call('Emulation.setDeviceMetricsOverride', { width: 1100, height: 900, deviceScaleFactor: 1, mobile: false });
+    const r = JSON.parse(await O.page.ev(`JSON.stringify(Object.assign(document.querySelector('[data-k="kuerzel"]').closest('section').getBoundingClientRect().toJSON(), { scrollY }))`));
+    fs.mkdirSync(process.env.E2E_BILDER, { recursive: true });
+    const b = await O.page.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: r.x, y: r.y + r.scrollY, width: r.width, height: r.height, scale: 1 } });
+    fs.writeFileSync(path.join(process.env.E2E_BILDER, 'kuerzel-einstellungen.png'), Buffer.from(b.result.data, 'base64'));
+  }
+  const kp = await O.page.ev(`(document.querySelector('[data-k="kuerzel-pause"]') || {}).innerText || ''`);
+  check('Einstellungen: Pausenstand "Pausiert bis …"', /Pausiert bis \d/.test(kp), kp);
+  check('Einstellungen: Knopf "Kürzel ändern"', await O.page.ev(`!!document.querySelector('[data-k="kuerzel-aendern"]')`));
+  O.close();
+
+  await T.page.call('Page.bringToFront'); await sleep(300);
+  await shortcut(T, 'toggle-pause', 'o', 79, pauseVal);
+  check('Kuerzel erneut: Pause beendet (' + cmdWay.way + ')', (await pauseVal()) === 'null');
+  await sleep(800);
+  await T.clear();
+  await T.type('IBAN CH9300762011623852957'); await T.enter(); await sleep(900);
+  check('nach der Pause: IBAN wieder angehalten', await sendPending());
+  await closeDialogs(); await sleep(300);
+  T.close();
+}
+
 async function run() {
   let port = 0;
   for (let i = 0; i < 60 && !port; i++) {
@@ -2479,7 +2995,7 @@ async function run() {
   browserWs = (await (await fetch(base + '/json/version')).json()).webSocketDebuggerUrl;
   await sleep(1500);   // Service Worker der Erweiterung starten lassen
   const only = process.env.E2E_NUR ? process.env.E2E_NUR.split(',') : null;
-  const steps = { chatgpt, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, kompetenz, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, antwortquelle, versteckt, formwache, kopierwarnung, sprachedokument, tabellen, training, einstellungen, ki: kierkennung, kiseite };
+  const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite };
   if (process.env.E2E_BILDER) Object.assign(steps, { bilder, store });
   if (process.env.E2E_BILDMESSUNG) steps.bildmessung = bildmessung;
   for (const [name, fn] of Object.entries(steps)) if (!only || only.includes(name)) await fn();

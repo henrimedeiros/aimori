@@ -8,7 +8,7 @@
   const K = DLX.kompetenz;
   const st = (await chrome.runtime.sendMessage({ t: 'brand' }).catch(() => null)) || { branding: DLX.branding, language: 'auto' };
   const b = st.branding;
-  const lang = DLX.i18n.resolveLang(st.language, navigator.language);
+  const lang = await DLX.i18n.ready(st.language, navigator.language);
   const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: b.productName, company: b.companyName }, v || {}));
   document.documentElement.lang = lang;
   DLX.dom.applyBranding(b, matchMedia('(prefers-color-scheme: dark)').matches);
@@ -18,6 +18,7 @@
   function types(group) {
     const ids = DLX.engine.allDetectors().filter((d) => d.cat === group).map((d) => d.id);
     if (group === 'firma') ids.push('custom_term');
+    if (group === 'technik') ids.push('internal_link');
     return Array.from(new Set(ids.map(own)));
   }
   const link = (group) => h('a', { href: chrome.runtime.getURL('ui/wissen.html#' + group) }, T('cat_' + group));

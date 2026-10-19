@@ -73,6 +73,8 @@ Leistung (Windows-PC, Edge 155, Texterkennung im Offscreen-Dokument, dichter Tex
 
 E2E (Attrappe): vom Einfügen bis zur Leiste 1,6 s beim ersten Bild, Bild ohne Fund nach 0,4 s weitergegeben.
 
+Unit-Test mit Beispielbildern (17.10.2026, `tests/ocr-bilder.test.mjs`, läuft mit `npm test`, ohne `node_modules` oder Edge übersprungen): ein Rechnungs-Screenshot mit der offiziellen Test-IBAN und ein harmloser Screenshot (je ca. 900×300, PNG) werden mit tesseract.js 7.0.0 und den gebündelten deutschen Sprachdaten in Node gelesen und wie eingefügter Text geprüft. Ergebnis: IBAN erkannt, harmloses Bild ohne sicheren Fund; Start der Erkennung 0,18 s, je Bild 0,19–0,26 s. Grenze im Test 15 s je Bild inklusive Start (`OCR_MAX_MS`). Mit falscher Prüfziffer im Bild schlägt der Test fehl.
+
 ## Ausweise, Rechnungen und lokale KI (16.10.2026)
 
 Grundlage: [Design-Review Code und Bilder](sicherheit/design-review-code-bilder.md).

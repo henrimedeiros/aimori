@@ -58,6 +58,9 @@ export function manifestProblems(m, files) {
   const problems = [];
   if (m.manifest_version !== 3) problems.push('manifest_version ist nicht 3');
   if ('key' in m) problems.push('Feld "key" im Store-Manifest');
+  // Feste Hostrechte gibt es nur in den Test-Kopien der E2E-Pruefung; im Paket sind Hostrechte nur
+  // optional (Design-Review Bildschirmteilen 17.10.2026, Auflage 11; Kopierwarnung 16.10.2026).
+  if ((m.host_permissions || []).length) problems.push('host_permissions im Store-Manifest (nur optional erlaubt)');
   if (!/^\d+(\.\d+){0,3}$/.test(m.version || '')) problems.push(`version "${m.version}" ungueltig (1-4 Zahlen mit Punkt)`);
   const refs = [
     m.background?.service_worker, m.action?.default_popup, m.options_ui?.page, m.storage?.managed_schema,
@@ -136,7 +139,7 @@ export function readZip(buf) {
 // Oeffentlicher Schluessel (base64 SPKI) zu einer privaten PEM-Datei.
 export const publicKeyOf = (pem) => crypto.createPublicKey(crypto.createPrivateKey(pem)).export({ type: 'spki', format: 'der' }).toString('base64');
 
-function step(title, args) {
+export function step(title, args) {
   console.log(`\n== ${title}`);
   const r = spawnSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
   if (r.status !== 0) { console.log(`\nABGEBROCHEN bei: ${title}`); process.exit(1); }

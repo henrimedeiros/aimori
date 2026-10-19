@@ -2,7 +2,7 @@
 
 Automatisch erzeugt aus `extension/engine/*` mit `npm run build` – nicht von Hand ändern.
 
-Standardaktion: Schutzklasse hoch/mittel → `warn`, tief → `off`. Änderbar je Datentyp per Richtlinie `rules` (`off`, `warn`, `redact`, `block`) bzw. in den Einstellungen, sofern nicht verwaltet. Das Firmen-Wörterbuch hat die ID `dictionary`.
+Standardaktion: Schutzklasse hoch/mittel → `warn`, tief → `off`. Änderbar je Datentyp per Richtlinie `rules` (`off`, `warn`, `redact`, `block`) bzw. in den Einstellungen, sofern nicht verwaltet. Das Firmen-Wörterbuch hat die ID `dictionary`, interne Links (SharePoint/OneDrive, Intranet, Hosts ohne öffentliche Endung, Richtlinie `internalDomains`) haben die ID `internal_link` (Standard `warn`, siehe [interne-links.md](interne-links.md)).
 
 | ID | Datentyp | Paket | Kategorie | Schutzklasse | Prüfung | nur mit Kontextwort |
 |---|---|---|---|---|---|---|

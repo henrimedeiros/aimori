@@ -1,0 +1,116 @@
+{
+  "policies": {
+    "ExtensionSettings": {
+      "dlx-extension@aimori": {
+        "installation_mode": "force_installed",
+        "install_url": "https://updates.example.com/aimori/aimori-firefox.xpi"
+      }
+    },
+    "3rdparty": {
+      "Extensions": {
+        "dlx-extension@aimori": {
+          "branding": {
+            "productName": "Example KI-Schutz",
+            "companyName": "Example AG",
+            "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMwYjZlNGYiLz48cGF0aCBkPSJNMTggMzNsOSA5IDE5LTIwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iNiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==",
+            "primaryColor": "#0b6e4f",
+            "accentColor": "#f2a900",
+            "supportUrl": "https://support.example.com/ki-richtlinie",
+            "supportText": "Fragen zur KI-Nutzung: IT-Support, Telefon intern 100",
+            "aiNoticeText": "Bitte nutzen Sie unseren Firmen-Copilot.",
+            "aiNoticeUrl": "https://copilot.example.com/",
+            "aiNoticeLinkText": "Zum Firmen-Copilot"
+          },
+          "language": "de",
+          "countryPacks": [
+            "CH",
+            "DE",
+            "AT",
+            "EU"
+          ],
+          "globalPacks": [
+            "finance",
+            "secrets",
+            "contact",
+            "travel",
+            "marker",
+            "context"
+          ],
+          "massListMin": 10,
+          "identityMinParts": 3,
+          "labelNames": [
+            "Nur Verwaltungsrat",
+            "Vorstand (vertraulich)"
+          ],
+          "rules": {
+            "ch_ahv": "block",
+            "ch_vvk": "block",
+            "iban": "redact",
+            "cc_visa": "block",
+            "cc_mc": "block",
+            "cc_amex": "block",
+            "pem_private": "block",
+            "email": "warn",
+            "phone_e164": "off",
+            "dictionary": "redact",
+            "custom_term": "redact"
+          },
+          "allowUserOverride": false,
+          "allowedSites": [
+            "chatgpt",
+            "copilot"
+          ],
+          "blockWhenInactive": true,
+          "blockUncheckedFiles": true,
+          "aiSiteMode": "hint",
+          "answerCheck": "hint",
+          "sensitiveSources": [
+            "bank.example.com",
+            "*.hr.example.com"
+          ],
+          "sensitiveSourceAction": "warn",
+          "hiddenInstructionScan": true,
+          "hiddenInstructionAction": "warn",
+          "formGuardSites": [
+            "portal.example.com"
+          ],
+          "voiceMode": "warn",
+          "documentFingerprints": {
+            "salt": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+            "shingle": 8,
+            "sample": 4,
+            "minMatches": 4,
+            "action": "warn",
+            "data": [
+              "AAAAAQAAAAI="
+            ]
+          },
+          "allowedAiSites": [
+            "chatgpt",
+            "copilot",
+            "m365copilot"
+          ],
+          "blockedAiSites": [
+            "deepseek"
+          ],
+          "dictionary": {
+            "salt": "example-salt-2026",
+            "hashes": [
+              "7cbc184c71a755afcce9d7478b727314c36d75dc0d1c724c8728093439e3d87d",
+              "370e8dd07ee676d74fc43ddaf2eb5b20eb08bd8e209dcb39564df60ef72846ff"
+            ]
+          },
+          "customTerms": {
+            "salt": "5e1f0a7c3b9d2e4f6a8c0b1d3e5f7a9c2b4d6e8f0a1c3e5b7d9f1a3c5e7b9d0f",
+            "hashes": [
+              "9bf816a345eacc5f769d9a054e40fc63a52a776ef42aefde646a7189082ff007",
+              "b0f4518cf79b4dad208813d71d761510d6bb4e330e08f3628b9ff5f8450af07e",
+              "c3a701c4ecdde45f13d1da1aa2a121d14a0a72aca911c271b3440ced58f4b6f2",
+              "edf983bea669ee422cd61efb253a81c35199dfb7a4f9c6fb380b890c7dca0a9d"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

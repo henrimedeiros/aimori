@@ -17,6 +17,10 @@ export function load(files = ENGINE_FILES, extra = {}) {
   const ctx = vm.createContext(Object.assign({ TextEncoder, performance, atob }, extra));
   for (const f of files) {
     vm.runInContext(fs.readFileSync(path.join(EXT, f), 'utf8'), ctx, { filename: f });
+    // Texte wie im Browser aus _locales (dort laedt DLX.i18n.ready sie per fetch).
+    if (f === 'common/i18n.js') for (const [l, dir] of Object.entries(ctx.DLX.i18n.LOCALES)) {
+      ctx.DLX.i18n.add(l, JSON.parse(fs.readFileSync(path.join(EXT, '_locales', dir, 'messages.json'), 'utf8')));
+    }
   }
   return ctx.DLX;
 }

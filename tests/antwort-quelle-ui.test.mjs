@@ -24,7 +24,15 @@ test('storage.session nie fuer Content Scripts geoeffnet; Breitmuster nie angefo
   assert.match(read('background.js'), /const COPY_ALL = 'https:\/\/\*\/\*';/);
   assert.ok(!/permissions\.request/.test(read('ui/popup.js')), 'Popup fragt nie');
   const opt = read('ui/options.js');
-  for (const m of opt.matchAll(/permissions\.request\(\{ origins(?:: ([^}]+))? \}\)/g)) assert.ok(!m[1] || /aiMissing\(\)/.test(m[1]) || m[1] === "['https://*/*']", m[0]);
+  for (const m of opt.matchAll(/permissions\.request\(\{ origins(?:: ([^}]+))? \}\)/g)) assert.ok(!m[1] || /aiMissing\(\)/.test(m[1]) || m[1] === "['https://*/*']" || m[1] === 'SHARE_ORIGINS' || m[1] === 'csOrigins', m[0]);
+  // Bildschirmteilen: nur die festen Meeting-Origins (Design-Review Bildschirmteilen 17.10.2026, Auflage 6).
+  const shareList = /const SHARE_ORIGINS = (\[[^\]]+\]);/.exec(opt);
+  assert.deepEqual(shareList && JSON.parse(shareList[1].replace(/'/g, '"')), ['https://meet.google.com/*', 'https://teams.microsoft.com/*', 'https://teams.live.com/*',
+    'https://teams.cloud.microsoft/*', 'https://zoom.us/*', 'https://*.zoom.us/*']);
+  assert.match(opt, /shareGrant\.addEventListener\('click', async \(e\) => \{\r?\n\s+if \(!e\.isTrusted\) return;/);
+  // csOrigins = nur die Content-Script-Seiten des Manifests (Design-Review Firefox 17.10.2026, Auflage 9).
+  assert.match(opt, /const csOrigins = \[\.\.\.new Set\(\(chrome\.runtime\.getManifest\(\)\.content_scripts \|\| \[\]\)\.flatMap\(\(c\) => c\.matches \|\| \[\]\)\)\];/);
+  assert.match(opt, /hostGrant\.addEventListener\('click', async \(e\) => \{\r?\n\s+if \(!e\.isTrusted\) return;\r?\n\s+try \{ await chrome\.permissions\.request\(\{ origins: csOrigins \}\);/);
   assert.match(opt, /copyGrant\.addEventListener\('click', async \(e\) => \{\r?\n\s+if \(!e\.isTrusted\) return;\r?\n\s+try \{ await chrome\.permissions\.request\(\{ origins: \['https:\/\/\*\/\*'\] \}\);/);
   assert.match(opt, /const origins = await srcMissing\(\);/);
   assert.match(opt, /return DLX\.quellen\.originsOf\(srcList\)\.filter/);

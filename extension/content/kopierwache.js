@@ -44,6 +44,7 @@
       const found = Array.from(res.findings).filter((f) => f.action !== 'off');
       if (!found.length) return;
       const lang = DLX.i18n.resolveLang(r.cfg.language, navigator.language);
+      if (r.texts) DLX.i18n.add(lang, r.texts);
       const types = Array.from(DLX.engine.summarize(found), (s) => DLX.i18n.typeName(lang, s.id)).filter((x, i, a) => a.indexOf(x) === i);
       show(lang, types, r.product || '');
     }).catch(() => { text = null; clearTimeout(timer); });

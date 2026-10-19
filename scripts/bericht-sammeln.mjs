@@ -18,6 +18,9 @@ const MAX_BYTES = 1024 * 1024;
 
 export function loadBericht() {
   const ctx = vm.createContext({ Intl });
+  // Texte des Berichts (rep_*) aus _locales wie in der Erweiterung.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'extension', 'common', 'i18n.js'), 'utf8'), ctx, { filename: 'i18n.js' });
+  for (const l of ['de', 'en']) ctx.DLX.i18n.add(l, JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8')));
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'extension', 'common', 'bericht.js'), 'utf8'), ctx, { filename: 'bericht.js' });
   return ctx.DLX.bericht;
 }

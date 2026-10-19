@@ -1,3 +1,6 @@
 # Gepinnte Lizenztexte der Schriften (extension/fonts/PINS.json, SHA-256 ueber LF-Fassung):
 # nie in CRLF auschecken, sonst passt die Pruefsumme unter Windows nicht (tests/schriften.test.mjs).
 extension/fonts/*.txt text eol=lf
+# Dokument-Leser: tests/datei-upload.test.mjs prueft den git-Blob byte-gleich (Design-Review Datei-Uploads, Auflage 1);
+# in CRLF ausgecheckt waere die Pruefsumme unter Windows falsch.
+extension/engine/datei.js text eol=lf

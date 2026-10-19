@@ -26,4 +26,4 @@ Urteil Sicherheits-Review (vor dem Bauen, 14.10.2026): **freigegeben mit Auflage
 
 Restrisiken: Eine bösartige Seite kann Text über eigenes JS verschicken (Grenze jeder Erweiterung, Gegenmittel: Seite per Richtlinie sperren); programmatischer `click()` wird von manchen Seiten ignoriert (dann Enter, sicher); Host-Element verrät die aktive Erweiterung (wie bisher); IntersectionObserver v2 nur in Chromium – ohne `isVisible` kein Override.
 
-Pflicht-Prüfung beim Commit: Auflagen der ersten Versuche (Aufrufer im selben Commit, Logo nur data:image base64, Beobachter beim Neuzeichnen trennen, Whitelist- und nudge-Tests im selben Commit) umgesetzt in 16e8930.
+Sicherheits-Review beim Commit: Auflagen der ersten Versuche (Aufrufer im selben Commit, Logo nur data:image base64, Beobachter beim Neuzeichnen trennen, Whitelist- und nudge-Tests im selben Commit) umgesetzt in 16e8930.

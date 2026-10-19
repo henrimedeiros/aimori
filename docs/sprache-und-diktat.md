@@ -11,6 +11,7 @@ Viele KI-Seiten nehmen Sprache an. Für den Schutz gibt es zwei grundverschieden
 - **Beim Senden** liest die Erweiterung das Eingabefeld und prüft den Text wie immer – egal, ob er getippt, eingefügt oder diktiert wurde. Das gilt auch, wenn eine Seite nach dem Diktat selbst auf „Senden“ klickt: dieser Klick läuft durch dieselbe Prüfung.
 - **Live-Hinweis:** Diktat schreibt den Text oft ohne Tastatur-Ereignis ins Feld. Darum vergleicht die Erweiterung alle 3 Sekunden Länge und Prüfsumme des Feldtextes (nur im Arbeitsspeicher, nie gespeichert) und startet bei einer Änderung die lokale Live-Prüfung. Ein Hinweis erscheint höchstens 3 Sekunden nach dem Diktat; bei verborgener Seite oder ohne erkanntes Eingabefeld wird nicht geprüft.
 - Kein Mikrofonzugriff, keine Aufnahme, keine neuen Berechtigungen: die Erweiterung liest nur den Text, den die Seite selbst ins Feld geschrieben hat.
+- **Seite sendet nach dem Diktat selbst:** Klickt die Seite ihren Senden-Knopf per Skript (`click()`, auch `pointerdown` + `click`), schickt sie das Formular per `requestSubmit()` ab oder löst sie ein Enter aus, prüft die Erweiterung den Feldtext in genau diesem Moment frisch – nicht den Stand aus dem 3-s-Takt – und hält das Senden bei einem Fund an. Das gilt auch, wenn die Seite ihren eigenen Sende-Handler als Capture-Listener auf `window` registriert. Geprüft im E2E-Schritt `diktatsenden` (`E2E_NUR=diktatsenden node scripts/e2e/e2e.mjs`) auf den Attrappen von ChatGPT, Claude, Gemini und Copilot mit einer Beispiel-IBAN, mit Gegenprobe (sauberes Diktat geht genau einmal durch) und Nachweis, dass der Wert weder in der Meldung, in `chrome.storage`, in der Konsole noch in DOM-Attributen landet und keine Anfrage das Gerät verlässt.
 
 ## Sprachmodus: Richtlinie `voiceMode`
 Weil der Sprachmodus nicht prüfbar ist, kann die Organisation ihn melden oder sperren:
@@ -38,7 +39,14 @@ Erkannt wird der Sprachmodus-Knopf über feste Merkmale je Seite (`extension/con
 - **Selektoren ändern sich:** Baut eine Seite den Knopf um, greift `voiceMode` nicht mehr, bis die Erweiterung nachgeführt ist. Es gibt keinen Rückfall, der jeden Mikrofon-Knopf sperrt – sonst wäre auch das prüfbare Diktat gesperrt.
 - **Tastenkürzel und automatischer Start:** Startet eine Seite den Sprachmodus per Tastenkürzel oder von selbst, sieht die Erweiterung keinen Knopfdruck.
 - **Apps:** Desktop- und Handy-Apps der KI-Anbieter laufen ohne Browser-Erweiterung. Wer den Sprachmodus wirklich ausschliessen muss, sperrt zusätzlich die Apps (z. B. per Intune-App-Schutz) oder die Ton-Endpunkte im Proxy.
-- **Diktat mit sofortigem Senden über Skript ohne Klick:** Sendet eine Seite den diktierten Text per Hintergrund-Anfrage ohne Senden-Ereignis, ist das wie bei getipptem Text nicht abfangbar (siehe [KI-Agenten](ki-agenten.md)).
+- **Diktat mit sofortigem Senden ohne Ereignis:** Sendet eine Seite den diktierten Text direkt aus ihrem Code (`fetch`, WebSocket) ohne Klick-, Enter- oder `submit`-Ereignis, ist das wie bei getipptem Text nicht abfangbar (siehe [KI-Agenten](ki-agenten.md)). Dasselbe gilt für `form.submit()`, das kein `submit`-Ereignis auslöst. Dann bleibt nur der Live-Hinweis aus dem 3-s-Takt – sofern die Seite den Text vorher sichtbar ins Feld schreibt.
+- **Felder in geschlossenen Shadow-DOMs oder fremden iframes:** Liegt das Eingabefeld in einer geschlossenen Shadow Root oder in einem iframe einer anderen Herkunft, sieht die Erweiterung den Text nicht und prüft ihn weder live noch beim Senden.
 - Zwischen Diktat und Live-Hinweis liegen bis zu 3 Sekunden; beim Senden wird immer geprüft.
 
-Sicherheit: [Design-Review Diktat und Fingerabdrücke](sicherheit/design-review-diktat-fingerabdruck.md).
+## Website-Satz (Vorschlag, nicht veröffentlicht)
+
+„Diktieren Sie ruhig: AImori prüft auch diktierten Text, bevor er gesendet wird – selbst wenn die KI-Seite nach dem Diktat von selbst sendet. AImori nutzt dafür kein Mikrofon und nimmt nie Ton auf.“
+
+Ergänzung klein darunter oder in der FAQ: „Sprachmodi, bei denen Ton direkt an die KI geht, kann AImori nicht prüfen – Unternehmen können sie per Richtlinie melden oder sperren.“ Kein Versprechen vollständigen Schutzes; veröffentlicht wird nur mit Freigabe der Maintainer.
+
+Sicherheit: [Design-Review Diktat und Fingerabdrücke](sicherheit/design-review-diktat-fingerabdruck.md), [Design-Review Diktat-Senden](sicherheit/design-review-diktat-senden.md).

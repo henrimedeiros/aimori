@@ -90,7 +90,7 @@
       "title": "Allowed AI sites",
       "description": "Which of the supported AI sites may be used. Input on the other supported sites is blocked. Default: all.",
       "type": "array",
-      "items": { "type": "string", "enum": ["chatgpt", "claude", "gemini", "copilot", "m365copilot"] }
+      "items": { "type": "string", "enum": ["chatgpt", "claude", "gemini", "copilot", "m365copilot", "perplexity"] }
     },
     "blockWhenInactive": {
       "title": "Block when protection is inactive",
@@ -165,6 +165,24 @@
       "title": "Hint when copying sensitive data (AI side panels)",
       "description": "If true, copying text that contains sensitive data on any https page shows a small notice that AI side panels and AI extensions (e.g. Copilot in Edge, Gemini in Chrome, Claude in Chrome) are not checked. Only works after the user has granted the optional access to all https sites in the settings; a policy cannot grant it. The selected text is checked locally and discarded; nothing is stored or sent. Not covered: http pages, iframes, copying in other programs. Default: true.",
       "type": "boolean"
+    },
+    "barTheme": {
+      "title": "Warning bar colour",
+      "description": "Colour of the warning bar above the input field on AI sites. auto = follows the page background (light or dark); light = always light; dark = always dark. Only the look changes, the check stays the same. If set by policy, users cannot change it. Invalid value counts as auto. Default: auto.",
+      "type": "string",
+      "enum": ["auto", "light", "dark"]
+    },
+    "barCompact": {
+      "title": "Compact warning bar",
+      "description": "Compact warning bar for small screens: 44 px instead of 56 px, smaller buttons (30 px); the core sentence, the detected data type and all decision buttons stay visible, the explanation stays readable for screen readers and via Learn more. auto = compact when the bar is narrower than 640 px; on = always compact; off = never compact. If set by policy, users cannot change it. Invalid value counts as auto. Default: auto.",
+      "type": "string",
+      "enum": ["auto", "on", "off"]
+    },
+    "screenShareGuard": {
+      "title": "Warning when sharing the screen",
+      "description": "When the screen is shared in the browser with Google Meet, Microsoft Teams or Zoom (web versions) and an AI site with detected sensitive data in the input field or the last answer is visible, a notice names the types (never values) and offers to cover the matches on screen. Covering only changes the display; the text is not changed, stored or sent. off = no notice; warn = notice with a button to cover; mask = matches are covered immediately while sharing. Only works after the user has granted the optional access to these meeting sites in the settings; a policy cannot grant it. Detection wraps the browser function for screen sharing on these sites and reads only whether something is shared and the kind of surface, never image or sound. Not covered: desktop apps (Teams, Zoom, Meet), other browsers and programs, other meeting sites, sharing started in iframes, input fields without formatting (textarea: notice only). Help, not protection (docs/bildschirm-teilen.md). Invalid value counts as mask. Default: warn.",
+      "type": "string",
+      "enum": ["off", "warn", "mask"]
     },
     "voiceMode": {
       "title": "Voice mode on AI sites",
@@ -458,6 +476,20 @@
         }
       }
     },
+    "internalDomains": {
+      "title": "Internal domains",
+      "description": "Your organisation's internal domains (e.g. intranet or file-server domains) as salted SHA-256 checksums only, never as clear text: lowercase hex of SHA-256(UTF-8(salt + domain)). Create with scripts/begriffe-hashen.mjs --domains. Normalisation: invisible characters removed, NFKC, lowercase, IDN as punycode, no trailing dot; at least two labels. A link whose host or parent domain matches is reported as data type internal_link (rules). Policy only. Use a salt of its own, not the one of customTerms (otherwise the field is discarded). The salt is readable by users and internal domain names are often guessable: protects against casual reading only, not against a dictionary attack.",
+      "type": "object",
+      "properties": {
+        "salt": { "title": "Salt", "description": "Exactly 64 lowercase hex characters (32 random bytes), different from the customTerms salt.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "hashes": {
+          "title": "Domain checksums",
+          "description": "Up to 5000 SHA-256 hex values (lowercase).",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
     "customPatterns": {
       "title": "Own detection patterns",
       "description": "Own regular expressions of your organisation, reported as data type 'Own pattern (organisation)' (the pattern itself is never shown). Policy only (users cannot set it). Max. 50 entries; each entry is a JSON object: id (org_ + 2-40 of a-z 0-9 _), regex (JavaScript source, max. 300 characters, only bounded quantifiers {n,m} up to 64, no * + {n,}, no backreferences or lookarounds, match length 3-256), flags ('' or 'i'), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; default firma), context (max. 20 words of 1-40 characters), requireContext (true = only near a context word), action (warn, redact or block; default warn). One invalid entry discards the whole list. See docs/muster-mitmachen.md.",
@@ -516,6 +548,11 @@
     "deobfuscation": {
       "title": "Detect obfuscated data",
       "description": "If true (default), the extension also checks variants of the text: invisible characters, full-width and look-alike letters, separators between digits, digits written as words, reversed text, Base64/hex/URL encoding, and parts spread over several messages in the same chat (kept only in memory for 10 minutes, never stored). Only checksum-validated values, secrets, e-mail addresses and IBANs count in variants.",
+      "type": "boolean"
+    },
+    "allowPause": {
+      "title": "Allow pause",
+      "description": "If true (default), users can pause protection for 15 minutes with the keyboard shortcut; only warnings the user may override anyway are suspended. Block and redact-only rules, all findings when allowUserOverride is false, blocked AI sites, site approval and blockWhenInactive stay in force. Pauses are not counted. If false, pausing is not possible and a running pause ends immediately.",
       "type": "boolean"
     },
     "allowRephrase": {

@@ -80,13 +80,17 @@ function sw(managed = {}) {
     declarativeContent: { PageStateMatcher, SetIcon, onPageChanged: {
       removeRules: (ids, cb) => { log.push('removeRules'); rules = []; cb(); },
       addRules: (r, cb) => { log.push('addRules'); rules = r; cb(); } } },
+    alarms: { create: async () => {}, clear: async () => true, onAlarm: { addListener() {} } }, commands: { onCommand: { addListener() {} } },
     action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {},
       setIcon: async (o) => { log.push({ setIcon: o.tabId, data: !!o.imageData, path: !!o.path }); }, setTitle: async (o) => { log.push({ setTitle: o.tabId, title: o.title }); } },
-    tabs: { query: async () => [], sendMessage: async () => undefined, onRemoved: on('tabRemoved') },
+    tabs: { query: async () => [], sendMessage: async () => undefined, onRemoved: on('tabRemoved'), onUpdated: on('tabUpdated') },
     windows: { create: async () => ({ id: 9, tabs: [] }), remove: async () => {}, onRemoved: on('winRemoved') },
   };
   class ImageData { constructor(d, w, h) { this.data = d; this.width = w; this.height = h; } }
-  const ctx = vm.createContext({ chrome, crypto: webcrypto, navigator: { language: 'de-CH', languages: ['de-CH'] }, TextEncoder, performance, URL, clearTimeout, Date, ImageData, Intl,
+  // fetch nur fuer Paketdateien (DLX.i18n laedt _locales).
+  chrome.runtime.getURL = (p) => 'chrome-extension://testid/' + p;
+  const fetch = async (u) => { const t = fs.readFileSync(path.join(EXT, String(u).slice(26)), 'utf8'); return { text: async () => t }; };
+  const ctx = vm.createContext({ fetch, chrome, crypto: webcrypto, navigator: { language: 'de-CH', languages: ['de-CH'] }, TextEncoder, performance, URL, clearTimeout, Date, ImageData, Intl,
     setTimeout: (f, ms) => { const t = setTimeout(f, ms); t.unref(); return t; } });
   ctx.importScripts = (...f) => { for (const x of f) vm.runInContext(fs.readFileSync(path.join(EXT, x), 'utf8'), ctx, { filename: x }); };
   vm.runInContext(fs.readFileSync(path.join(EXT, 'background.js'), 'utf8'), ctx, { filename: 'background.js' });

@@ -46,9 +46,12 @@ const FORBIDDEN = [
 test('Erweiterungscode enthaelt keine verbotenen APIs', () => {
   assert.ok(extCode.length > 10);
   const hits = [];
+  // Einzige Ausnahme: i18n.js laedt Texte aus dem eigenen Paket (Design-Review Sprachen 17.10.2026).
+  const OWN = "fetch(chrome.runtime.getURL('_locales/' + LOCALES[lang] + '/messages.json'))";
   for (const f of extCode) {
-    const src = fs.readFileSync(f, 'utf8');
-    for (const [name, re] of FORBIDDEN) if (re.test(src)) hits.push(`${path.relative(ROOT, f)}: ${name}`);
+    let src = fs.readFileSync(f, 'utf8');
+    if (f === path.join(EXT, 'common', 'i18n.js')) { assert.equal(src.split(OWN).length, 2, 'i18n.js: genau ein fetch aufs eigene Paket'); src = src.replace(OWN, ''); }
+    for (const [name, re] of FORBIDDEN) if (re.test(src) && !(name === 'Mikrofon' && f === SHARE_PAGE)) hits.push(`${path.relative(ROOT, f)}: ${name}`);
   }
   assert.deepEqual(hits, []);
 });
@@ -56,6 +59,27 @@ test('Erweiterungscode enthaelt keine verbotenen APIs', () => {
 // Alle Dateien ausser node_modules/ und .git/ (auch tmp-Ordner); .handtest-* (Edge-Profil, gitignoriert) und
 // lokale Arbeitskopien im Hauptordner (.<name>-arbeitskopien/, gitignoriert) werden uebersprungen.
 // Jeder andere versteckte Ordner wird mitgeprueft.
+// Einzige Ausnahme von "Mikrofon": die Huelle um getDisplayMedia auf den Meeting-Seiten (Design-Review
+// Bildschirmteilen 17.10.2026, Auflage 1). Sie ruft nie getUserMedia, liest keine Medien und gibt das
+// Promise der Seite unveraendert zurueck; gemeldet werden nur die festen Texte "an:<Flaeche>" und "aus".
+const SHARE_PAGE = path.join(EXT, 'content', 'teilen-seite.js');
+test('Bildschirmteilen: Huelle ohne Medienzugriff, gleiches Promise, nur feste Signale', () => {
+  const src = fs.readFileSync(SHARE_PAGE, 'utf8');
+  assert.ok(!/getUserMedia|MediaRecorder|ImageCapture|captureStream|requestFrame|createElement|canvas|chrome\.|localStorage|indexedDB|postMessage/.test(src));
+  const code = src.replace(/^\s*\/\/.*$/gm, '');
+  assert.equal(code.match(/getDisplayMedia/g).length, 3, 'nur Original sichern, ersetzen, Name');
+  assert.match(src, /const p = apply\(orig, this, args\);\r?\n\s+try \{ p\.then\(onStream, \(\) => \{\}\); \} catch \(e\) \{ \/\* still \*\/ \}\r?\n\s+return p;/);
+  assert.deepEqual([...src.matchAll(/fire\(([^)]*)\)/g)].map((m) => m[1]).sort(), ["'an:' + surface", "'aus'", 's']);
+  assert.ok(!/^\s*(var|let|const)\s/m.test(src.split('(function () {')[0]), 'keine globalen Variablen');
+  // Die isolierte Weiterleitung nimmt nur Texte nach festem Muster an.
+  const relay = fs.readFileSync(path.join(EXT, 'content', 'teilen.js'), 'utf8');
+  assert.match(relay, /const SIGNAL = \/\^\(an:\(browser\|window\|monitor\)\|aus\)\$\/;/);
+  assert.match(relay, /typeof s === 'string' && SIGNAL\.test\(s\)/);
+  assert.ok(!/onMessage|storage|innerHTML/.test(relay));
+});
+
+// Alle Dateien ausser node_modules/ und .git/ (auch tmp-Ordner); .handtest-* (Edge-Profil, gitignoriert) und
+// lokale Arbeitskopien im Hauptordner (.<name>-arbeitskopien/, gitignoriert) werden uebersprungen.
 function allFiles(dir) {
   const out = [];
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

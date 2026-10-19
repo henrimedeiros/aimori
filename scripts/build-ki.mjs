@@ -31,7 +31,9 @@ const NM = path.join(ROOT, 'node_modules');
 const PACKAGES = ['onnxruntime-web', 'onnxruntime-common', '@huggingface/tokenizers'];
 const BUILD_HOST = 'huggingface.co';
 const MAX_BYTES = 350 * 1048576;
-const CHUNK = 16 * 1048576;
+// Rohbytes je Stueck: 2,5 MiB ergeben ~3,5 MB base64-Skript; Firefox-Add-ons (AMO)
+// pruefen keine JS-Datei ueber 4 MB (Design-Review Firefox 17.10.2026, Auflage 6).
+export const CHUNK = 2.5 * 1048576;
 const okHost = (h) => h === 'huggingface.co' || h.endsWith('.huggingface.co') || h === 'hf.co' || h.endsWith('.hf.co');
 
 const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
@@ -226,6 +228,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const files = await produce();
     if (process.argv.includes('--pins')) {
       const p = pins();
+      // Nur Datei-Pruefsummen neu (z. B. andere Stueckgroesse): das erzeugte Modell muss den
+      // Pins entsprechen; gewollter Modellwechsel = modell.erzeugt vorher entfernen (Auflage 6).
+      if (p.modell.erzeugt && JSON.stringify(p.modell.erzeugt) !== JSON.stringify(lastErzeugt)) throw new Error('--pins: erzeugtes Modell weicht von PINS.json ab (modell.erzeugt nur nach Review entfernen)');
       p.packages = packages();
       p.modell.erzeugt = lastErzeugt;
       p.files = {};

@@ -15,6 +15,7 @@
     if (inPopup) window.close();
     return;
   }
+  await DLX.i18n.ready(info.language, navigator.language);
 
   let lockedUntil = 0;          // nach dem Nachfuehren 400 ms keine Klicks (Auflage 9)
   let done = false;
@@ -124,7 +125,9 @@
     // Sprachmodus (Design-Review Diktat und Fingerabdruecke 16.10.2026): nur Abbrechen/Trotzdem.
     const voice = info.mode === 'voice';
     const block = (input || img || doc) && info.action === 'block';
-    const canRedact = (input || img || info.mode === 'live') && real.length > 0 && (info.action === 'warn' || info.action === 'redact');
+    // Dokument: Bereinigte Version hochladen nur, wenn content.js eine gepruefte Fassung hat (Design-Review Bereinigen 19.10.2026).
+    const docFix = doc && info.fix === true;
+    const canRedact = (input || img || info.mode === 'live' || docFix) && real.length > 0 && (info.action === 'warn' || info.action === 'redact');
     const canOverride = (input || img || doc || voice || info.mode === 'imagefail') && info.action === 'warn' && info.allowOverride === true;
     const paste = info.mode === 'paste';
 
@@ -138,10 +141,10 @@
     disarms = [];
     let primary = null;
     if (canRedact) {
-      primary = button(img ? T('redactImage') : info.mode === 'live' ? T('redact') : paste ? T('redactPaste') : T('redact'), 'dlx-knopf dlx-haupt', () => decide('redact'), 'redact');
+      primary = button(docFix ? T('redactDoc') : img ? T('redactImage') : info.mode === 'live' ? T('redact') : paste ? T('redactPaste') : T('redact'), 'dlx-knopf dlx-haupt', () => decide('redact'), 'redact');
       actions.push(primary);
       // Platzhalter [TYP_n] statt Schwaerzen; echte Werte nur in der Ansicht (Richtlinie allowPlaceholders).
-      if (info.allowPlaceholders === true && !img) extra.push(button(T('placeholder'), 'dlx-knopf', () => decide('pseudonym'), 'pseudonym'));
+      if (info.allowPlaceholders === true && !img && !doc) extra.push(button(T('placeholder'), 'dlx-knopf', () => decide('pseudonym'), 'pseudonym'));
       // Sicher umformulieren (Design-Review Tabellen/Verschleierung/Umformen 16.10.2026): nur Senden/Einfuegen.
       if (info.allowRephrase === true && input) extra.push(button(T('rephrase'), 'dlx-knopf', () => decide('rephrase'), 'rephrase'));
     }
@@ -149,12 +152,12 @@
     if (info.mode === 'rephrased' && info.reason !== 'paste') actions.push(button(T('undo'), 'dlx-knopf', () => decide('undo'), 'undo'));
     if (info.mode === 'reveal' && info.allowPlaceholders === true) actions.push(primary = button(T('showReal'), 'dlx-knopf dlx-haupt', () => decide('show'), 'show'));
     if (input) actions.push(button(paste ? T('discard') : T('edit'), 'dlx-knopf', () => decide('cancel'), 'cancel'));
-    else if (imgAny) actions.push(button(T('cancel'), primary ? 'dlx-knopf' : 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
+    else if (imgAny || doc) actions.push(button(T('cancel'), primary ? 'dlx-knopf' : 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
     else if (info.mode === 'fileinfo') actions.push(primary = button(T('ok'), 'dlx-knopf dlx-haupt', () => decide('ok'), 'ok'));
     else if (!soft(info.mode)) actions.push(primary = button(T('ok'), 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
     if (canOverride) {
-      const o = h('button', { type: 'button', class: 'dlx-knopf dlx-trotzdem', 'data-k': 'override' }, voice ? T('voiceAnyway') : imgAny ? T('pasteImageAnyway') : paste ? T('pasteAnyway') : T('sendAnyway'));
-      armOverride(o, voice ? T('reallyVoice') : imgAny ? T('reallyPasteImage') : paste ? T('reallyPaste') : T('reallySend'));
+      const o = h('button', { type: 'button', class: 'dlx-knopf dlx-trotzdem', 'data-k': 'override' }, voice ? T('voiceAnyway') : doc ? T('uploadAnyway') : imgAny ? T('pasteImageAnyway') : paste ? T('pasteAnyway') : T('sendAnyway'));
+      armOverride(o, voice ? T('reallyVoice') : doc ? T('reallyUpload') : imgAny ? T('reallyPasteImage') : paste ? T('reallyPaste') : T('reallySend'));
       extra.push(o);
     }
     if (input && info.allowNotSensitive === true) {
@@ -189,9 +192,13 @@
     };
     // Warum heikel (ein fester Satz je Datentyp-Gruppe) und "Mehr erfahren" auf die
     // lokale Seite ui/wissen.html; der Link ist keine Entscheidung und sendet nichts.
-    const hasWhy = (cat) => Object.hasOwn(DLX.i18n.STRINGS.en, 'why_' + cat);
-    const whyCats = [];
-    if (input || img || info.mode === 'live') for (const it of sureItems) if (it.id !== 'unscannable' && hasWhy(it.cat) && !whyCats.includes(it.cat)) whyCats.push(it.cat);
+    // Typeigener Satz (z. B. why_internal_link) vor dem Gruppensatz; "Mehr erfahren" fuehrt immer zur Gruppe.
+    const hasWhy = (cat) => DLX.i18n.has('en', 'why_' + cat);
+    const whyCats = [], learnCats = [];
+    if (input || img || info.mode === 'live') for (const it of sureItems) {
+      const k = hasWhy(it.id) ? it.id : it.cat;
+      if (it.id !== 'unscannable' && hasWhy(k) && !whyCats.includes(k)) { whyCats.push(k); learnCats.push(it.cat); }
+    }
     const learn = (cat) => h('a', { class: 'dlx-mehr', href: chrome.runtime.getURL('ui/wissen.html#' + cat), target: '_blank', 'data-k': 'learn' }, T('learnMore'));
     // Zusatzoptionen: eigene Zeile, erst nach Klick auf "Weitere Optionen" sichtbar; beim Aufklappen
     // 400 ms keine Klicks (nichts rueckt unbemerkt unter den Zeiger, Auflage 9), dann Breiten messen.
@@ -234,8 +241,10 @@
       const lead = { send: block ? 'blockSend' : 'stopSend', paste: block ? 'blockPaste' : 'stopPaste', image: block ? 'blockImage' : 'stopImage', doc: block ? 'blockDoc' : 'stopDoc' }[info.mode];
       const fail = ['size', 'type', 'timeout', 'count', 'busy'].includes(info.reason) ? info.reason : 'fail';
       const text = { fileinfo: 'barFileInfo', fileblock: 'barFileBlock', site: 'barSite', inactive: 'barInactive', imagewait: 'barImageWait', imagefail: 'barImageFail_' + fail, voice: info.action === 'block' ? 'barVoiceBlock' : 'barVoiceWarn', rephrased: 'barRephrased' }[info.mode];
-      const why = !text && whyCats.length ? T('why_' + whyCats[0]) : '';
-      const opts = options(why ? whyCats[0] : null);
+      // Bereinigen: "nach erkannten Datentypen", bei PDF "Layout geht verloren" (Restrisiko Review).
+      const fixNote = docFix ? T(info.loss ? 'docFixLoss' : 'docFix') : '';
+      const why = !text && whyCats.length ? T('why_' + whyCats[0]) : fixNote;
+      const opts = options(why ? learnCats[0] : null);
       // Kern (Anlass + Typen) bleibt immer ganz lesbar; gekuerzt wird nur der Erklaersatz, passt der Kern
       // nicht, bricht die Leiste um (fit misst den Ueberlauf).
       const msg = h('p', { class: 'dlx-bar-text', title: why || null },
@@ -253,7 +262,7 @@
       fit();
       watchVisibility(el);
     } else {
-      const intro = { send: 'introSend', paste: 'introPaste', fileinfo: 'introFileInfo', fileblock: 'introFileBlock', inactive: 'introInactive', site: 'introSite', live: 'introSend', image: 'introImage', imagewait: 'introImageWait', imagefail: 'introImageFail', doc: info.items.some((it) => it.id === 'hidden_instruction') ? 'introDoc' : info.items.some((it) => it.id === 'document_match') ? 'introDocMatch' : 'introDocTable', voice: 'introVoice' }[info.mode];
+      const intro = { send: 'introSend', paste: 'introPaste', fileinfo: 'introFileInfo', fileblock: 'introFileBlock', inactive: 'introInactive', site: 'introSite', live: 'introSend', image: 'introImage', imagewait: 'introImageWait', imagefail: 'introImageFail', doc: info.items.some((it) => it.id === 'hidden_instruction') ? 'introDoc' : info.items.some((it) => it.id === 'document_match') ? 'introDocMatch' : info.items.some((it) => it.id !== 'mass_list' && it.id !== 'unscannable') ? 'introDocData' : 'introDocTable', voice: 'introVoice' }[info.mode];
       const card = h('main', { class: 'dlx-karte', role: 'alertdialog', 'aria-label': b.productName },
         DLX.dom.brand(b, b.companyName || ''),
         input || img || doc ? h('h1', null, T('title')) : null,
@@ -266,10 +275,11 @@
             h('strong', { class: 'dlx-zahl' }, '× ' + it.n)))));
       }
       if (info.code) card.append(h('p', { class: 'dlx-code' }, T('codeNote')));
+      if (docFix) card.append(h('p', { class: 'dlx-warum', 'data-k': 'fixnote' }, T(info.loss ? 'docFixLoss' : 'docFix')));
       for (const cat of whyCats) card.append(h('p', { class: 'dlx-warum' }, T('why_' + cat)));
       if (block) card.append(h('p', { class: 'dlx-sperre' }, T('blockNote')));
       // Knopfzeile bleibt unten sichtbar (sticky), Zusatzoptionen darin als eigene Zeile.
-      const opts = options(whyCats.length ? whyCats[0] : null);
+      const opts = options(whyCats.length ? learnCats[0] : null);
       card.append(h('div', { class: 'dlx-aktionen' }, actions, opts));
       if (info.managed) card.append(h('p', { class: 'dlx-verwaltet' }, b.companyName ? T('managed') : T('managedNoName')));
       if (b.supportText || b.supportUrl) {
@@ -286,20 +296,25 @@
 
   // Hoehe der Leiste: eine Zeile, wenn alles samt lesbarem Text hineinpasst, sonst
   // umbrechen und die noetige Hoehe messen. An den Service Worker geht nur diese
-  // Zahl (56..240), nur solange die eigene Hoehe nicht stimmt (auch nach einem
+  // Zahl (44..240), nur solange die eigene Hoehe nicht stimmt (auch nach einem
   // nudge mit neuer Nonce); die Hoehe wirkt nie auf die Breite zurueck
   // (Design-Review Leiste/Hoehe 15.10.2026, Auflagen 2, 3, 5).
-  const BAR_H = 56, BAR_H2 = 100, BAR_MAX = 240;
+  // Kompakt (Richtlinie/Einstellung barCompact): on, off oder auto = Leiste schmaler als
+  // 640 px; nur eine feste Klasse, 44 px statt 56 (Design-Review Warnleiste anpassbar 17.10.2026).
+  const BAR_H = 56, BAR_H2 = 100, BAR_MAX = 240, BAR_K = 44, BAR_K2 = 76, BAR_K_W = 640;
+  const kompakt = () => info.compact === 'on' || (info.compact !== 'off' && window.innerWidth < BAR_K_W);
   let barEl = null;
   function fit() {
     const el = barEl;
     if (!el || inPopup || info.layout !== 'bar' || !el.isConnected) return;
+    const k = kompakt();
+    el.classList.toggle('dlx-kompakt', k);
     el.classList.remove('dlx-bar-2');
-    let need = BAR_H;
+    let need = k ? BAR_K : BAR_H;
     if (extraOpen || el.scrollWidth > el.clientWidth + 1) {
       el.classList.add('dlx-bar-2');
       el.style.height = 'auto';
-      need = Math.max(BAR_H2, Math.ceil(el.getBoundingClientRect().height));
+      need = Math.max(k ? BAR_K2 : BAR_H2, Math.ceil(el.getBoundingClientRect().height));
       el.style.height = '';
     }
     need = Math.min(BAR_MAX, need);

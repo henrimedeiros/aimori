@@ -77,7 +77,7 @@ test('kaputte Richtlinie -> sichere Standardwerte (Schutz bleibt an)', () => {
   for (const raw of ['kaputt', 42, [1, 2], null, undefined]) {
     const e = plain(P.effective(raw, {}, 'de-CH'));
     assert.equal(e.managed, false);
-    assert.deepEqual(e.cfg.allowedSites, ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot']);
+    assert.deepEqual(e.cfg.allowedSites, ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity']);
     assert.deepEqual(e.cfg.globalPacks, ['finance', 'secrets', 'contact', 'travel', 'marker', 'context', 'community']);
     assert.equal(e.cfg.allowUserOverride, true);
   }
@@ -91,7 +91,7 @@ test('Richtlinienwerte sind gesperrt und schlagen Benutzerwerte', () => {
   assert.deepEqual(e.cfg.countryPacks, ['CH']);
   assert.equal(e.cfg.rules.iban, 'block');
   assert.equal(e.cfg.rules.email, 'off', 'nicht verwaltete Regel bleibt Benutzerwahl');
-  assert.deepEqual(e.cfg.allowedSites, ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'], 'Benutzer setzt keine Admin-Schluessel');
+  assert.deepEqual(e.cfg.allowedSites, ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity'], 'Benutzer setzt keine Admin-Schluessel');
   assert.deepEqual(e.locked, { rules: { iban: true }, language: true, countryPacks: true, countryMode: true });
   assert.equal(e.managed, true);
 });
@@ -156,4 +156,17 @@ test('Richtlinie: uncertainFindings und allowNotSensitive', () => {
   const d = P.defaults('de-CH');
   assert.equal(d.uncertainFindings, 'hint');
   assert.equal(d.allowNotSensitive, true);
+});
+
+// Bestehende Richtlinien mit der alten Liste ohne perplexity: Perplexity gilt als nicht
+// freigegeben (strenger, nie lockerer; Design-Review Browser-KIs 17.10.2026, Auflage 6).
+test('alte allowedSites-Liste ohne perplexity sperrt Perplexity, unbekannte IDs bleiben abgewiesen', () => {
+  const e = plain(P.effective({ allowedSites: ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'] }, {}, 'de-CH'));
+  assert.deepEqual(e.cfg.allowedSites, ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot']);
+  assert.ok(e.cfg.allowedSites.indexOf('perplexity') === -1);
+  const r = P.validate({ allowedSites: ['perplexity', 'comet'] });
+  assert.deepEqual(plain(r.value.allowedSites), ['perplexity'], 'unbekannte ID einzeln verworfen');
+  assert.ok(r.errors.includes('allowedSites[]'));
+  assert.deepEqual(plain(P.validate({ allowedSites: ['comet'] }).value.allowedSites), [], 'nur Unbekanntes sperrt alles');
+  assert.deepEqual(plain(P.validate({ allowedSites: ['perplexity'] }).errors), []);
 });

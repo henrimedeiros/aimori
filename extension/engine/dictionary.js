@@ -223,5 +223,82 @@
     return H32[0];
   }
 
-  DLX.dictionary = { sha256Hex, sha256Words, wordsBytes, hmacHex, normalize, scanDictionary, normWord, words, prepareTerm, termHash, termList, scanTerms, saltState, after32, TERM_MIN, TERM_MAX_WORDS };
+  // --- Interne Links (Datentyp internal_link, Design-Review interne Links 17.10.2026) ---
+  // Nur lokale Zerlegung des Texts: kein fetch, kein DNS, kein <a>/img (Auflage 2).
+  const LINK_COUNT = 500;      // mehr Links je Text -> nicht pruefbar (Auflage 1)
+  const AUTH_MAX = 512;        // Userinfo + Host + Port; ohne Ende darin -> fail-closed intern
+  const HOST_STEPS = 10;       // hoechstens 10 Eltern-Suffixe je Host (Auflage 4)
+  const LINK_RE = /(?<![\w+.-])(?:(?:https?|ftp|file):\/\/|(?=[a-z0-9-]{1,63}\.sharepoint\.(?:com|us|de|cn)\/))[^\s<>"'`]*/gi;
+  const INVIS = /[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g;
+  // Reservierte/privat genutzte Endungen; .int, .test, .example, .invalid zaehlen nicht (oeffentlich bzw. Doku).
+  const PRIVATE_TLD = new Set(['local', 'localdomain', 'lan', 'internal', 'intranet', 'intra', 'corp', 'home', 'private']);
+  const SP_HOST = /^[a-z0-9-]{1,63}\.sharepoint\.(?:com|us|de|cn)$/;
+
+  // Eine Normalisierung fuer Text und Admin-Skript (Auflage 3): unsichtbare/Bidi-Zeichen weg,
+  // NFKC, klein, IDN -> Punycode (URL nur zum Parsen), Punkt am Ende weg. Ungueltig -> ''.
+  function normHost(h) {
+    let s = String(h).replace(INVIS, '').normalize('NFKC').toLowerCase().replace(/\.+$/, '');
+    if (!s || s.length > 253 || /[\s/\\@:?#[\]%]/.test(s)) return '';
+    if (/[^a-z0-9.-]/.test(s)) {
+      try { s = new URL('https://' + s + '/').hostname.replace(/\.+$/, ''); } catch (e) { return ''; }
+    }
+    return /^[a-z0-9.-]{1,253}$/.test(s) && s.split('.').every((l) => l.length > 0 && l.length <= 63) ? s : '';
+  }
+
+  // true = interner Link. lists = termList(...) der Richtlinie internalDomains, cache je Pruefung.
+  function linkInternal(link, lists, cache) {
+    const sep = link.indexOf('://');
+    const scheme = sep === -1 ? '' : link.slice(0, sep).toLowerCase();
+    const rest = sep === -1 ? link : link.slice(sep + 3);
+    const cut = rest.slice(0, AUTH_MAX + 1).search(/[/?#\\]/);
+    if (cut === -1 && rest.length > AUTH_MAX) return true;
+    const auth = cut === -1 ? rest : rest.slice(0, cut);
+    // file: ohne Host oder mit Laufwerk ist immer lokal/intern (Auflage 6).
+    if (scheme === 'file' && (!auth || /^[a-z](?::|\|)?$/i.test(auth) || /^\/?[a-z]:/i.test(rest))) return true;
+    let host = auth.slice(auth.lastIndexOf('@') + 1);   // echter Host nach dem letzten @ (Auflage 2)
+    if (host.startsWith('[')) return false;             // IPv6-Literal: bestehende Typen
+    host = normHost(host.replace(/:[^:]*$/, ''));
+    if (!host || /^[\d.]+$/.test(host) || host === 'localhost' || host.endsWith('.localhost')) return false;
+    if (cache.has(host)) return cache.get(host);
+    const labels = host.split('.');
+    const tld = labels[labels.length - 1];
+    let hit = labels.length === 1 || PRIVATE_TLD.has(tld) || host.endsWith('.home.arpa') ||
+      (SP_HOST.test(host) && labels[0] !== 'www') || labels[0] === 'intranet' || labels[0] === 'intra';
+    for (let i = 0; !hit && lists.length && i < labels.length - 1 && i < HOST_STEPS; i++) {
+      const dom = labels.slice(i).join('.');
+      for (const l of lists) if (l.hashes.has(termHash(l.salt, dom))) { hit = true; break; }
+    }
+    cache.set(host, hit);
+    return hit;
+  }
+
+  // Findet interne Links (auch ueber 2048 Zeichen: der Host wird nie gekuerzt gelesen, Fund = ganzer
+  // Link, Auflage 1); Fund = ganzer Link samt Query/Fragment/Userinfo (Auflage 5),
+  // nur eine ueberzaehlige schliessende Klammer am Ende gehoert nicht dazu.
+  // lists: [{ salt, hashes: Set }]. Ergebnis { findings, timeout, tooMany }.
+  function scanLinks(text, lists, deadline, now) {
+    const out = [];
+    const cache = new Map();
+    const use = (lists || []).filter((l) => l && l.hashes && l.hashes.size);
+    LINK_RE.lastIndex = 0;
+    let m, n = 0;
+    while ((m = LINK_RE.exec(text)) !== null) {
+      if (++n > LINK_COUNT) return { findings: out, timeout: false, tooMany: true };
+      if ((n & 15) === 0 && now() > deadline) return { findings: out, timeout: true, tooMany: false };
+      let link = m[0];
+      // Klammern je Art einmal zaehlen, Ueberzaehlige am Ende in einem Durchlauf ab (linear).
+      for (const [o, c] of [['(', ')'], ['[', ']'], ['{', '}']]) {
+        let open = 0, close = 0, e = link.length;
+        for (let i = 0; i < e; i++) { if (link[i] === o) open++; else if (link[i] === c) close++; }
+        while (close > open && e > 0 && link[e - 1] === c) { e--; close--; }
+        link = link.slice(0, e);
+      }
+      if (link.indexOf('://') !== -1 && link.length <= link.indexOf('://') + 3) continue;
+      if (linkInternal(link, use, cache)) out.push({ id: 'internal_link', cat: 'technik', start: m.index, end: m.index + link.length });
+    }
+    return { findings: out, timeout: false, tooMany: false };
+  }
+
+  DLX.dictionary = { sha256Hex, sha256Words, wordsBytes, hmacHex, normalize, scanDictionary, normWord, words, prepareTerm, termHash, termList, scanTerms, saltState, after32, TERM_MIN, TERM_MAX_WORDS,
+    normHost, linkInternal, scanLinks, LINK_COUNT, HOST_STEPS };
 })(globalThis);

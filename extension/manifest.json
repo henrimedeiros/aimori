@@ -12,8 +12,28 @@
     "scripting",
     "offscreen",
     "activeTab",
-    "declarativeContent"
+    "declarativeContent",
+    "alarms"
   ],
+  "commands": {
+    "redact-all": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "__MSG_cmdRedact__"
+    },
+    "toggle-pause": {
+      "suggested_key": {
+        "default": "Alt+Shift+O"
+      },
+      "description": "__MSG_cmdPause__"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+K"
+      }
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -48,7 +68,9 @@
         "https://copilot.microsoft.com/*",
         "https://copilot.com/*",
         "https://copilot.cloud.microsoft/*",
-        "https://m365.cloud.microsoft/*"
+        "https://m365.cloud.microsoft/*",
+        "https://perplexity.ai/*",
+        "https://www.perplexity.ai/*"
       ],
       "run_at": "document_start",
       "all_frames": false,
@@ -74,6 +96,9 @@
         "engine/pseudonym.js",
         "engine/injektion.js",
         "engine/bild.js",
+        "engine/datei.js",
+        "engine/stuecke.js",
+        "engine/bereinigen.js",
         "common/quellen.js",
         "common/policy.js",
         "common/i18n.js",
@@ -97,7 +122,9 @@
         "https://copilot.microsoft.com/*",
         "https://copilot.com/*",
         "https://copilot.cloud.microsoft/*",
-        "https://m365.cloud.microsoft/*"
+        "https://m365.cloud.microsoft/*",
+        "https://perplexity.ai/*",
+        "https://www.perplexity.ai/*"
       ],
       "use_dynamic_url": true
     },

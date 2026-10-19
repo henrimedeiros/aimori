@@ -11,7 +11,7 @@
   const info = valid ? await chrome.runtime.sendMessage({ t: 'view', nonce }).catch(() => null) : null;
   const text = info && typeof info.text === 'string' ? info.text : null;
   const b = info && info.branding ? info.branding : DLX.branding;
-  const lang = DLX.i18n.resolveLang(info ? info.language : 'auto', navigator.language);
+  const lang = await DLX.i18n.ready(info ? info.language : 'auto', navigator.language);
   const T = (k) => DLX.i18n.t(lang, k, { product: b.productName, company: b.companyName });
   document.documentElement.lang = lang;
   DLX.dom.applyBranding(b, matchMedia('(prefers-color-scheme: dark)').matches);

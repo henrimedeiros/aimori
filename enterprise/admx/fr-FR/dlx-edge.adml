@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>AImori</displayName>
+  <description>Stratégies de l’extension de navigateur</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_MV3">Microsoft Edge avec extensions Manifest V3 (version 110 ou ultérieure)</string>
+      <string id="cat_root">AImori (Microsoft Edge)</string>
+      <string id="branding">Personnalisation de la marque</string>
+      <string id="branding_help">Apparence en marque blanche affichée dans la fenêtre contextuelle, la page des paramètres et la boîte de dialogue d’avertissement.</string>
+      <string id="language">Langue</string>
+      <string id="language_help">Langue de l’interface. auto = langue du navigateur.</string>
+      <string id="language_auto">auto</string>
+      <string id="language_en">en</string>
+      <string id="language_de">de</string>
+      <string id="language_fr">fr</string>
+      <string id="language_it">it</string>
+      <string id="language_pt">pt</string>
+      <string id="language_es">es</string>
+      <string id="countryPacks">Paquets par pays</string>
+      <string id="countryPacks_help">Paquets de détection par pays et par région (CH, DE, AT, FR, IT, BE, NL, US, BR, LI, ES, PT, LU, SE, DK, NO, FI, IS, IE, GB, PL, CZ, SK, HU, RO, BG, HR, SI, GR, CY, MT, EE, LT, LV, CA, MX, AR, CL, CO, IN, CN, JP, KR, SG, AU, NZ, ZA, TR, IL, AE, SA, NG, EU). Si elle est définie, cette stratégie est toujours prioritaire et désactive la sélection automatique. Par défaut : automatique (fuseau horaire et régions linguistiques, uniquement en local).</string>
+      <string id="autoCountryPacks">Paquets par pays automatiques</string>
+      <string id="autoCountryPacks_help">true : les paquets par pays suivent le fuseau horaire local et les régions linguistiques (pas de réseau, pas d’accès à la localisation) ; les utilisateurs ne peuvent pas passer en mode manuel. false : pas de sélection automatique, les utilisateurs choisissent eux-mêmes les paquets. Ignorée si countryPacks est définie. Par défaut : automatique, modifiable par les utilisateurs.</string>
+      <string id="globalPacks">Paquets globaux</string>
+      <string id="globalPacks_help">Paquets de détection globaux (finance, secrets, contact, travel, marker = mentions et étiquettes de confidentialité, context = risques de contexte : combinaisons d’identité, santé/RH/convictions d’une personne, listes de clients, community = modèles de la communauté issus du catalogue signé fourni avec l’extension). Par défaut : tous.</string>
+      <string id="rules">Règles par type de données</string>
+      <string id="rules_help">Action par ID de type de données (voir docs/datentypen.md) : off, warn, redact ou block. Nom de la valeur = ID du type de données, valeur = action.</string>
+      <string id="allowUserOverride">Autoriser « Envoyer quand même »</string>
+      <string id="allowUserOverride_help">Si false, les utilisateurs ne peuvent pas envoyer ni coller quand même des données détectées (uniquement caviarder ou annuler). Par défaut : true.</string>
+      <string id="allowNotSensitive">Autoriser « Valeur non sensible »</string>
+      <string id="allowNotSensitive_help">Si false, les utilisateurs ne peuvent pas marquer des valeurs détectées comme non sensibles et la liste locale est supprimée. Effective uniquement avec allowUserOverride. Par défaut : true.</string>
+      <string id="allowPlaceholders">Autoriser les espaces réservés</string>
+      <string id="allowPlaceholders_help">Si false, les utilisateurs ne peuvent pas remplacer les valeurs détectées par des espaces réservés comme [IBAN_1] ni afficher les réponses de l’IA avec les vraies valeurs ; la correspondance en mémoire vive est supprimée. Le site d’IA apprend le type et le nombre de valeurs remplacées. Par défaut : true.</string>
+      <string id="competenceRecord">Justificatif de maîtrise de l’IA</string>
+      <string id="competenceRecord_help">Si true, l’extension explique chaque avertissement et compte localement, par groupe de types de données et par mois, combien d’explications ont été vues et combien de fois des valeurs ont été caviardées, l’envoi annulé ou des données envoyées quand même (chiffres uniquement, 13 mois, ne quittent jamais l’appareil). Les utilisateurs peuvent imprimer une auto-déclaration. Si false, rien n’est compté et les compteurs locaux sont supprimés. Par défaut : true (désactivable par les utilisateurs).</string>
+      <string id="imageScan">Vérifier les images</string>
+      <string id="imageScan_help">Si true, les images PNG, JPEG et WebP collées, déposées ou importées (p. ex. captures d’écran) sont lues localement par reconnaissance de texte et vérifiées comme du texte ; le site d’IA ne reçoit l’image qu’après la vérification (original, copie caviardée ou rien). Les images qui ne peuvent pas être vérifiées à temps ou qui sont trop grandes affichent un message au lieu de passer sans avertissement. Si false, les images sont traitées comme les autres fichiers (blockUncheckedFiles). Par défaut : true.</string>
+      <string id="detection">Détection</string>
+      <string id="detection_help">ki = règles plus un modèle d’IA local pour les noms, entreprises, adresses et données de santé (fonctionne sur l’appareil, rien n’est envoyé ; en cas d’erreur, règles seules) ; regeln = règles seules. Les règles s’appliquent toujours. Par défaut : ki.</string>
+      <string id="detection_ki">ki</string>
+      <string id="detection_regeln">regeln</string>
+      <string id="uncertainFindings">Détections incertaines</string>
+      <string id="uncertainFindings_help">Détections sans mot de contexte ou au format ambigu (p. ex. numéros de téléphone, numéros de carte non formatés) : hint = simple indication discrète pendant la saisie, n’arrête jamais l’envoi ; warn = boîte de dialogue avec au plus l’action Avertir ; enforce = les règles s’appliquent comme pour les détections certaines. Par défaut : hint.</string>
+      <string id="uncertainFindings_hint">hint</string>
+      <string id="uncertainFindings_warn">warn</string>
+      <string id="uncertainFindings_enforce">enforce</string>
+      <string id="allowedSites">Sites d’IA pris en charge autorisés</string>
+      <string id="allowedSites_help">Sites d’IA pris en charge qui peuvent être utilisés (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot). Les saisies sur les autres sites pris en charge sont bloquées. Par défaut : tous.</string>
+      <string id="blockWhenInactive">Bloquer si la protection est inactive</string>
+      <string id="blockWhenInactive_help">Si le champ de saisie d’un site pris en charge ne peut pas être reconnu (refonte du site), bloquer l’envoi et le collage. Par défaut : false.</string>
+      <string id="blockUncheckedFiles">Bloquer les fichiers non vérifiés</string>
+      <string id="blockUncheckedFiles_help">Les fichiers autres que les images PNG, JPEG et WebP ne peuvent pas être vérifiés (images : voir imageScan ; avec true, les images non vérifiables ne proposent que Annuler). Si true, l’importation, le dépôt et le collage de fichiers sur les sites d’IA pris en charge sont bloqués. Par défaut : false.</string>
+      <string id="aiSiteMode">Contrôle des sites d’IA</string>
+      <string id="aiSiteMode_help">Sites d’IA connus (voir docs/ki-seiten-liste.md) qui ne figurent pas dans allowedAiSites : off = aucun contrôle ; hint = bandeau de message avec le texte et le lien définis dans la personnalisation de la marque ; block = la page est remplacée par une page de blocage. La page de blocage n’est qu’une superposition ; pour un blocage strict, utilisez en plus la stratégie de navigateur URLBlocklist. En dehors des sites d’IA pris en charge, les utilisateurs doivent autoriser l’accès une fois dans les paramètres de l’extension (autorisations d’hôte facultatives). Si un champ relatif aux sites d’IA est défini par stratégie, les paramètres locaux correspondants sont ignorés. Par défaut : off.</string>
+      <string id="aiSiteMode_off">off</string>
+      <string id="aiSiteMode_hint">hint</string>
+      <string id="aiSiteMode_block">block</string>
+      <string id="allowedAiSites">Sites d’IA autorisés</string>
+      <string id="allowedAiSites_help">ID des sites d’IA autorisés figurant dans la liste (p. ex. m365copilot, chatgpt). Ni message ni blocage sur ces sites. Les ID inconnus sont ignorés. 500 entrées au maximum.</string>
+      <string id="blockedAiSites">Sites d’IA bloqués</string>
+      <string id="blockedAiSites_help">ID des sites d’IA toujours bloqués tant que aiSiteMode n’est pas off, même en mode hint. Prioritaire sur allowedAiSites. Les ID inconnus sont ignorés. 500 entrées au maximum.</string>
+      <string id="suggestedAiSite">Site d’IA autorisé suggéré</string>
+      <string id="suggestedAiSite_help">ID du site d’IA autorisé vers lequel les utilisateurs sont orientés (p. ex. m365copilot ; liste : docs/ki-seiten-liste.md). Il est considéré comme autorisé. Sur les sites d’IA non autorisés (aiSiteMode hint = avertir ou block = bloquer), le message ou la page de blocage affiche un bouton « Passer à &lt;nom&gt; » qui ouvre, uniquement sur clic, la page d’accueil de ce site issue de la liste intégrée. branding.aiNoticeUrl est prioritaire. Les ID inconnus et les ID figurant dans blockedAiSites sont ignorés. Effective uniquement en tant que stratégie ; sans stratégie, aucune fonction. Par défaut : aucun. ID valides : chatgpt, claude, gemini, copilot, m365copilot, perplexity, mistral, deepseek, grok, poe, characterai, you, huggingchat, metaai, qwen, kimi, zai, doubao, ernie, pi, duckai, aistudio, notebooklm, jules, githubcopilot, phind, v0, bolt, lovable, replit, genspark, manus, felo, openrouter, lmarena, deepl, jasper, copyai, writesonic, gamma, midjourney, firefly, designer, leonardo, ideogram, dreamstudio, sora, runway, heygen, synthesia, suno, elevenlabs.</string>
+      <string id="answerCheck">Vérifier les réponses de l’IA</string>
+      <string id="answerCheck_help">off = les réponses de l’IA ne sont pas vérifiées ; hint = la dernière réponse sur les sites d’IA pris en charge est vérifiée localement avec les règles et le catalogue ; les données sensibles (clés, données personnelles, etc.) sont discrètement soulignées et signalées dans un bandeau de message (type et nombre uniquement, avant et après la copie). La copie n’est jamais bloquée ; rien n’est envoyé, enregistré ni compté. Une valeur non valide équivaut à hint. Par défaut : hint.</string>
+      <string id="answerCheck_off">off</string>
+      <string id="answerCheck_hint">hint</string>
+      <string id="sensitiveSources">Sources confidentielles (presse-papiers)</string>
+      <string id="sensitiveSources_help">Noms d’hôte de sources confidentielles, p. ex. bank.example.com ou *.hr.example.com (https uniquement, sans chemin ni port, au plus un *. initial, au moins deux niveaux, pas de sites d’IA, pas d’adresses IP). Le texte copié sur ces sites reçoit une marque temporaire (somme de contrôle salée uniquement, 30 minutes, uniquement dans la mémoire vive du navigateur, aucun contenu). Si le même texte est collé dans un site d’IA, un avertissement bien visible apparaît (voir sensitiveSourceAction). Les utilisateurs doivent autoriser l’accès à ces sites une fois dans les paramètres de l’extension (autorisations d’hôte facultatives ; les installations gérées ne les reçoivent pas à l’avance). Si la liste est définie par stratégie, les utilisateurs ne peuvent ni ajouter ni retirer de sources. 100 entrées au maximum. Par défaut : vide.</string>
+      <string id="sensitiveSourceAction">Collage depuis des sources confidentielles</string>
+      <string id="sensitiveSourceAction_help">warn = avertissement bien visible, les utilisateurs peuvent rejeter ou coller quand même (uniquement avec allowUserOverride) ; block = le collage dans les sites d’IA est arrêté. Une valeur non valide dans la stratégie équivaut à block. Par défaut : warn.</string>
+      <string id="sensitiveSourceAction_warn">warn</string>
+      <string id="sensitiveSourceAction_block">block</string>
+      <string id="hiddenInstructionScan">Rechercher des instructions cachées</string>
+      <string id="hiddenInstructionScan_help">Si true, le texte collé (brut et HTML) et les documents texte importés (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, 2 Mo au maximum) sur les sites d’IA pris en charge sont vérifiés localement à la recherche d’indices d’instructions cachées : caractères invisibles (largeur nulle, caractères de contrôle bidirectionnels, caractères d’étiquette Unicode ; à l’exception des séquences d’emoji, de drapeaux, d’écritures de droite à gauche et indiennes ainsi que d’un BOM initial), texte masqué dans le HTML collé (display:none, visibility:hidden, hidden, opacité 0, police minuscule, texte de la couleur du fond, très loin hors de l’écran) et formules de contournement typiques dans 6 langues. Simple heuristique : toutes les manipulations ne sont pas détectées. Le message indique le type et le nombre, jamais d’extraits. Rien n’est enregistré. Par défaut : true.</string>
+      <string id="hiddenInstructionAction">Action en cas d’instructions cachées</string>
+      <string id="hiddenInstructionAction_help">warn = message, les utilisateurs peuvent rejeter ou continuer (uniquement avec allowUserOverride) ; block = le collage ou l’importation est arrêté. Les textes ou documents dépassant les limites (2 Mo, budget de temps) comptent comme une détection. Une valeur non valide dans la stratégie équivaut à block. Par défaut : warn.</string>
+      <string id="hiddenInstructionAction_warn">warn</string>
+      <string id="hiddenInstructionAction_block">block</string>
+      <string id="formGuardSites">Surveillance des formulaires : sites</string>
+      <string id="formGuardSites_help">Noms d’hôte des sites dont les formulaires sont vérifiés lors de leur envoi, p. ex. portal.example.com ou *.hr.example.com (https uniquement, sans chemin ni port, au plus un *. initial, au moins deux niveaux, pas de sites d’IA, pas d’adresses IP). Lors de l’envoi, les champs de texte, zones de texte et zones modifiables du formulaire (pas les champs de mot de passe, de fichier ni masqués) sont vérifiés localement avec la même détection que sur les sites d’IA, qu’ils aient été remplis par une personne ou par un agent IA. En cas de détection, l’envoi est arrêté et une fenêtre distincte de l’extension propose Ne pas envoyer / Autoriser l’envoi une fois (uniquement avec allowUserOverride). Non couverts : les pages qui envoient des données par script au lieu d’un envoi de formulaire, form.submit(), les champs masqués. Les utilisateurs doivent autoriser l’accès à ces sites une fois dans les paramètres de l’extension (autorisations d’hôte facultatives). Si la liste est définie par stratégie, les utilisateurs ne peuvent ni ajouter ni retirer de sites. 20 entrées au maximum. Par défaut : vide.</string>
+      <string id="copySidebarHint">Rappel lors de la copie de données sensibles (panneaux latéraux IA)</string>
+      <string id="copySidebarHint_help">Si true, la copie d’un texte contenant des données sensibles sur une page https quelconque affiche un petit message rappelant que les panneaux latéraux IA et les extensions IA (p. ex. Copilot dans Edge, Gemini dans Chrome, Claude in Chrome) ne sont pas vérifiés. Ne fonctionne qu’après que l’utilisateur a accordé dans les paramètres l’accès facultatif à tous les sites https ; une stratégie ne peut pas accorder cet accès. Le texte sélectionné est vérifié localement puis supprimé ; rien n’est enregistré ni envoyé. Non couverts : pages http, iframes, copie dans d’autres programmes. Si false, l’accès est restitué. Par défaut : true.</string>
+      <string id="barTheme">Couleur de la barre d’avertissement</string>
+      <string id="barTheme_help">Couleur de la barre d’avertissement au-dessus du champ de saisie sur les sites d’IA. auto = suit l’arrière-plan de la page (clair ou sombre) ; light = toujours claire ; dark = toujours sombre. Seul l’aspect change, la vérification reste la même. Si elle est définie par stratégie, les utilisateurs ne peuvent pas la modifier. Une valeur non valide vaut auto. Par défaut : auto.</string>
+      <string id="barTheme_auto">auto</string>
+      <string id="barTheme_light">light</string>
+      <string id="barTheme_dark">dark</string>
+      <string id="barCompact">Barre d’avertissement compacte</string>
+      <string id="barCompact_help">Barre d’avertissement compacte pour petits écrans : 44 px au lieu de 56 px, boutons plus petits (30 px) ; la phrase principale, le type de données détecté et tous les boutons de décision restent visibles, l’explication reste lisible pour les lecteurs d’écran et via En savoir plus. auto = compacte lorsque la barre fait moins de 640 px ; on = toujours compacte ; off = jamais compacte. Si elle est définie par stratégie, les utilisateurs ne peuvent pas la modifier. Une valeur non valide vaut auto. Par défaut : auto.</string>
+      <string id="barCompact_auto">auto</string>
+      <string id="barCompact_on">on</string>
+      <string id="barCompact_off">off</string>
+      <string id="screenShareGuard">Avertissement lors du partage d’écran</string>
+      <string id="screenShareGuard_help">Si l’écran est partagé dans le navigateur avec Google Meet, Microsoft Teams ou Zoom (versions web) et qu’un site d’IA avec des données sensibles détectées dans le champ de saisie ou dans la dernière réponse est visible, un avis indique les types (jamais les valeurs) et propose de masquer les détections à l’écran. Le masquage ne modifie que l’affichage ; le texte n’est ni modifié, ni enregistré, ni envoyé. off = pas d’avis ; warn = avis avec un bouton pour masquer ; mask = les détections sont masquées immédiatement pendant le partage. Ne fonctionne qu’après que l’utilisateur a accordé dans les paramètres l’accès facultatif à ces sites de réunion ; une stratégie ne peut pas l’accorder. La détection enveloppe la fonction de partage d’écran du navigateur sur ces sites et lit uniquement si quelque chose est partagé et le type de surface, jamais l’image ni le son. Non couvert : applications de bureau (Teams, Zoom, Meet), autres navigateurs et programmes, autres sites de réunion, partage lancé dans des iframes, champs de saisie sans mise en forme (textarea : avis uniquement). Une aide, pas une protection (docs/bildschirm-teilen.md). Une valeur non valide vaut mask. Par défaut : warn.</string>
+      <string id="screenShareGuard_off">off</string>
+      <string id="screenShareGuard_warn">warn</string>
+      <string id="screenShareGuard_mask">mask</string>
+      <string id="voiceMode">Mode vocal sur les sites d’IA</string>
+      <string id="voiceMode_help">Le mode vocal (ChatGPT Voice, Gemini Live, voix de Copilot, mode vocal de Claude) transmet la parole directement à l’IA sans texte dans le champ de saisie ; elle ne peut donc pas être vérifiée. La dictée dans le champ de saisie est vérifiée comme du texte tapé, indépendamment de cette stratégie. allow = aucun message ; warn = message lors de l’appui sur le bouton du mode vocal, les utilisateurs peuvent le lancer quand même une fois par chargement de page (uniquement avec allowUserOverride, sinon comme block) ; block = le bouton est bloqué. Détection par des sélecteurs fixes par site : les boutons modifiés après une mise à jour du site, les raccourcis clavier ainsi que les applications de bureau et mobiles ne sont pas couverts (docs/sprache-und-diktat.md). Une valeur non valide équivaut à block. Par défaut : warn.</string>
+      <string id="voiceMode_allow">allow</string>
+      <string id="voiceMode_warn">warn</string>
+      <string id="voiceMode_block">block</string>
+      <string id="documentFingerprints">Empreintes de documents d’entreprise</string>
+      <string id="documentFingerprints_help">Détecte quand des extraits importants de documents d’entreprise confidentiels sont collés, envoyés ou importés comme documents texte sur des sites d’IA. À créer avec scripts/dokumente-fingerabdruck.mjs à partir des documents (en local, sans réseau) : uniquement des valeurs salées, tronquées à 32 bits, de SHA-256(sel + saut de ligne + 8 mots normalisés), échantillonnées, triées, en Base64 ; pas de texte en clair, pas de noms de fichiers, pas d’ordre. Le sel et les valeurs sont lisibles par les utilisateurs locaux : un texte supposé peut être confirmé, n’incluez donc pas de documents dont la formulation elle-même est secrète. Ne remplace pas une solution DLP : la reformulation, la traduction ou les images permettent de la contourner. Un seul champ non valide invalide toute la stratégie. Le message indique uniquement le type, jamais le document ni le passage. 100000 valeurs au maximum (voie GPO/Intune testée jusqu’à 50000).</string>
+      <string id="documentFingerprints_action_warn">warn</string>
+      <string id="documentFingerprints_action_block">block</string>
+      <string id="accountRules">Règles par compte</string>
+      <string id="accountRules_help">Règles différentes pour les comptes professionnels et personnels d’un même site d’IA, détectés uniquement à partir de signaux visibles sur la page (nom de l’espace de travail ou marqueur dans la zone du compte, hôte). Par site : workspaces, markers, business, personal, unknown (normal, allow, hint, block). Compte non détecté = niveau le plus strict. Les entrées de site non valides reviennent à normal. La page ou l’utilisateur peut falsifier la zone du compte : préférez hint à allow et les noms d’espace de travail aux marqueurs. Si une stratégie quelconque est définie, les règles par compte locales sont ignorées. Voir docs/konto-regeln.md. L’extension applique les limites dans tous les cas (4 sites au maximum, 20 noms d’espace de travail au maximum de 1 à 80 caractères, allow uniquement pour business avec des noms d’espace de travail ou le marqueur d’hôte ; les entrées non valides reviennent à normal) ; les schémas de stratégie de Chrome ne prennent pas en charge maxItems/maxLength, la longueur est donc vérifiée par pattern.</string>
+      <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_allow">allow</string>
+      <string id="accountRules_chatgpt_business_hint">hint</string>
+      <string id="accountRules_chatgpt_business_block">block</string>
+      <string id="accountRules_chatgpt_personal_normal">normal</string>
+      <string id="accountRules_chatgpt_personal_hint">hint</string>
+      <string id="accountRules_chatgpt_personal_block">block</string>
+      <string id="accountRules_chatgpt_unknown_normal">normal</string>
+      <string id="accountRules_chatgpt_unknown_hint">hint</string>
+      <string id="accountRules_chatgpt_unknown_block">block</string>
+      <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_allow">allow</string>
+      <string id="accountRules_claude_business_hint">hint</string>
+      <string id="accountRules_claude_business_block">block</string>
+      <string id="accountRules_claude_personal_normal">normal</string>
+      <string id="accountRules_claude_personal_hint">hint</string>
+      <string id="accountRules_claude_personal_block">block</string>
+      <string id="accountRules_claude_unknown_normal">normal</string>
+      <string id="accountRules_claude_unknown_hint">hint</string>
+      <string id="accountRules_claude_unknown_block">block</string>
+      <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_allow">allow</string>
+      <string id="accountRules_copilot_business_hint">hint</string>
+      <string id="accountRules_copilot_business_block">block</string>
+      <string id="accountRules_copilot_personal_normal">normal</string>
+      <string id="accountRules_copilot_personal_hint">hint</string>
+      <string id="accountRules_copilot_personal_block">block</string>
+      <string id="accountRules_copilot_unknown_normal">normal</string>
+      <string id="accountRules_copilot_unknown_hint">hint</string>
+      <string id="accountRules_copilot_unknown_block">block</string>
+      <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_allow">allow</string>
+      <string id="accountRules_m365copilot_business_hint">hint</string>
+      <string id="accountRules_m365copilot_business_block">block</string>
+      <string id="accountRules_m365copilot_personal_normal">normal</string>
+      <string id="accountRules_m365copilot_personal_hint">hint</string>
+      <string id="accountRules_m365copilot_personal_block">block</string>
+      <string id="accountRules_m365copilot_unknown_normal">normal</string>
+      <string id="accountRules_m365copilot_unknown_hint">hint</string>
+      <string id="accountRules_m365copilot_unknown_block">block</string>
+      <string id="dictionary">Dictionnaire de l’entreprise</string>
+      <string id="dictionary_help">Termes de l’entreprise sous forme de sommes de contrôle SHA-256 : hexadécimal en minuscules de SHA-256(sel + terme normalisé). Protège uniquement contre une lecture fortuite.</string>
+      <string id="customTerms">Termes personnalisés</string>
+      <string id="customTerms_help">Termes propres (noms de clients, noms de code de projets, domaines internes, sigles) uniquement sous forme de sommes de contrôle SHA-256 salées, jamais en clair : hexadécimal en minuscules de SHA-256(UTF-8(sel + terme normalisé)). À créer avec scripts/begriffe-hashen.mjs. Normalisation : NFKC, minuscules, ae/oe/ue/ss pour les trémas, accents supprimés ; espaces, traits d’union, points et autres séparateurs séparent les mots ; 1 à 5 mots, mots entiers uniquement. Le sel est lisible par les utilisateurs : protège uniquement contre une lecture fortuite. Les détections utilisent le type de données custom_term (règles).</string>
+      <string id="internalDomains">Domaines internes</string>
+      <string id="internalDomains_help">Domaines internes de l’organisation (p. ex. domaines de l’intranet ou des serveurs de fichiers) uniquement sous forme de sommes de contrôle SHA-256 salées, jamais en clair : hexadécimal en minuscules de SHA-256(UTF-8(sel + domaine)). À créer avec scripts/begriffe-hashen.mjs --domains. Normalisation : caractères invisibles supprimés, NFKC, minuscules, IDN en punycode, sans point final ; au moins deux libellés. Un lien dont l’hôte ou le domaine parent correspond est signalé comme type de données internal_link (règles). Par stratégie uniquement. Utilisez un sel propre, différent de celui de customTerms (sinon le champ est ignoré). Le sel est lisible par les utilisateurs et les noms de domaine internes sont souvent faciles à deviner : protège uniquement contre une lecture fortuite, pas contre une attaque par dictionnaire.</string>
+      <string id="customPatterns">Modèles de détection propres</string>
+      <string id="customPatterns_help">Expressions régulières propres à votre organisation, signalées comme type de données « Modèle propre (organisation) » (le modèle lui-même n’est jamais affiché). Uniquement par stratégie (non définissable par les utilisateurs). 50 entrées au maximum ; chaque entrée est un objet JSON : id (org_ + 2 à 40 caractères parmi a-z 0-9 _), regex (source JavaScript, 300 caractères au maximum, uniquement des quantificateurs bornés {n,m} jusqu’à 64, pas de * + {n,}, pas de références arrière ni d’assertions de contexte, longueur de correspondance 3 à 256), flags (&apos;&apos; ou &apos;i&apos;), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national ; par défaut firma), context (20 mots au maximum de 1 à 40 caractères), requireContext (true = uniquement à proximité d’un mot de contexte), action (warn, redact ou block ; par défaut warn). Une seule entrée non valide invalide toute la liste. Voir docs/muster-mitmachen.md.</string>
+      <string id="labelNames">Noms d’étiquettes de confidentialité propres</string>
+      <string id="labelNames_help">Noms des étiquettes de confidentialité propres à votre organisation (p. ex. étiquettes Microsoft Purview) qui apparaissent en texte dans les documents copiés ; signalés comme type de données conf_label (paquet marker). Seuls des noms d’étiquettes ont leur place ici, jamais des noms de clients ou de projets – utilisez customTerms (sommes de contrôle) pour ceux-ci. En clair, uniquement par stratégie (non définissable par les utilisateurs), affichés nulle part. Comparaison sans distinction de casse, mots entiers uniquement. Les mentions intégrées (Confidentiel, Interne, Vertraulich, Streng vertraulich …) ne nécessitent pas d’entrée. 50 noms au maximum de 2 à 64 caractères (lettres, chiffres, espace . - _ ( ) &amp; \ /) ; une seule entrée non valide invalide toute la liste.</string>
+      <string id="massListMin">Seuil de liste de clients</string>
+      <string id="massListMin_help">Nombre minimal d’entrées distinctes (adresses e-mail, numéros de téléphone, IBAN ou lignes d’un tableau avec une colonne prénom/nom) à partir duquel un texte est considéré comme une liste de clients / un export (type de données mass_list, paquet context). Les doublons comptent une fois. Valeurs autorisées : 3 à 1000, par défaut 10 ; les valeurs hors plage conservent la valeur par défaut.</string>
+      <string id="tableScan">Détection des tableaux</string>
+      <string id="tableScan_help">Si true (par défaut), les tableaux collés ou importés (TSV/CSV, Markdown, HTML, JSON, XLSX) contenant de nombreuses lignes de données personnelles sont considérés comme une fuite massive, même sans numéros individuels (en-têtes de colonnes et forme des valeurs ; types de données mass_list et mass_table, paquet context). Les fichiers XLSX importés sont uniquement lus (feuilles, chaînes partagées, commentaires), jamais exécutés ; les fichiers inhabituels ou trop volumineux sont considérés comme non vérifiables.</string>
+      <string id="tableMinRows">Tableaux : nombre minimal de lignes</string>
+      <string id="tableMinRows_help">Nombre de lignes de données à partir duquel un tableau contenant des données personnelles est considéré comme une fuite massive. Valeurs autorisées : 3 à 1000, par défaut 10 ; les valeurs hors plage conservent la valeur par défaut.</string>
+      <string id="tableMinColumns">Tableaux : nombre minimal de colonnes sensibles</string>
+      <string id="tableMinColumns_help">Nombre de colonnes sensibles (nom, e-mail, téléphone, date de naissance, adresse, salaire, diagnostic …) qu’un tableau doit contenir, dont au moins une identifiante. Valeurs autorisées : 1 à 10, par défaut 2 ; les valeurs hors plage conservent la valeur par défaut.</string>
+      <string id="tableRedaction">Tableaux : caviardage</string>
+      <string id="tableRedaction_help">columns (par défaut) = Caviarder remplace uniquement les cellules des colonnes sensibles ; rows = ne conserve en plus que l’en-tête et 3 lignes (dont les cellules sensibles sont également caviardées) et remplace le reste par le nombre de lignes supprimées.</string>
+      <string id="tableRedaction_columns">columns</string>
+      <string id="tableRedaction_rows">rows</string>
+      <string id="deobfuscation">Détecter les données dissimulées</string>
+      <string id="deobfuscation_help">Si true (par défaut), l’extension vérifie aussi des variantes du texte : caractères invisibles, lettres pleine chasse et homoglyphes, séparateurs entre les chiffres, chiffres écrits en toutes lettres, texte inversé, encodage Base64/hexadécimal/URL, ainsi que des parties réparties sur plusieurs messages d’un même chat (conservées uniquement en mémoire pendant 10 minutes, jamais enregistrées). Dans les variantes, seules comptent les valeurs validées par somme de contrôle, les secrets, les adresses e-mail et les IBAN.</string>
+      <string id="allowPause">Autoriser la pause</string>
+      <string id="allowPause_help">Si true (par défaut), les utilisateurs peuvent suspendre la protection pendant 15 minutes avec le raccourci clavier ; seuls les avertissements que l’utilisateur peut de toute façon ignorer sont suspendus. Les règles de blocage et de masquage seul, toutes les détections lorsque allowUserOverride vaut false, les sites d’IA bloqués, l’approbation des sites et blockWhenInactive restent en vigueur. Les pauses ne sont pas comptées. Si false, la pause n’est pas possible et une pause en cours se termine immédiatement.</string>
+      <string id="allowRephrase">Autoriser « Reformuler sans risque »</string>
+      <string id="allowRephrase_help">Si true (par défaut), le message propose « Reformuler sans risque » : les détails sensibles sont remplacés localement par des descriptions génériques (p. ex. un patient d’âge moyen atteint d’une maladie chronique), la question restant la même. Le résultat s’affiche dans le champ de saisie en aperçu et peut être annulé ; l’envoi le vérifie à nouveau. Non proposé lorsque l’action est Bloquer.</string>
+      <string id="identityMinParts">Combinaison d’identité : éléments requis</string>
+      <string id="identityMinParts_help">Nombre d’éléments à partir duquel nom + date de naissance sont considérés comme une identité (type de données identity_combo, paquet context) : 2 = nom et date de naissance, 3 = plus adresse, téléphone, e-mail ou numéro de pièce d’identité (par défaut), 4 = plus deux de ces éléments. Valeurs autorisées : 2 à 4 ; les valeurs hors plage conservent la valeur par défaut.</string>
+      <string id="competenceHideSensitive">Justificatif de maîtrise de l’IA : toujours masquer les groupes sensibles</string>
+      <string id="competenceHideSensitive_help">Si true, le justificatif de maîtrise de l’IA n’affiche jamais les groupes santé, données personnelles et identifiant national (les utilisateurs ne peuvent pas les afficher). Des chiffres par utilisateur sur la santé ou les convictions pourraient sinon permettre une surveillance des collaborateurs. Par défaut : false (les utilisateurs décident).</string>
+      <string id="complianceReport">Rapport justificatif</string>
+      <string id="complianceReport_help">Si true (par défaut), les utilisateurs peuvent ouvrir un rapport local contenant uniquement des chiffres (détections par type de données, site d’IA et action, règles actives) et sa correspondance avec les lois et normes, l’imprimer ou le télécharger sous forme de fichier HTML. L’extension n’enregistre jamais de fichiers d’elle-même ; ne collectez les fichiers exportés qu’avec vos propres outils, regroupez-les avec scripts/bericht-sammeln.mjs, supprimez ensuite les fichiers individuels, utilisez les chiffres uniquement comme justificatif (pas pour contrôler les performances ou le comportement, art. 26 OLT 3) et informez les collaborateurs au préalable (art. 19 nLPD) et consultez-les (art. 48 LTr). Si false, la page du rapport affiche uniquement un message.</string>
+      <string id="complianceFrameworks">Rapport justificatif : référentiels</string>
+      <string id="complianceFrameworks_help">Modèles de correspondance affichés dans le rapport, non modifiables par les utilisateurs : revdsg (nLPD suisse), dsgvo (RGPD de l’UE), hipaa (HIPAA, États-Unis), euaiact (règlement européen sur l’IA, art. 4), iso27001 (ISO/IEC 27001:2022, annexe A). Une valeur inconnue invalide la liste (par défaut : tous).</string>
+      <string id="trainingAmpel">Feu tricolore de l’entraînement IA</string>
+      <string id="trainingAmpel_help">Si true (par défaut), l’icône de l’extension indique sur les sites d’IA connus si les saisies servent par défaut à entraîner les modèles (vert = non, jaune = partiellement ou incertain, rouge = oui), en tenant compte du type de compte issu de accountRules ; la fenêtre contextuelle l’explique et renvoie au paramètre de refus du fournisseur. Les données sont fournies avec l’extension (source du fournisseur et date par site), rien n’est téléchargé. Si false : pas de feu tricolore ni de section dans la fenêtre contextuelle.</string>
+      <string id="complianceReportDays">Rapport justificatif : période en jours</string>
+      <string id="complianceReportDays_help">Période du rapport, non modifiable par les utilisateurs : 7, 30 ou 90 jours. Les autres valeurs conservent la valeur par défaut 30.</string>
+      <string id="reportingUrl">URL de rapport (réservée)</string>
+      <string id="reportingUrl_help">Réservée à un futur point de terminaison de rapport (p. ex. CIPP). Non utilisée par cette version ; l’extension n’a aucun accès au réseau.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="branding">
+        <textBox refId="branding_productName">
+          <label>Nom du produit</label>
+        </textBox>
+        <textBox refId="branding_companyName">
+          <label>Nom de l’entreprise</label>
+        </textBox>
+        <textBox refId="branding_logo">
+          <label>Logo</label>
+        </textBox>
+        <textBox refId="branding_primaryColor">
+          <label>Couleur principale</label>
+        </textBox>
+        <textBox refId="branding_accentColor">
+          <label>Couleur d’accentuation</label>
+        </textBox>
+        <textBox refId="branding_supportUrl">
+          <label>Lien d’assistance</label>
+        </textBox>
+        <textBox refId="branding_supportText">
+          <label>Texte d’assistance</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeText">
+          <label>Texte du message sur les sites d’IA</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeUrl">
+          <label>Lien du message sur les sites d’IA</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeLinkText">
+          <label>Texte du bouton du message sur les sites d’IA</label>
+        </textBox>
+      </presentation>
+      <presentation id="language">
+        <dropdownList refId="language" noSort="true">Langue</dropdownList>
+      </presentation>
+      <presentation id="countryPacks">
+        <listBox refId="countryPacks">Paquets par pays</listBox>
+      </presentation>
+      <presentation id="globalPacks">
+        <listBox refId="globalPacks">Paquets globaux</listBox>
+      </presentation>
+      <presentation id="rules">
+        <listBox refId="rules">Règles par type de données</listBox>
+      </presentation>
+      <presentation id="detection">
+        <dropdownList refId="detection" noSort="true">Détection</dropdownList>
+      </presentation>
+      <presentation id="uncertainFindings">
+        <dropdownList refId="uncertainFindings" noSort="true">Détections incertaines</dropdownList>
+      </presentation>
+      <presentation id="allowedSites">
+        <listBox refId="allowedSites">Sites d’IA pris en charge autorisés</listBox>
+      </presentation>
+      <presentation id="aiSiteMode">
+        <dropdownList refId="aiSiteMode" noSort="true">Contrôle des sites d’IA</dropdownList>
+      </presentation>
+      <presentation id="allowedAiSites">
+        <listBox refId="allowedAiSites">Sites d’IA autorisés</listBox>
+      </presentation>
+      <presentation id="blockedAiSites">
+        <listBox refId="blockedAiSites">Sites d’IA bloqués</listBox>
+      </presentation>
+      <presentation id="suggestedAiSite">
+        <textBox refId="suggestedAiSite">
+          <label>Site d’IA autorisé suggéré</label>
+        </textBox>
+      </presentation>
+      <presentation id="answerCheck">
+        <dropdownList refId="answerCheck" noSort="true">Vérifier les réponses de l’IA</dropdownList>
+      </presentation>
+      <presentation id="sensitiveSources">
+        <listBox refId="sensitiveSources">Sources confidentielles (presse-papiers)</listBox>
+      </presentation>
+      <presentation id="sensitiveSourceAction">
+        <dropdownList refId="sensitiveSourceAction" noSort="true">Collage depuis des sources confidentielles</dropdownList>
+      </presentation>
+      <presentation id="hiddenInstructionAction">
+        <dropdownList refId="hiddenInstructionAction" noSort="true">Action en cas d’instructions cachées</dropdownList>
+      </presentation>
+      <presentation id="formGuardSites">
+        <listBox refId="formGuardSites">Surveillance des formulaires : sites</listBox>
+      </presentation>
+      <presentation id="barTheme">
+        <dropdownList refId="barTheme" noSort="true">Couleur de la barre d’avertissement</dropdownList>
+      </presentation>
+      <presentation id="barCompact">
+        <dropdownList refId="barCompact" noSort="true">Barre d’avertissement compacte</dropdownList>
+      </presentation>
+      <presentation id="screenShareGuard">
+        <dropdownList refId="screenShareGuard" noSort="true">Avertissement lors du partage d’écran</dropdownList>
+      </presentation>
+      <presentation id="voiceMode">
+        <dropdownList refId="voiceMode" noSort="true">Mode vocal sur les sites d’IA</dropdownList>
+      </presentation>
+      <presentation id="documentFingerprints">
+        <textBox refId="documentFingerprints_salt">
+          <label>Sel</label>
+        </textBox>
+        <decimalTextBox refId="documentFingerprints_shingle" defaultValue="8">Mots par empreinte</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_sample" defaultValue="4">Échantillonnage</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_minMatches" defaultValue="4">Nombre minimal de correspondances</decimalTextBox>
+        <dropdownList refId="documentFingerprints_action" noSort="true">Action</dropdownList>
+        <listBox refId="documentFingerprints_data">Données d’empreinte</listBox>
+      </presentation>
+      <presentation id="accountRules">
+        <listBox refId="accountRules_chatgpt_workspaces">ChatGPT : noms d’espace de travail</listBox>
+        <listBox refId="accountRules_chatgpt_markers">ChatGPT : marqueurs</listBox>
+        <dropdownList refId="accountRules_chatgpt_business" noSort="true">ChatGPT : compte professionnel</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_personal" noSort="true">ChatGPT : compte personnel</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_unknown" noSort="true">ChatGPT : compte non détecté</dropdownList>
+        <listBox refId="accountRules_claude_workspaces">Claude : noms d’espace de travail</listBox>
+        <listBox refId="accountRules_claude_markers">Claude : marqueurs</listBox>
+        <dropdownList refId="accountRules_claude_business" noSort="true">Claude : compte professionnel</dropdownList>
+        <dropdownList refId="accountRules_claude_personal" noSort="true">Claude : compte personnel</dropdownList>
+        <dropdownList refId="accountRules_claude_unknown" noSort="true">Claude : compte non détecté</dropdownList>
+        <listBox refId="accountRules_copilot_workspaces">Microsoft Copilot (copilot.com) : noms d’espace de travail</listBox>
+        <listBox refId="accountRules_copilot_markers">Microsoft Copilot (copilot.com) : marqueurs</listBox>
+        <dropdownList refId="accountRules_copilot_business" noSort="true">Microsoft Copilot (copilot.com) : compte professionnel</dropdownList>
+        <dropdownList refId="accountRules_copilot_personal" noSort="true">Microsoft Copilot (copilot.com) : compte personnel</dropdownList>
+        <dropdownList refId="accountRules_copilot_unknown" noSort="true">Microsoft Copilot (copilot.com) : compte non détecté</dropdownList>
+        <listBox refId="accountRules_m365copilot_workspaces">Microsoft 365 Copilot : noms d’espace de travail</listBox>
+        <listBox refId="accountRules_m365copilot_markers">Microsoft 365 Copilot : marqueurs</listBox>
+        <dropdownList refId="accountRules_m365copilot_business" noSort="true">Microsoft 365 Copilot : compte professionnel</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_personal" noSort="true">Microsoft 365 Copilot : compte personnel</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_unknown" noSort="true">Microsoft 365 Copilot : compte non détecté</dropdownList>
+      </presentation>
+      <presentation id="dictionary">
+        <textBox refId="dictionary_salt">
+          <label>Sel</label>
+        </textBox>
+        <listBox refId="dictionary_hashes">Sommes de contrôle des termes</listBox>
+      </presentation>
+      <presentation id="customTerms">
+        <textBox refId="customTerms_salt">
+          <label>Sel</label>
+        </textBox>
+        <listBox refId="customTerms_hashes">Sommes de contrôle des termes</listBox>
+      </presentation>
+      <presentation id="internalDomains">
+        <textBox refId="internalDomains_salt">
+          <label>Sel</label>
+        </textBox>
+        <listBox refId="internalDomains_hashes">Sommes de contrôle des domaines</listBox>
+      </presentation>
+      <presentation id="customPatterns">
+        <listBox refId="customPatterns">Modèles de détection propres</listBox>
+      </presentation>
+      <presentation id="labelNames">
+        <listBox refId="labelNames">Noms d’étiquettes de confidentialité propres</listBox>
+      </presentation>
+      <presentation id="massListMin">
+        <decimalTextBox refId="massListMin" defaultValue="10">Seuil de liste de clients</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinRows">
+        <decimalTextBox refId="tableMinRows" defaultValue="10">Tableaux : nombre minimal de lignes</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinColumns">
+        <decimalTextBox refId="tableMinColumns" defaultValue="2">Tableaux : nombre minimal de colonnes sensibles</decimalTextBox>
+      </presentation>
+      <presentation id="tableRedaction">
+        <dropdownList refId="tableRedaction" noSort="true">Tableaux : caviardage</dropdownList>
+      </presentation>
+      <presentation id="identityMinParts">
+        <decimalTextBox refId="identityMinParts" defaultValue="3">Combinaison d’identité : éléments requis</decimalTextBox>
+      </presentation>
+      <presentation id="complianceFrameworks">
+        <listBox refId="complianceFrameworks">Rapport justificatif : référentiels</listBox>
+      </presentation>
+      <presentation id="complianceReportDays">
+        <decimalTextBox refId="complianceReportDays" defaultValue="30">Rapport justificatif : période en jours</decimalTextBox>
+      </presentation>
+      <presentation id="reportingUrl">
+        <textBox refId="reportingUrl">
+          <label>URL de rapport (réservée)</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

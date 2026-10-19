@@ -25,6 +25,8 @@
   // Senden & Co. (bis 5 Knoepfe) zweizeilig unter 1100 px, unter 680 px Vollbild-Rueckfall.
   // Das ist nur der Startwert: der Frame misst sein Layout und meldet die noetige Hoehe
   // (56..240 px, dlgSize), damit nie ein Knopf abgeschnitten wird (15.10.2026).
+  // Kompakte Leiste ab 44 px (Design-Review Warnleiste anpassbar 17.10.2026, Auflage 4).
+  const BAR_H_MIN = 44;
   const BAR_H = 56, BAR_H2 = 100, BAR_MAX = 240, BAR_GAP = 8, BAR_MIN_W = 420, BAR_MIN_SEND = 680, BAR_NARROW_LIVE = 700, BAR_NARROW = 1100;
 
   let cfg = DLX.policy.defaults(navigator.language);
@@ -49,6 +51,12 @@
   // Platzhalter 14.10.2026): nie storage, verworfen bei pagehide und Richtlinie aus.
   const pseudo = DLX.pseudonym.create();
   const placeholdersOn = () => cfg.allowPlaceholders === true;
+  // Pause (Design-Review Alltag 14.10.2026, Auflage 7): Ende kommt nur vom Service
+  // Worker, abgelaufen = aus. In der Pause fallen nur Warnungen weg, die der Nutzer
+  // ohnehin uebergehen darf (warn bei allowUserOverride); block, "Nur schwaerzen",
+  // KI-Sperre, Seitensperre und blockWhenInactive bleiben.
+  let pausedUntil = 0;
+  const paused = () => cfg.allowPause === true && pausedUntil > Date.now();
   // Ganztext-Funde ohne Wertposition (nicht schwaerzbar, keine Zeilennummern).
   const WHOLE = (f) => f.id === 'unscannable' || f.id === 'clipboard_source' || f.id === 'hidden_instruction' || f.id === 'document_match';
 
@@ -85,7 +93,11 @@
   function loadConfig() {
     chrome.runtime.sendMessage({ t: 'cfg' }).then((r) => {
       if (r && r.cfg) { cfg = r.cfg; eng = DLX.policy.engineConfig(cfg, r.ignore); }
+      // Texte vom SW; fehlen sie, gilt der englische Mindestsatz (Design-Review Sprachen, Auflage 6).
+      if (r && r.texts) DLX.i18n.add(lang(), r.texts);
       aiBlocked = !!(r && r.aiBlocked === true);
+      pausedUntil = r && Number.isSafeInteger(r.pausedUntil) ? r.pausedUntil : 0;
+      if (paused()) hideLive();
       if (aiBlocked) failClosed();
       if (!placeholdersOn()) dropPlaceholders();
       if (cfg.allowRephrase !== true) hideRephrased();
@@ -286,10 +298,11 @@
     const layout = r ? 'bar' : 'full';    // Rueckfall-Kette: Leiste -> Vollbild -> Popupfenster (Auflage 14)
     createHost(p.kind, layout, r, c);
     // Eingefuegter Code: je Typ hoechstens 5 Zeilennummern, nie Werte (Design-Review Code und Bilder, Auflage 5).
-    const lines = p.text && p.findings && DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, p.findings) : null;
+    // Dokumente (Design-Review Bereinigen 19.10.2026, Auflage 9): Zeilennummern im gelesenen Text, nie Werte.
+    const lines = p.lines || (p.text && p.findings && DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, p.findings) : null);
     const summary = p.findings ? Array.from(DLX.engine.summarize(p.findings), (s) => Object.assign({ id: s.id, cat: s.cat, n: s.n },
       lines && !WHOLE(s) && lines.get(s.id) && lines.get(s.id).length ? { lines: lines.get(s.id).slice() } : null)) : [];
-    chrome.runtime.sendMessage({ t: 'found', mode: p.kind, action: p.action, items: summary, code: !!lines, layout, theme: pageTheme(c), account: p.account || null, reason: p.reason || null }).then((res) => {
+    chrome.runtime.sendMessage({ t: 'found', mode: p.kind, action: p.action, items: summary, code: !!lines && !p.lines, fix: !!p.fix, loss: !!p.loss, layout, theme: pageTheme(c), account: p.account || null, reason: p.reason || null }).then((res) => {
       if (!res || !res.nonce || pending !== p) { if (pending === p) failClosed(); return; }
       p.nonce = res.nonce;
       readyTimer = setTimeout(() => {
@@ -323,7 +336,7 @@
     if (!ui || ui.layout !== 'bar') return;
     const n = ui.kind === 'live' ? live.nonce : ui.kind === 'reveal' ? reveal.nonce : ui.kind === 'answer' ? ans.nonce : ui.kind === 'rephrased' ? reph.nonce : pending && pending.nonce;
     const h = msg.h;
-    if (!n || msg.nonce !== n || typeof h !== 'number' || !Number.isInteger(h) || h < BAR_H || h > BAR_MAX || h === ui.rect.height) return;
+    if (!n || msg.nonce !== n || typeof h !== 'number' || !Number.isInteger(h) || h < BAR_H_MIN || h > BAR_MAX || h === ui.rect.height) return;
     ui.wantH = h;
     const r = barRect(ui.composer, ui.kind, h);
     if (!r) {
@@ -391,6 +404,16 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id || sender.tab || !msg || typeof msg !== 'object') return;
     if (msg.t === 'srcMarks') { srcApply(msg); return; }
+    if (msg.t === 'shareState') { shareApply(msg); return; }
+    // Tastenkuerzel ohne offene Meldung (nur vom Service Worker, Auflage 3):
+    // Feldtext neu scannen und schwaerzen, nur auf erlaubter, nicht gesperrter Seite.
+    if (msg.t === 'cmd') {
+      if (msg.choice === 'redact' && !aiBlocked && siteAllowed() && !pending) {
+        hideLive();
+        redactIn(site.findComposer(), 'redact');
+      }
+      return;
+    }
     // Text der Ansicht nur auf tabs.sendMessage mit der Nonce der offenen Ansicht (Auflage 4).
     if (msg.t === 'viewText') {
       if (view.nonce && msg.nonce === view.nonce && ui && ui.kind === 'view' && placeholdersOn()) sendResponse({ text: viewText() });
@@ -402,7 +425,7 @@
     if (msg.t !== 'decision') return;
     if (live.nonce && msg.nonce === live.nonce) {
       // Live-Nonce: nur Schwaerzen/Platzhalter oder Ausblenden (Auflage 10).
-      if (replacing(msg.choice)) redactLive(msg.choice);
+      if (replacing(msg.choice)) { redactLive(msg.choice); sendResponse({ ok: true }); }
       else if (msg.choice === 'hide') { live.dismissed = live.sig; hideLive(); }
       return;
     }
@@ -428,6 +451,8 @@
     const p = pending;
     pending = null;
     removeHost();
+    // Bestaetigung fuer Kuerzel im Service Worker (gezaehlt erst danach, Auflage 2).
+    sendResponse({ ok: true });
     const usable = (p.findings || []).filter((f) => !WHOLE(f));
     if ((p.kind === 'send' || p.kind === 'paste') && msg.choice === 'rephrase') {
       if (usable.length && cfg.allowRephrase === true) rephraseNow(p, usable);
@@ -454,6 +479,8 @@
     } else if (p.kind === 'image' || p.kind === 'imagefail' || p.kind === 'doc') {
       if (msg.choice === 'override') p.deliver(p.files);
       else if (msg.choice === 'redact' && p.kind === 'image') redactImages(p).then(p.deliver, () => imageFail(p, 'fail'));
+      // Bereinigte Dokumente: erst die volle Nachpruefung, nie das Original (Auflagen 2, 8).
+      else if (msg.choice === 'redact' && p.kind === 'doc' && p.fix && !reading) checkDocs(p.fix.files, p.deliver, p.fix.expect);
     }
     scheduleLive(null);
   });
@@ -605,6 +632,7 @@
     }
     const acc = accountState();
     if (acc) findings = DLX.policy.accountFindings(findings, acc.level);
+    if (paused()) findings = findings.filter((f) => !(f.action === 'warn' && cfg.allowUserOverride === true));
     return { findings, action: DLX.engine.strictest(findings), account: acc ? acc.type : null };
   }
 
@@ -657,13 +685,12 @@
     if (passiveFiles()) return false;
     // Bilder lokal per Texterkennung pruefen statt durchlassen (Design-Review Bilder 14.10.2026).
     if (deliver && imageSet(files)) { stop(e); if (!pending) checkImages(files, deliver); return true; }
-    if (deliver && docSet(files)) { stop(e); if (!pending) checkDocs(files, deliver); return true; }
+    if (deliver && docSet(files)) { stop(e); if (!pending && !reading) checkDocs(files, deliver); return true; }
     if (cfg.blockUncheckedFiles) { stop(e); if (!pending) showDialog({ kind: 'fileblock', action: 'block' }); return true; }
     fileInfo();
     return false;
   }
-  // Hinweis "Dateien werden nicht geprueft" hoechstens alle 60 s (auch nach sauberem Textdokument:
-  // geprueft wird dort nur auf versteckte Anweisungen, nicht auf heikle Daten).
+  // Hinweis "Dateien werden nicht geprueft" hoechstens alle 60 s (nur fuer Dateien, die nicht gelesen werden).
   function fileInfo() {
     if (!pending && Date.now() - lastFileInfo > FILE_INFO_GAP_MS) {
       lastFileInfo = Date.now();
@@ -694,19 +721,70 @@
   const hiddenOn = () => cfg.hiddenInstructionScan !== false;
   // Tabellen (Design-Review Tabellen/Verschleierung/Umformen 16.10.2026): auch XLSX wird gelesen, nie ausgefuehrt.
   const tableOn = () => cfg.tableScan !== false && !!DLX.tabelle;
-  const docSet = (files) => (hiddenOn() || !!eng.fp || tableOn()) && !cfg.blockUncheckedFiles && files.length > 0
-    && files.every((f) => INJ.isDoc(f) || (tableOn() && DLX.tabelle.XLSX_FILE(f)));
-  // Textdokumente lokal als Text lesen (nie ausfuehren); die Seite bekommt sie erst nach der Pruefung.
-  async function checkDocs(files, deliver) {
-    let n = 0, over = false, fpHit = false, fpOver = false, rows = 0, tabOver = false;
+  // Datei-Uploads (Design-Review Datei-Uploads 17.10.2026, Auflagen 3-9): TXT/CSV/XLSX/PDF/DOCX
+  // laufen zusaetzlich durch dieselben Erkenner wie beim Tippen; gelesen wird immer (kein
+  // Aus-Schalter, Auflage 9), blockUncheckedFiles sperrt Dateien weiter ganz.
+  const D = DLX.datei;
+  const docKind = (f) => INJ.isDoc(f) || D.kindOf(f.name, f.type) !== null;
+  const docSet = (files) => !cfg.blockUncheckedFiles && files.length > 0 && files.every(docKind);
+  const DOC_TOTAL_MS = 20000;   // Gesamt-Zeitbudget je Ablage/Auswahl (Auflage 3)
+  let reading = false;
+  // Normale Erkenner je Stueck wie check(), aber nur Regeln: Dokumenttext geht nie an die lokale KI
+  // (keine neue Nachrichtenart, Auflage 5); Konto-Regeln danach auf alle Funde.
+  // Massenlisten meldet bei Dateien die Tabellen-Pruefung einmal mit der Zeilenzahl (nicht doppelt).
+  const MASS = ['mass_list', 'mass_table'];
+  const detect = (part) => {
+    const res = DLX.engine.scan(part, eng);
+    const list = Array.from(res.findings).filter((f) => !tableOn() || !MASS.includes(f.id));
+    return { findings: counted(list), unscannable: res.unscannable };
+  };
+  // PDF/DOCX: Rohbytes an den Service Worker, gelesen im Offscreen-Dokument (Auflagen 12-20).
+  async function docText(f, left) {
+    if (f.size > D.LIMITS.bytes) return { error: 'size' };
+    let data = base64(new Uint8Array(await f.arrayBuffer()));
+    const res = await chrome.runtime.sendMessage({ t: 'doc', data, kind: D.kindOf(f.name, f.type), ms: left }).catch(() => null);
+    data = null;
+    if (!res || typeof res.text !== 'string') return { error: 'fail' };
+    return { text: res.text, partial: res.partial === true };
+  }
+  // Dokumente lokal lesen (nie ausfuehren); die Seite bekommt sie erst nach dem Urteil.
+  // again = Map bereinigte Datei -> erwarteter Text (Nachpruefung nach "Bereinigte Version hochladen").
+  async function checkDocs(files, deliver, again) {
+    reading = true;
+    const per = [];
+    let n = 0, over = false, fpHit = false, fpOver = false, rows = 0, tabOver = false, unread = false;
+    const found = [];
     const topts = { minRows: cfg.tableMinRows, minCols: cfg.tableMinColumns };
-    for (const f of files) {
+    const deadline = Date.now() + DOC_TOTAL_MS;
+    let total = 0;
+    try {
+    // Mehr als 5 Dateien oder zusammen ueber 20 MB: alles gilt als nicht pruefbar (Auflage 3).
+    if (files.length > D.LIMITS.files) unread = true;
+    for (const f of unread ? [] : files) {
+      total += f.size;
+      if (total > D.LIMITS.bytes || Date.now() > deadline) { unread = true; break; }
+      if (!INJ.isDoc(f) && !(tableOn() && DLX.tabelle.XLSX_FILE(f)) && D.kindOf(f.name, f.type) !== 'text') {
+        const kind = D.kindOf(f.name, f.type);
+        if (kind === 'xlsx') { unread = true; continue; }   // Tabellen-Pruefung per Richtlinie aus: XLSX nicht lesbar
+        const r = await docText(f, deadline - Date.now());
+        if (r.error) { unread = true; continue; }
+        if (r.partial) unread = true;
+        if (again && again.has(f) && tooShort(r.text, again.get(f))) unread = true;
+        const d = await DLX.stuecke.scan(r.text, detect, deadline);
+        found.push(...d.findings);
+        per.push({ f, kind, text: r.text, findings: d.findings, partial: r.partial });
+        if (d.unscannable) unread = true;
+        if (hiddenOn()) { const res = INJ.check({ text: r.text }); if (res.unscannable) over = true; n = Math.max(n, res.n); }
+        if (eng.fp) { const x = DLX.fingerprint.scan(r.text, eng.fp); if (x.timeout) fpOver = true; else if (x.hit) fpHit = true; }
+        continue;
+      }
       if (tableOn() && DLX.tabelle.XLSX_FILE(f)) {
         // XLSX: Tabellen aus den Blaettern; Zellen und Kommentare als Text fuer die bestehenden Pruefungen.
         if (f.size > INJ.LIMITS.bytes) { tabOver = true; continue; }
         let x;
         try { x = await DLX.tabelle.xlsx(await f.arrayBuffer(), topts); } catch (err) { x = { unscannable: true, text: '' }; }
         if (x.unscannable) tabOver = true; else if (x.leak) rows = Math.max(rows, x.rows);
+        if (x.text) { const d = await DLX.stuecke.scan(x.text, detect, deadline); found.push(...d.findings); per.push({ f, kind: null, findings: d.findings }); if (d.unscannable) unread = true; }
         if (x.text && hiddenOn()) { const res = INJ.check({ text: x.text }); if (res.unscannable) over = true; n = Math.max(n, res.n); }
         if (x.text && eng.fp) { const d = DLX.fingerprint.scan(x.text, eng.fp); if (d.timeout) fpOver = true; else if (d.hit) fpHit = true; }
         x = null;
@@ -714,9 +792,9 @@
       }
       // Zu gross oder unlesbar: beide Pruefungen melden es mit ihrer eigenen Aktion
       // (Fingerabdruck-Sperre greift auch hier; Auflage Pflicht-Pruefung 16.10.2026).
-      if (f.size > INJ.LIMITS.bytes) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; continue; }
+      if (f.size > INJ.LIMITS.bytes) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; unread = true; continue; }
       let t;
-      try { t = await f.text(); } catch (err) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; continue; }
+      try { t = await f.text(); } catch (err) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; unread = true; continue; }
       if (hiddenOn()) {
         const res = INJ.check(INJ.HTML_DOC(f) ? { text: t, html: t } : { text: t });
         if (res.unscannable) over = true;
@@ -727,16 +805,66 @@
         if (d.timeout) fpOver = true; else if (d.hit) fpHit = true;
       }
       if (tableOn()) { const x = DLX.tabelle.checkText(f, t, topts); if (x.unscannable) tabOver = true; else if (x.leak) rows = Math.max(rows, x.rows); }
+      if (again && again.has(f) && tooShort(t, again.get(f))) unread = true;
+      const d = await DLX.stuecke.scan(t, detect, deadline);
+      found.push(...d.findings);
+      per.push({ f, kind: D.kindOf(f.name, f.type) === 'text' && !INJ.HTML_DOC(f) ? 'text' : null, text: t, findings: d.findings });
+      if (d.unscannable) unread = true;
       t = null;
     }
-    const findings = injFindings({ n, unscannable: over })
+    } catch (err) {
+      unread = true;   // jeder Fehler = nicht pruefbar, bisherige Funde bleiben (Auflage 6)
+    } finally {
+      reading = false;
+    }
+    const acc = accountState();
+    const data = acc ? DLX.policy.accountFindings(found, acc.level) : found;
+    const findings = data.concat(unread && !tabOver ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : [], injFindings({ n, unscannable: over }))
       .concat(fpHit ? [docMatch()] : [], fpOver && eng.fp ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: eng.fp.action, sure: true }] : [])
       // Tabelle mit Personendaten: ein Ganztext-Fund mit der Zeilenzahl, nie Werte; Datei wird nie umgeschrieben (Auflage 8).
       .concat(rows && DLX.engine.actionFor('mass_list', eng) !== 'off' ? [{ id: 'mass_list', cat: 'person', start: 0, end: 0, n: rows, action: DLX.engine.actionFor('mass_list', eng), sure: true }] : [],
         tabOver ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : []);
-    if (!findings.length) { deliver(files); fileInfo(); return; }
+    if (!findings.length) {
+      // Uebergabe der bereinigten Fassung scheitert: Meldung, nie das Original (Auflage 8).
+      try { deliver(files); } catch (err) { if (!again) throw err; if (!pending) showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings: [UNREAD()], action: 'warn' }); }
+      return;
+    }
     if (pending) return;
-    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action: DLX.engine.strictest(findings) });
+    const action = DLX.engine.strictest(findings);
+    // Bereinigen anbieten (Auflage 4 MVP-Review, Auflagen 3, 9): nie bei Sperre, nur positionsbezogene
+    // Funde, jede Datei mit Fund ist TXT/CSV/MD/DOCX/PDF ohne eingebettete Teile; die Fassung wird
+    // schon jetzt gebaut, damit die Restpruefung ueber alle XML-Werte vor dem Knopf laeuft.
+    const hit = per.filter((x) => x.findings.length);
+    const fixable = !again && action !== 'block' && !findings.some(WHOLE) && hit.length > 0 && hit.every((x) => FIXABLE.includes(x.kind) && !x.partial);
+    const fix = fixable ? await cleanDocs(per) : null;
+    if (pending) return;
+    const lines = hit.length === 1 && hit[0].text ? DLX.code.linesOf(hit[0].text, hit[0].findings) : null;
+    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action, fix, loss: !!fix && hit.some((x) => x.kind === 'pdf'), lines });
+  }
+  const UNREAD = () => ({ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true });
+  const FIXABLE = ['text', 'docx', 'pdf'];
+  // Nachpruefung mit Mindestinhalt (Auflage 2): leer oder unter 90 % der erwarteten Zeichen = nicht pruefbar.
+  const solid = (s) => s.replace(/\s+/g, '').length;
+  const tooShort = (text, goal) => !String(text).trim() || solid(String(text)) < 0.9 * solid(goal);
+  // Bereinigte Fassungen (engine/bereinigen.js): gleiche Platzhalter wie beim Text-Schwaerzen,
+  // Name und Typ bleiben. Jeder Fehler = kein Knopf.
+  async function cleanDocs(per) {
+    const deadline = Date.now() + DOC_TOTAL_MS;
+    const find = async (t) => { const d = await DLX.stuecke.scan(t, detect, deadline); if (d.unscannable) throw new Error('fail'); return d.findings; };
+    const files = [], expect = new Map();
+    try {
+      for (const x of per) {
+        if (!x.findings.length) { files.push(x.f); continue; }
+        const goal = DLX.engine.redact(x.text, x.findings, placeholder);
+        const body = x.kind === 'text' ? goal : x.kind === 'pdf' ? DLX.bereinigen.pdf(goal) : await DLX.bereinigen.docx(new Uint8Array(await x.f.arrayBuffer()), find, placeholder);
+        const file = new File([body], x.f.name, { type: x.kind === 'pdf' ? 'application/pdf' : x.f.type });
+        expect.set(file, goal);
+        files.push(file);
+      }
+    } catch (err) {
+      return null;
+    }
+    return { files, expect };
   }
 
   function onInsert(e, dt) {
@@ -807,7 +935,7 @@
     stop(e);
     n.value = '';
     if (e.type === 'input') swallow = n;   // nur dann folgt noch das change des Browsers
-    if (!pending) {
+    if (!pending && !reading) {
       (img ? checkImages : checkDocs)(files, (list) => {
         if (!n.isConnected) return;
         n.files = transfer(list).files;
@@ -956,7 +1084,7 @@
       if (ui && ui.kind === 'view') return;   // Ansicht mit echten Werten bleibt offen
       const c = liveComposer && liveComposer.isConnected ? liveComposer : site.findComposer();
       liveComposer = c;
-      if (!c || pending || composing || !siteAllowed()) { hideLive(); return; }
+      if (!c || pending || composing || !siteAllowed() || paused()) { hideLive(); return; }
       const text = site.readText(c);
       // KI-Pruefung anstossen; ihr Ergebnis zeigt die naechste Runde dieses Hinweises.
       kiRequest(text, () => { if (!pending && liveComposer === c) liveCheck(); });
@@ -991,6 +1119,10 @@
   function redactLive(choice) {
     const c = liveComposer;
     hideLive();
+    redactIn(c, choice);
+  }
+  // Auch fuer das Tastenkuerzel ohne Meldung (cmd).
+  function redactIn(c, choice) {
     if (!c || !c.isConnected || !site.inComposer([c]) || pending) return;
     const text = site.readText(c);
     const res = DLX.engine.scan(text, eng);
@@ -1395,8 +1527,134 @@
     clearAnswer();
     hideRephrased();
     dropTails();
+    shareApply(null);
   }, opts);
   // Seitennachrichten werden bewusst ignoriert (kein window.message-Listener, A4).
+
+  // --- Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026, Auflagen 8, 9) ----
+  // Der Service Worker meldet nur {on, mode}. Nur waehrend des Teilens und bei sichtbarem Tab prueft
+  // ein 1,5-s-Takt das Feld und die letzte Antwort mit der vorhandenen Engine; Werte bleiben in
+  // shareCheck(), der Hinweis nennt nur Typ und Anzahl. Verdecken nur per Highlight (Darstellung),
+  // der Text bleibt unveraendert. Kein Speicher, kein Netz, keine Konsole.
+  const SHARE_MS = 1500;
+  const share = { on: false, mode: 'off', masked: false, host: null, sig: null, dismissed: null, timer: 0, hl: null, sheet: null, name: null };
+  function shareApply(s) {
+    const on = !!(s && s.on === true) && (s.mode === 'warn' || s.mode === 'mask');
+    clearTimeout(share.timer);
+    share.timer = 0;
+    if (!on) { share.on = false; share.mode = 'off'; share.masked = false; share.dismissed = null; shareHide(); shareUnmask(); return; }
+    if (!share.on || share.mode !== s.mode) share.masked = s.mode === 'mask';
+    share.on = true;
+    share.mode = s.mode;
+    shareCheck();
+    shareTick();
+  }
+  function shareTick() {
+    share.timer = setTimeout(() => { if (!share.on) return; shareCheck(); shareTick(); }, SHARE_MS);
+  }
+  function shareCheck() {
+    try {
+      if (!share.on || aiBlocked || document.visibilityState !== 'visible') { shareHide(); return; }
+      const parts = [];
+      const all = [], ranges = [];
+      const c = site.findComposer();
+      if (c && c.isContentEditable) parts.push(answerNodes(c));
+      else if (c) all.push(...(scanQuiet(site.readText(c).slice(0, ANSWER_MAX)) || []));   // textarea: nur Hinweis
+      const a = lastAnswer();
+      if (a) parts.push(answerNodes(a));
+      for (const p of parts) {
+        for (const f of scanQuiet(p.text) || []) {
+          all.push(f);
+          if (WHOLE(f) || !(f.end > f.start) || !p.nodes.length) continue;
+          const r = document.createRange();
+          r.setStart(...pointAt(p, f.start, false));
+          r.setEnd(...pointAt(p, f.end, true));
+          ranges.push(r);
+        }
+      }
+      shareMask(share.masked ? ranges : []);
+      if (!all.length) { shareHide(); return; }
+      shareShow(Array.from(DLX.engine.summarize(all), (s) => [s.id, s.n]), ranges.length > 0);
+    } catch (err) {
+      try { shareHide(); } catch (err2) { /* Hinweis von der Seite zerlegt: naechster Takt */ }
+    }
+  }
+  function shareMask(ranges) {
+    if (!g.CSS || !CSS.highlights || typeof Highlight !== 'function' || typeof CSSStyleSheet !== 'function') return;
+    if (!share.name) share.name = 'h' + Array.from(crypto.getRandomValues(new Uint8Array(8)), (x) => x.toString(16).padStart(2, '0')).join('');
+    if (!share.hl && CSS.highlights.has(share.name)) return;   // fremde Registrierung: nie ueberschreiben
+    if (!ranges.length) { shareUnmask(); return; }
+    if (!share.sheet) {
+      share.sheet = new CSSStyleSheet();
+      share.sheet.replaceSync('::highlight(' + share.name + ') { color: transparent; -webkit-text-fill-color: transparent; background-color: #1c1c20; text-decoration: none; text-shadow: none; }');
+    }
+    if (document.adoptedStyleSheets.indexOf(share.sheet) === -1) document.adoptedStyleSheets = document.adoptedStyleSheets.concat(share.sheet);
+    share.hl = new Highlight(...ranges);
+    share.hl.priority = 1000;   // vor Antwort-Markierung und Highlights der Seite (Auflage 8)
+    CSS.highlights.set(share.name, share.hl);
+  }
+  function shareUnmask() {
+    if (share.hl && g.CSS && CSS.highlights && CSS.highlights.has(share.name)) CSS.highlights.delete(share.name);
+    share.hl = null;
+  }
+  function shareHide() {
+    if (share.host) share.host.remove();
+    share.host = null;
+    share.sig = null;
+  }
+  // Hinweis in closed Shadow Root, neutrales Host-Element, nur per CSSOM (Seiten-CSP bleibt unberuehrt);
+  // entfernt die Seite ihn, kommt er erst mit dem naechsten Takt wieder (Auflage 9).
+  function shareShow(sum, maskable) {
+    const types = JSON.stringify(sum);
+    if (share.dismissed === types) { shareHide(); return; }
+    const sig = JSON.stringify([types, share.masked, maskable, lang()]);
+    if (share.host && share.host.isConnected && share.sig === sig) return;
+    shareHide();
+    const L = lang();
+    const T = (k, v) => DLX.i18n.t(L, k, Object.assign({ product: (cfg.branding && cfg.branding.productName) || '' }, v || {}));
+    const css = (el, rules) => { for (const [k, v] of Object.entries(rules)) el.style.setProperty(k, v, 'important'); };
+    const host = document.createElement('div');
+    css(host, { position: 'fixed', 'z-index': '2147483647', right: '16px', top: '16px', width: 'min(400px, calc(100vw - 32px))', display: 'block',
+      margin: '0', padding: '0', border: '0', background: 'transparent', opacity: '1', visibility: 'visible', transform: 'none', filter: 'none' });
+    const root = host.attachShadow({ mode: 'closed' });
+    const box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.lang = L;
+    css(box, { display: 'flex', gap: '10px', 'align-items': 'flex-start', 'box-sizing': 'border-box', padding: '12px 12px 12px 14px', 'border-radius': '12px',
+      background: '#1c1c20', color: '#f5f3f0', 'border-left': '4px solid #ff7a3d', 'box-shadow': '0 18px 40px -18px rgb(0 0 0 / 0.55)',
+      font: '13px/1.4 Geist, system-ui, -apple-system, "Segoe UI", sans-serif', 'text-align': 'left', 'letter-spacing': 'normal' });
+    const body = document.createElement('div');
+    css(body, { flex: '1 1 auto', 'min-width': '0' });
+    const title = document.createElement('p');
+    css(title, { margin: '0 0 4px', 'font-weight': '600', color: '#f5f3f0' });
+    title.textContent = T('shareTitle', { types: sum.map(([id, n]) => DLX.i18n.typeName(L, id) + ' (' + n + ')').join(', ') });
+    const text = document.createElement('p');
+    css(text, { margin: '0', color: 'rgb(245 243 240 / 0.72)' });
+    text.textContent = T(share.masked ? 'shareMaskedText' : maskable ? 'shareText' : 'shareTextPlain');
+    body.append(title, text);
+    if (maskable) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = T(share.masked ? 'shareUncover' : 'shareCover');
+      css(btn, { margin: '8px 0 0', cursor: 'pointer', border: '0', 'border-radius': '8px', padding: '6px 12px', background: '#ff7a3d', color: '#1c1c20',
+        font: '600 13px/1.2 Geist, system-ui, -apple-system, "Segoe UI", sans-serif' });
+      btn.addEventListener('click', (e) => { if (!e.isTrusted) return; share.masked = !share.masked; shareCheck(); });
+      body.append(btn);
+    }
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = '×';
+    close.setAttribute('aria-label', T('close'));
+    css(close, { flex: '0 0 auto', cursor: 'pointer', border: '0', background: 'transparent', color: '#f5f3f0', font: '18px/1 system-ui, sans-serif', padding: '0 2px', margin: '0' });
+    close.addEventListener('click', (e) => { if (!e.isTrusted) return; share.dismissed = types; shareHide(); });
+    box.append(body, close);
+    root.append(box);
+    document.documentElement.append(host);
+    share.host = host;
+    share.sig = sig;
+  }
+  chrome.runtime.sendMessage({ t: 'shareQuery' }).then(shareApply).catch(() => {});
+  window.addEventListener('visibilitychange', () => { if (share.on) shareCheck(); });
 
   // --- Status "Schutz aktiv/nicht aktiv" (A6, B10) ---------------------------
   function status() {

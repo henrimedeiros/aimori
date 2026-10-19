@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>AImori</displayName>
+  <description>Políticas da extensão do navegador</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_MV3">Google Chrome com extensões Manifest V3 (versão 110 ou posterior)</string>
+      <string id="cat_root">AImori (Google Chrome)</string>
+      <string id="branding">Identidade visual</string>
+      <string id="branding_help">Aparência white-label exibida no pop-up, na página de configurações e na caixa de diálogo de aviso.</string>
+      <string id="language">Idioma</string>
+      <string id="language_help">Idioma da interface. auto = idioma do navegador.</string>
+      <string id="language_auto">auto</string>
+      <string id="language_en">en</string>
+      <string id="language_de">de</string>
+      <string id="language_fr">fr</string>
+      <string id="language_it">it</string>
+      <string id="language_pt">pt</string>
+      <string id="language_es">es</string>
+      <string id="countryPacks">Pacotes por país</string>
+      <string id="countryPacks_help">Pacotes de detecção por país e região. Se definida, esta política sempre tem prioridade e desativa a seleção automática. Padrão: automático (fuso horário e região linguística, apenas localmente).</string>
+      <string id="autoCountryPacks">Pacotes por país automáticos</string>
+      <string id="autoCountryPacks_help">true: os pacotes por país seguem o fuso horário local e as regiões linguísticas (sem rede, sem acesso à localização); os usuários não podem mudar para manual. false: sem seleção automática, os usuários escolhem os pacotes. Ignorada se countryPacks estiver definida. Padrão: automático, os usuários podem alterar.</string>
+      <string id="globalPacks">Pacotes globais</string>
+      <string id="globalPacks_help">Pacotes globais de detecção (finance, secrets, contact, travel, marker = marcações e rótulos de confidencialidade, context = riscos de contexto: combinações de identidade, saúde/RH/crenças de uma pessoa, listas de clientes, community = padrões da comunidade do catálogo assinado que acompanha a extensão). Padrão: todos.</string>
+      <string id="rules">Regras por tipo de dado</string>
+      <string id="rules_help">Ação por ID de tipo de dado (veja docs/datentypen.md): off, warn, redact ou block.</string>
+      <string id="allowUserOverride">Permitir “enviar mesmo assim”</string>
+      <string id="allowUserOverride_help">Se false, os usuários não podem enviar nem colar dados detectados mesmo assim (apenas tarjar ou cancelar). Padrão: true.</string>
+      <string id="allowNotSensitive">Permitir “não é sensível”</string>
+      <string id="allowNotSensitive_help">Se false, os usuários não podem marcar valores detectados como não sensíveis, e a lista local é excluída. Só tem efeito em conjunto com allowUserOverride. Padrão: true.</string>
+      <string id="allowPlaceholders">Permitir marcadores</string>
+      <string id="allowPlaceholders_help">Se false, os usuários não podem substituir valores detectados por marcadores como [IBAN_1] nem ver respostas da IA com os valores reais; a correspondência mantida na memória é descartada. O site de IA fica sabendo o tipo e a quantidade de valores substituídos. Padrão: true.</string>
+      <string id="competenceRecord">Registro de letramento em IA</string>
+      <string id="competenceRecord_help">Se true, a extensão explica cada aviso e conta localmente, por grupo de tipos de dados e por mês, quantas explicações foram vistas e quantas vezes valores foram tarjados, o envio foi cancelado ou os dados foram enviados mesmo assim (apenas números, 13 meses, nunca sai do dispositivo). Os usuários podem imprimir um registro autodeclarado. Se false, nada é contado e os contadores locais são excluídos. Padrão: true (os usuários podem desativar).</string>
+      <string id="imageScan">Verificar imagens</string>
+      <string id="imageScan_help">Se true, imagens PNG, JPEG e WebP coladas, arrastadas ou enviadas (p. ex. capturas de tela) são lidas localmente com reconhecimento de texto e verificadas como texto; o site de IA só recebe a imagem após a verificação (original, cópia tarjada ou nada). Imagens que não puderem ser verificadas a tempo ou forem grandes demais exibem uma mensagem em vez de passar silenciosamente. Se false, as imagens são tratadas como outros arquivos (blockUncheckedFiles). Padrão: true.</string>
+      <string id="detection">Detecção</string>
+      <string id="detection_help">ki = regras mais um modelo de IA local para nomes, empresas, endereços e dados de saúde (roda no dispositivo, nada é enviado; em caso de erro, volta a usar só as regras); regeln = apenas regras. As regras sempre valem. Padrão: ki.</string>
+      <string id="detection_ki">ki</string>
+      <string id="detection_regeln">regeln</string>
+      <string id="uncertainFindings">Detecções incertas</string>
+      <string id="uncertainFindings_help">Detecções sem palavra de contexto ou com formato ambíguo (p. ex. números de telefone, números de cartão sem formatação): hint = apenas um aviso discreto durante a digitação, nunca interrompe o envio; warn = caixa de diálogo no máximo com aviso; enforce = as regras valem como para detecções certas. Padrão: hint.</string>
+      <string id="uncertainFindings_hint">hint</string>
+      <string id="uncertainFindings_warn">warn</string>
+      <string id="uncertainFindings_enforce">enforce</string>
+      <string id="allowedSites">Sites de IA permitidos</string>
+      <string id="allowedSites_help">Quais dos sites de IA compatíveis podem ser usados. Entradas nos demais sites compatíveis são bloqueadas. Padrão: todos.</string>
+      <string id="blockWhenInactive">Bloquear quando a proteção estiver inativa</string>
+      <string id="blockWhenInactive_help">Se o campo de entrada de um site compatível não puder ser reconhecido (site reformulado), bloquear o envio e a colagem. Padrão: false.</string>
+      <string id="blockUncheckedFiles">Bloquear arquivos não verificados</string>
+      <string id="blockUncheckedFiles_help">Arquivos que não sejam imagens PNG, JPEG e WebP não podem ser verificados (imagens: veja imageScan; com true, imagens que não puderem ser verificadas oferecem apenas Cancelar). Se true, uploads de arquivos, arquivos arrastados e arquivos colados nos sites de IA compatíveis são bloqueados. Padrão: false.</string>
+      <string id="aiSiteMode">Controle de sites de IA</string>
+      <string id="aiSiteMode_help">Sites de IA conhecidos (veja docs/ki-seiten-liste.md) que não estão em allowedAiSites: off = sem controle; hint = barra de aviso com texto e link da identidade visual (branding); block = a página é substituída por uma página de bloqueio. A página de bloqueio é apenas uma sobreposição; para um bloqueio rígido, use também a política do navegador URLBlocklist. Em sites diferentes dos sites de IA compatíveis, os usuários precisam permitir o acesso uma vez nas configurações da extensão (permissões de host opcionais). Se qualquer campo de sites de IA estiver definido por política, as configurações locais de sites de IA são ignoradas. Padrão: off.</string>
+      <string id="aiSiteMode_off">off</string>
+      <string id="aiSiteMode_hint">hint</string>
+      <string id="aiSiteMode_block">block</string>
+      <string id="allowedAiSites">Sites de IA aprovados</string>
+      <string id="allowedAiSites_help">IDs de sites de IA aprovados da lista (p. ex. m365copilot, chatgpt). Neles não há aviso nem bloqueio. IDs desconhecidos são ignorados. Máx. 500 entradas.</string>
+      <string id="blockedAiSites">Sites de IA bloqueados</string>
+      <string id="blockedAiSites_help">IDs de sites de IA que ficam sempre bloqueados enquanto aiSiteMode não for off, mesmo no modo de aviso. Tem prioridade sobre allowedAiSites. IDs desconhecidos são ignorados. Máx. 500 entradas.</string>
+      <string id="suggestedAiSite">Site de IA aprovado sugerido</string>
+      <string id="suggestedAiSite_help">ID do site de IA aprovado para o qual os usuários são direcionados (p. ex. m365copilot; lista: docs/ki-seiten-liste.md). Conta como aprovado. Em sites de IA não aprovados (aiSiteMode hint = aviso ou block = bloqueio), o aviso ou a página de bloqueio mostra um botão “Mudar para &lt;nome&gt;”, que abre a página inicial desse site a partir da lista integrada (somente com clique). branding.aiNoticeUrl tem prioridade. IDs desconhecidos e IDs em blockedAiSites são ignorados. Só tem efeito como política; sem política, nada acontece. Padrão: nenhum. IDs válidos: chatgpt, claude, gemini, copilot, m365copilot, perplexity, mistral, deepseek, grok, poe, characterai, you, huggingchat, metaai, qwen, kimi, zai, doubao, ernie, pi, duckai, aistudio, notebooklm, jules, githubcopilot, phind, v0, bolt, lovable, replit, genspark, manus, felo, openrouter, lmarena, deepl, jasper, copyai, writesonic, gamma, midjourney, firefly, designer, leonardo, ideogram, dreamstudio, sora, runway, heygen, synthesia, suno, elevenlabs.</string>
+      <string id="answerCheck">Verificar respostas da IA</string>
+      <string id="answerCheck_help">off = as respostas da IA não são verificadas; hint = a resposta mais recente nos sites de IA compatíveis é verificada localmente com as regras e o catálogo; dados sensíveis (chaves, dados pessoais, ...) são sublinhados discretamente e indicados em uma barra de aviso (apenas tipo e quantidade, antes e novamente depois de copiar). Copiar nunca é bloqueado; nada é enviado, armazenado ou contado. Um valor inválido conta como hint. Padrão: hint.</string>
+      <string id="answerCheck_off">off</string>
+      <string id="answerCheck_hint">hint</string>
+      <string id="sensitiveSources">Fontes confidenciais (área de transferência)</string>
+      <string id="sensitiveSources_help">Nomes de host de fontes confidenciais, p. ex. bank.example.com ou *.hr.example.com (somente https, sem caminho nem porta, no máximo um *. no início, pelo menos dois rótulos, sem sites de IA, sem endereços IP). O texto copiado nesses sites recebe uma marca temporária (apenas soma de verificação com salt, 30 minutos, só na memória do navegador, sem conteúdo). Ao colar o mesmo texto em um site de IA, aparece um aviso claro (veja sensitiveSourceAction). Os usuários precisam permitir o acesso a esses sites uma vez nas configurações da extensão (permissões de host opcionais; instalações gerenciadas não as recebem de antemão). Se definida por política, os usuários não podem adicionar nem remover fontes. Máx. 100 entradas. Padrão: vazio.</string>
+      <string id="sensitiveSourceAction">Colar de fontes confidenciais</string>
+      <string id="sensitiveSourceAction_help">warn = aviso claro, os usuários podem descartar ou colar mesmo assim (somente com allowUserOverride); block = a colagem em sites de IA é interrompida. Um valor inválido na política conta como block. Padrão: warn.</string>
+      <string id="sensitiveSourceAction_warn">warn</string>
+      <string id="sensitiveSourceAction_block">block</string>
+      <string id="hiddenInstructionScan">Procurar instruções ocultas</string>
+      <string id="hiddenInstructionScan_help">Se true, texto colado (simples e HTML) e documentos de texto enviados (.txt, .md, .csv, .tsv, .json, .xml, .html, .log, máx. 2 MB) nos sites de IA compatíveis são verificados localmente em busca de indícios de instruções ocultas: caracteres invisíveis (largura zero, controles bidi, caracteres de tag Unicode; exceto sequências de emoji, bandeiras, RTL e escritas índicas, além de um BOM inicial), texto oculto em HTML colado (display:none, visibility:hidden, hidden, opacity 0, fonte minúscula, texto na cor do fundo, muito fora da tela) e frases típicas para burlar regras em 6 idiomas. É só uma heurística: nem toda manipulação é encontrada. A mensagem mostra tipo e quantidade, nunca trechos. Nada é armazenado. Padrão: true.</string>
+      <string id="hiddenInstructionAction">Ação em caso de instruções ocultas</string>
+      <string id="hiddenInstructionAction_help">warn = mensagem, os usuários podem descartar ou continuar (somente com allowUserOverride); block = a colagem ou o upload é interrompido. Textos ou documentos acima dos limites (2 MB, tempo disponível) contam como detecção. Um valor inválido na política conta como block. Padrão: warn.</string>
+      <string id="hiddenInstructionAction_warn">warn</string>
+      <string id="hiddenInstructionAction_block">block</string>
+      <string id="formGuardSites">Sites com proteção de formulários</string>
+      <string id="formGuardSites_help">Nomes de host dos sites cujos formulários são verificados no envio, p. ex. portal.example.com ou *.hr.example.com (somente https, sem caminho nem porta, no máximo um *. no início, pelo menos dois rótulos, sem sites de IA, sem endereços IP). No envio, campos de texto, áreas de texto e áreas editáveis do formulário (exceto campos de senha, de arquivo e ocultos) são verificados localmente com a mesma detecção usada nos sites de IA, seja uma pessoa ou um agente de IA quem os preencheu. Se algo for encontrado, o envio é interrompido e uma janela própria da extensão pergunta Não enviar / Permitir envio uma vez (somente com allowUserOverride). Não cobertos: páginas que enviam dados por script em vez de um envio de formulário, form.submit(), campos ocultos. Os usuários precisam permitir o acesso a esses sites uma vez nas configurações da extensão (permissões de host opcionais). Se definida por política, os usuários não podem adicionar nem remover sites. Máx. 20 entradas. Padrão: vazio.</string>
+      <string id="copySidebarHint">Aviso ao copiar dados sensíveis (painéis laterais de IA)</string>
+      <string id="copySidebarHint_help">Se true, ao copiar texto com dados sensíveis em qualquer página https, aparece um pequeno aviso de que painéis laterais de IA e extensões de IA (p. ex. Copilot no Edge, Gemini no Chrome, Claude in Chrome) não são verificados. Só funciona depois que o usuário concede, nas configurações, o acesso opcional a todos os sites https; uma política não pode concedê-lo. O texto selecionado é verificado localmente e descartado; nada é armazenado nem enviado. Não cobertos: páginas http, iframes, cópias em outros programas. Padrão: true.</string>
+      <string id="barTheme">Cor da barra de aviso</string>
+      <string id="barTheme_help">Cor da barra de aviso acima do campo de entrada nos sites de IA. auto = segue o fundo da página (claro ou escuro); light = sempre clara; dark = sempre escura. Só a aparência muda, a verificação continua a mesma. Se definida por política, os usuários não podem alterá-la. Valor inválido conta como auto. Padrão: auto.</string>
+      <string id="barTheme_auto">auto</string>
+      <string id="barTheme_light">light</string>
+      <string id="barTheme_dark">dark</string>
+      <string id="barCompact">Barra de aviso compacta</string>
+      <string id="barCompact_help">Barra de aviso compacta para telas pequenas: 44 px em vez de 56 px, botões menores (30 px); a frase principal, o tipo de dado detectado e todos os botões de decisão continuam visíveis, a explicação continua legível para leitores de tela e em Saiba mais. auto = compacta quando a barra tem menos de 640 px; on = sempre compacta; off = nunca compacta. Se definida por política, os usuários não podem alterá-la. Valor inválido conta como auto. Padrão: auto.</string>
+      <string id="barCompact_auto">auto</string>
+      <string id="barCompact_on">on</string>
+      <string id="barCompact_off">off</string>
+      <string id="screenShareGuard">Aviso ao compartilhar a tela</string>
+      <string id="screenShareGuard_help">Quando a tela é compartilhada no navegador com Google Meet, Microsoft Teams ou Zoom (versões web) e um site de IA com dados sensíveis detectados no campo de entrada ou na última resposta está visível, um aviso cita os tipos (nunca os valores) e oferece ocultar os resultados na tela. Ocultar só muda a exibição; o texto não é alterado, armazenado nem enviado. off = sem aviso; warn = aviso com botão para ocultar; mask = os resultados são ocultados imediatamente durante o compartilhamento. Só funciona depois que o usuário concede nas configurações o acesso opcional a esses sites de reunião; uma política não pode concedê-lo. A detecção envolve a função do navegador para compartilhar a tela nesses sites e lê apenas se algo está sendo compartilhado e o tipo de superfície, nunca imagem ou som. Não coberto: aplicativos de desktop (Teams, Zoom, Meet), outros navegadores e programas, outros sites de reunião, compartilhamento iniciado em iframes, campos de entrada sem formatação (textarea: só aviso). Uma ajuda, não uma proteção (docs/bildschirm-teilen.md). Valor inválido conta como mask. Padrão: warn.</string>
+      <string id="screenShareGuard_off">off</string>
+      <string id="screenShareGuard_warn">warn</string>
+      <string id="screenShareGuard_mask">mask</string>
+      <string id="voiceMode">Modo de voz em sites de IA</string>
+      <string id="voiceMode_help">O modo de voz (ChatGPT Voice, Gemini Live, voz do Copilot, modo de voz do Claude) envia a fala direto para a IA, sem texto no campo de entrada, e por isso não pode ser verificado. O ditado no campo de entrada é verificado como texto digitado, independentemente desta política. allow = sem mensagem; warn = mensagem ao pressionar o botão do modo de voz, os usuários podem iniciá-lo uma vez por carregamento da página (somente com allowUserOverride; caso contrário, como block); block = o botão é bloqueado. Detectado por seletores fixos por site: botões que mudam após uma atualização do site, atalhos de teclado e apps para desktop e celular não são cobertos (docs/sprache-und-diktat.md). Um valor inválido conta como block. Padrão: warn.</string>
+      <string id="voiceMode_allow">allow</string>
+      <string id="voiceMode_warn">warn</string>
+      <string id="voiceMode_block">block</string>
+      <string id="documentFingerprints">Impressões digitais de documentos da empresa</string>
+      <string id="documentFingerprints_help">Detecta quando trechos extensos de documentos confidenciais da empresa são colados, enviados ou carregados como documentos de texto em sites de IA. Crie com scripts/dokumente-fingerabdruck.mjs a partir dos documentos (localmente, sem rede): apenas valores com salt truncados para 32 bits de SHA-256(salt + quebra de linha + 8 palavras normalizadas), amostrados, ordenados, em base64; sem texto em claro, sem nomes de arquivo, sem ordem. O salt e os valores podem ser lidos por usuários locais: um texto suposto pode ser confirmado, portanto não inclua documentos cuja própria redação seja secreta. Não substitui uma solução de DLP: reformulação, tradução ou imagens contornam o mecanismo. Um único campo inválido descarta a política inteira. A mensagem mostra apenas o tipo, nunca qual documento ou trecho. Máx. 100000 valores (caminho testado via GPO/Intune: até 50000).</string>
+      <string id="documentFingerprints_action_warn">warn</string>
+      <string id="documentFingerprints_action_block">block</string>
+      <string id="accountRules">Regras por conta</string>
+      <string id="accountRules_help">Regras diferentes para contas corporativas e pessoais do mesmo site de IA, detectadas apenas por sinais visíveis na página (nome do workspace ou marcador na área da conta, host). Por site: workspaces, markers, business, personal, unknown. Conta não detectada = nível mais rigoroso. Entradas de site inválidas voltam para normal. A página ou o usuário podem falsificar a área da conta: prefira hint a allow e nomes de workspace a marcadores. Se qualquer política estiver definida, as regras de conta locais são ignoradas. Veja docs/konto-regeln.md. Os limites são impostos pela extensão em qualquer caso (máx. 4 sites, máx. 20 nomes de workspace de 1-80 caracteres, allow somente para business com nomes de workspace ou o marcador de host; entradas inválidas voltam para normal); os esquemas de política do Chrome não suportam maxItems/maxLength, por isso o comprimento é verificado via pattern.</string>
+      <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_allow">allow</string>
+      <string id="accountRules_chatgpt_business_hint">hint</string>
+      <string id="accountRules_chatgpt_business_block">block</string>
+      <string id="accountRules_chatgpt_personal_normal">normal</string>
+      <string id="accountRules_chatgpt_personal_hint">hint</string>
+      <string id="accountRules_chatgpt_personal_block">block</string>
+      <string id="accountRules_chatgpt_unknown_normal">normal</string>
+      <string id="accountRules_chatgpt_unknown_hint">hint</string>
+      <string id="accountRules_chatgpt_unknown_block">block</string>
+      <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_allow">allow</string>
+      <string id="accountRules_claude_business_hint">hint</string>
+      <string id="accountRules_claude_business_block">block</string>
+      <string id="accountRules_claude_personal_normal">normal</string>
+      <string id="accountRules_claude_personal_hint">hint</string>
+      <string id="accountRules_claude_personal_block">block</string>
+      <string id="accountRules_claude_unknown_normal">normal</string>
+      <string id="accountRules_claude_unknown_hint">hint</string>
+      <string id="accountRules_claude_unknown_block">block</string>
+      <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_allow">allow</string>
+      <string id="accountRules_copilot_business_hint">hint</string>
+      <string id="accountRules_copilot_business_block">block</string>
+      <string id="accountRules_copilot_personal_normal">normal</string>
+      <string id="accountRules_copilot_personal_hint">hint</string>
+      <string id="accountRules_copilot_personal_block">block</string>
+      <string id="accountRules_copilot_unknown_normal">normal</string>
+      <string id="accountRules_copilot_unknown_hint">hint</string>
+      <string id="accountRules_copilot_unknown_block">block</string>
+      <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_allow">allow</string>
+      <string id="accountRules_m365copilot_business_hint">hint</string>
+      <string id="accountRules_m365copilot_business_block">block</string>
+      <string id="accountRules_m365copilot_personal_normal">normal</string>
+      <string id="accountRules_m365copilot_personal_hint">hint</string>
+      <string id="accountRules_m365copilot_personal_block">block</string>
+      <string id="accountRules_m365copilot_unknown_normal">normal</string>
+      <string id="accountRules_m365copilot_unknown_hint">hint</string>
+      <string id="accountRules_m365copilot_unknown_block">block</string>
+      <string id="dictionary">Dicionário da empresa</string>
+      <string id="dictionary_help">Termos da empresa como somas de verificação SHA-256: hexadecimal em minúsculas de SHA-256(salt + termo normalizado). Protege apenas contra leitura casual.</string>
+      <string id="customTerms">Termos próprios</string>
+      <string id="customTerms_help">Termos próprios (nomes de clientes, codinomes de projetos, domínios internos, siglas) apenas como somas de verificação SHA-256 com salt, nunca em texto claro: hexadecimal em minúsculas de SHA-256(UTF-8(salt + termo normalizado)). Crie com scripts/begriffe-hashen.mjs. Normalização: NFKC, minúsculas, ae/oe/ue/ss para tremas, acentos removidos; espaços, hifens, pontos e outros separadores dividem palavras; 1-5 palavras, somente palavras inteiras. O salt pode ser lido pelos usuários: protege apenas contra leitura casual. As detecções usam o tipo de dado custom_term (rules).</string>
+      <string id="internalDomains">Domínios internos</string>
+      <string id="internalDomains_help">Domínios internos da organização (por exemplo, domínios da intranet ou de servidores de arquivos) apenas como somas de verificação SHA-256 com salt, nunca em texto claro: hexadecimal em minúsculas de SHA-256(UTF-8(salt + domínio)). Crie com scripts/begriffe-hashen.mjs --domains. Normalização: caracteres invisíveis removidos, NFKC, minúsculas, IDN como punycode, sem ponto final; pelo menos dois rótulos. Um link cujo host ou domínio superior coincide é informado como tipo de dado internal_link (rules). Somente por política. Use um salt próprio, diferente do de customTerms (caso contrário o campo é descartado). O salt pode ser lido pelos usuários e nomes de domínio internos costumam ser fáceis de adivinhar: protege apenas contra leitura casual, não contra um ataque de dicionário.</string>
+      <string id="customPatterns">Padrões de detecção próprios</string>
+      <string id="customPatterns_help">Expressões regulares próprias da sua organização, relatadas como o tipo de dado “Padrão próprio (organização)” (o padrão em si nunca é exibido). Somente por política (os usuários não podem defini-la). Máx. 50 entradas; cada entrada é um objeto JSON: id (org_ + 2-40 caracteres de a-z 0-9 _), regex (código-fonte JavaScript, máx. 300 caracteres, apenas quantificadores limitados {n,m} até 64, sem * + {n,}, sem referências retroativas nem lookarounds, comprimento da correspondência 3-256), flags (&apos;&apos; ou &apos;i&apos;), category (person, finanz, sozial, gesundheit, firma, kontakt, steuer, technik, reise, id-national; padrão firma), context (máx. 20 palavras de 1-40 caracteres), requireContext (true = somente perto de uma palavra de contexto), action (warn, redact ou block; padrão warn). Uma entrada inválida descarta a lista inteira. Veja docs/muster-mitmachen.md.</string>
+      <string id="labelNames">Nomes de rótulos de confidencialidade próprios</string>
+      <string id="labelNames_help">Nomes dos rótulos de confidencialidade próprios da sua organização (p. ex. rótulos do Microsoft Purview) que aparecem como texto em documentos copiados; relatados como o tipo de dado conf_label (pacote marker). Aqui entram apenas nomes de rótulos, nunca nomes de clientes ou de projetos – para esses, use customTerms (somas de verificação). Texto em claro, somente por política (os usuários não podem defini-la), não é exibido em lugar nenhum. Comparação sem diferenciar maiúsculas e minúsculas, somente palavras inteiras. Marcações integradas (Confidential, Internal, Vertraulich, Streng vertraulich ...) não precisam de entrada. Máx. 50 nomes de 2-64 caracteres (letras, dígitos, espaço . - _ ( ) &amp; \ /); uma entrada inválida descarta a lista inteira.</string>
+      <string id="massListMin">Limite para lista de clientes</string>
+      <string id="massListMin_help">Número mínimo de entradas distintas (endereços de e-mail, números de telefone, IBANs ou linhas de uma tabela com coluna de nome/sobrenome) a partir do qual um texto conta como lista / exportação de clientes (tipo de dado mass_list, pacote context). Duplicatas contam uma vez. Permitido 3-1000, padrão 10; valores fora do intervalo mantêm o padrão.</string>
+      <string id="tableScan">Detecção de tabelas</string>
+      <string id="tableScan_help">Se true (padrão), tabelas coladas ou enviadas (TSV/CSV, Markdown, HTML, JSON, XLSX) com muitas linhas de dados pessoais contam como vazamento em massa, mesmo sem números individuais (cabeçalhos de coluna e formato dos valores; tipos de dados mass_list e mass_table, pacote context). Arquivos XLSX enviados são apenas lidos (planilhas, strings compartilhadas, comentários), nunca executados; arquivos incomuns ou grandes demais contam como não verificáveis.</string>
+      <string id="tableMinRows">Tabelas: número mínimo de linhas</string>
+      <string id="tableMinRows_help">Número de linhas de dados a partir do qual uma tabela com dados pessoais conta como vazamento em massa. Permitido 3-1000, padrão 10; valores fora do intervalo mantêm o padrão.</string>
+      <string id="tableMinColumns">Tabelas: número mínimo de colunas sensíveis</string>
+      <string id="tableMinColumns_help">Número de colunas sensíveis (nome, e-mail, telefone, data de nascimento, endereço, salário, diagnóstico ...) que uma tabela precisa ter, sendo pelo menos uma delas identificadora. Permitido 1-10, padrão 2; valores fora do intervalo mantêm o padrão.</string>
+      <string id="tableRedaction">Tabelas: tarjamento</string>
+      <string id="tableRedaction_help">columns (padrão) = Tarjar substitui apenas as células das colunas sensíveis; rows = além disso, mantém apenas o cabeçalho e 3 linhas (com as células sensíveis também tarjadas) e substitui o restante pelo número de linhas removidas.</string>
+      <string id="tableRedaction_columns">columns</string>
+      <string id="tableRedaction_rows">rows</string>
+      <string id="deobfuscation">Detectar dados ofuscados</string>
+      <string id="deobfuscation_help">Se true (padrão), a extensão também verifica variantes do texto: caracteres invisíveis, letras de largura total e semelhantes, separadores entre dígitos, dígitos escritos por extenso, texto invertido, codificação Base64/hex/URL e partes espalhadas por várias mensagens do mesmo chat (mantidas apenas na memória por 10 minutos, nunca armazenadas). Nas variantes, contam apenas valores validados por dígito verificador, segredos, endereços de e-mail e IBANs.</string>
+      <string id="allowPause">Permitir pausa</string>
+      <string id="allowPause_help">Se true (padrão), os usuários podem pausar a proteção por 15 minutos com o atalho de teclado; só são suspensos os avisos que o usuário poderia ignorar de qualquer forma. Continuam valendo as regras de bloqueio e de apenas tarjar, todos os resultados quando allowUserOverride é false, os sites de IA bloqueados, a aprovação de sites e blockWhenInactive. As pausas não são contadas. Se false, não é possível pausar e uma pausa em andamento termina imediatamente.</string>
+      <string id="allowRephrase">Permitir “Reformular com segurança”</string>
+      <string id="allowRephrase_help">Se true (padrão), o aviso oferece “Reformular com segurança”: detalhes sensíveis são substituídos localmente por descrições genéricas (p. ex. um paciente de meia-idade com uma doença crônica), enquanto a pergunta continua a mesma. O resultado aparece no campo de entrada como prévia e pode ser desfeito; ao enviar, ele é verificado novamente. Não é oferecido quando a ação é Bloquear.</string>
+      <string id="identityMinParts">Combinação de identidade: partes necessárias</string>
+      <string id="identityMinParts_help">Número de partes a partir do qual nome + data de nascimento contam como identidade (tipo de dado identity_combo, pacote context): 2 = nome e data de nascimento, 3 = mais endereço, telefone, e-mail ou número de documento (padrão), 4 = mais dois desses. Permitido 2-4; valores fora do intervalo mantêm o padrão.</string>
+      <string id="competenceHideSensitive">Registro de letramento em IA: sempre ocultar grupos sensíveis</string>
+      <string id="competenceHideSensitive_help">Se true, o registro de letramento em IA nunca mostra os grupos saúde, dados pessoais e identificação nacional (os usuários não podem exibi-los). Contagens por usuário sobre saúde ou crenças poderiam, de outra forma, permitir o monitoramento de funcionários. Padrão: false (os usuários decidem).</string>
+      <string id="complianceReport">Relatório de evidências</string>
+      <string id="complianceReport_help">Se true (padrão), os usuários podem abrir um relatório local apenas com números (detecções por tipo de dado, site de IA e ação, regras ativas) e sua correspondência com leis e normas, imprimi-lo ou baixá-lo como arquivo HTML. A extensão nunca armazena arquivos por conta própria; colete os arquivos exportados apenas com suas próprias ferramentas, consolide-os com scripts/bericht-sammeln.mjs, exclua depois os arquivos individuais, use os números apenas como evidência (não para monitorar desempenho ou comportamento) e informe os funcionários com antecedência. False: a página do relatório mostra apenas um aviso.</string>
+      <string id="complianceFrameworks">Relatório de evidências: referenciais</string>
+      <string id="complianceFrameworks_help">Modelos de correspondência exibidos no relatório, fixos para os usuários: revdsg (nLPD suíça), dsgvo (RGPD da UE), hipaa (HIPAA dos EUA), euaiact (Regulamento de IA da UE, art. 4.º), iso27001 (ISO/IEC 27001:2022, Anexo A). Valores desconhecidos descartam a lista (padrão: todos).</string>
+      <string id="trainingAmpel">Semáforo de treinamento de IA</string>
+      <string id="trainingAmpel_help">Se true (padrão), o ícone da barra de ferramentas mostra, em sites de IA conhecidos, se as entradas são usadas por padrão para treinar os modelos (verde = não, amarelo = em parte ou incerto, vermelho = sim), considerando o tipo de conta de accountRules, e o pop-up explica isso e leva à configuração de exclusão (opt-out) do provedor. Os dados acompanham a extensão (fonte do provedor e data por site); nada é baixado. False: sem semáforo e sem seção no pop-up.</string>
+      <string id="complianceReportDays">Relatório de evidências: período em dias</string>
+      <string id="complianceReportDays_help">Período do relatório, fixo para os usuários: 7, 30 ou 90 dias. Outros valores mantêm o padrão de 30.</string>
+      <string id="reportingUrl">URL de relatórios (reservada)</string>
+      <string id="reportingUrl_help">Reservada para um futuro endpoint de relatórios (p. ex. CIPP). Não é usada por esta versão; a extensão não tem acesso à rede.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="branding">
+        <textBox refId="branding_productName">
+          <label>Nome do produto</label>
+        </textBox>
+        <textBox refId="branding_companyName">
+          <label>Nome da empresa</label>
+        </textBox>
+        <textBox refId="branding_logo">
+          <label>Logotipo</label>
+        </textBox>
+        <textBox refId="branding_primaryColor">
+          <label>Cor primária</label>
+        </textBox>
+        <textBox refId="branding_accentColor">
+          <label>Cor de destaque</label>
+        </textBox>
+        <textBox refId="branding_supportUrl">
+          <label>Link de suporte</label>
+        </textBox>
+        <textBox refId="branding_supportText">
+          <label>Texto de suporte</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeText">
+          <label>Texto do aviso em sites de IA</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeUrl">
+          <label>Link do aviso em sites de IA</label>
+        </textBox>
+        <textBox refId="branding_aiNoticeLinkText">
+          <label>Texto do link do aviso em sites de IA</label>
+        </textBox>
+      </presentation>
+      <presentation id="language">
+        <dropdownList refId="language" noSort="true">Idioma</dropdownList>
+      </presentation>
+      <presentation id="countryPacks">
+        <listBox refId="countryPacks">Pacotes por país</listBox>
+      </presentation>
+      <presentation id="globalPacks">
+        <listBox refId="globalPacks">Pacotes globais</listBox>
+      </presentation>
+      <presentation id="rules">
+        <listBox refId="rules">Regras por tipo de dado</listBox>
+      </presentation>
+      <presentation id="detection">
+        <dropdownList refId="detection" noSort="true">Detecção</dropdownList>
+      </presentation>
+      <presentation id="uncertainFindings">
+        <dropdownList refId="uncertainFindings" noSort="true">Detecções incertas</dropdownList>
+      </presentation>
+      <presentation id="allowedSites">
+        <listBox refId="allowedSites">Sites de IA permitidos</listBox>
+      </presentation>
+      <presentation id="aiSiteMode">
+        <dropdownList refId="aiSiteMode" noSort="true">Controle de sites de IA</dropdownList>
+      </presentation>
+      <presentation id="allowedAiSites">
+        <listBox refId="allowedAiSites">Sites de IA aprovados</listBox>
+      </presentation>
+      <presentation id="blockedAiSites">
+        <listBox refId="blockedAiSites">Sites de IA bloqueados</listBox>
+      </presentation>
+      <presentation id="suggestedAiSite">
+        <textBox refId="suggestedAiSite">
+          <label>Site de IA aprovado sugerido</label>
+        </textBox>
+      </presentation>
+      <presentation id="answerCheck">
+        <dropdownList refId="answerCheck" noSort="true">Verificar respostas da IA</dropdownList>
+      </presentation>
+      <presentation id="sensitiveSources">
+        <listBox refId="sensitiveSources">Fontes confidenciais (área de transferência)</listBox>
+      </presentation>
+      <presentation id="sensitiveSourceAction">
+        <dropdownList refId="sensitiveSourceAction" noSort="true">Colar de fontes confidenciais</dropdownList>
+      </presentation>
+      <presentation id="hiddenInstructionAction">
+        <dropdownList refId="hiddenInstructionAction" noSort="true">Ação em caso de instruções ocultas</dropdownList>
+      </presentation>
+      <presentation id="formGuardSites">
+        <listBox refId="formGuardSites">Sites com proteção de formulários</listBox>
+      </presentation>
+      <presentation id="barTheme">
+        <dropdownList refId="barTheme" noSort="true">Cor da barra de aviso</dropdownList>
+      </presentation>
+      <presentation id="barCompact">
+        <dropdownList refId="barCompact" noSort="true">Barra de aviso compacta</dropdownList>
+      </presentation>
+      <presentation id="screenShareGuard">
+        <dropdownList refId="screenShareGuard" noSort="true">Aviso ao compartilhar a tela</dropdownList>
+      </presentation>
+      <presentation id="voiceMode">
+        <dropdownList refId="voiceMode" noSort="true">Modo de voz em sites de IA</dropdownList>
+      </presentation>
+      <presentation id="documentFingerprints">
+        <textBox refId="documentFingerprints_salt">
+          <label>Salt</label>
+        </textBox>
+        <decimalTextBox refId="documentFingerprints_shingle" defaultValue="8">Palavras por impressão digital</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_sample" defaultValue="4">Amostragem</decimalTextBox>
+        <decimalTextBox refId="documentFingerprints_minMatches" defaultValue="4">Mínimo de correspondências</decimalTextBox>
+        <dropdownList refId="documentFingerprints_action" noSort="true">Ação</dropdownList>
+        <listBox refId="documentFingerprints_data">Dados das impressões digitais</listBox>
+      </presentation>
+      <presentation id="accountRules">
+        <listBox refId="accountRules_chatgpt_workspaces">ChatGPT: nomes de workspace</listBox>
+        <listBox refId="accountRules_chatgpt_markers">ChatGPT: marcadores</listBox>
+        <dropdownList refId="accountRules_chatgpt_business" noSort="true">ChatGPT: conta corporativa</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_personal" noSort="true">ChatGPT: conta pessoal</dropdownList>
+        <dropdownList refId="accountRules_chatgpt_unknown" noSort="true">ChatGPT: conta não detectada</dropdownList>
+        <listBox refId="accountRules_claude_workspaces">Claude: nomes de workspace</listBox>
+        <listBox refId="accountRules_claude_markers">Claude: marcadores</listBox>
+        <dropdownList refId="accountRules_claude_business" noSort="true">Claude: conta corporativa</dropdownList>
+        <dropdownList refId="accountRules_claude_personal" noSort="true">Claude: conta pessoal</dropdownList>
+        <dropdownList refId="accountRules_claude_unknown" noSort="true">Claude: conta não detectada</dropdownList>
+        <listBox refId="accountRules_copilot_workspaces">Microsoft Copilot (copilot.com): nomes de workspace</listBox>
+        <listBox refId="accountRules_copilot_markers">Microsoft Copilot (copilot.com): marcadores</listBox>
+        <dropdownList refId="accountRules_copilot_business" noSort="true">Microsoft Copilot (copilot.com): conta corporativa</dropdownList>
+        <dropdownList refId="accountRules_copilot_personal" noSort="true">Microsoft Copilot (copilot.com): conta pessoal</dropdownList>
+        <dropdownList refId="accountRules_copilot_unknown" noSort="true">Microsoft Copilot (copilot.com): conta não detectada</dropdownList>
+        <listBox refId="accountRules_m365copilot_workspaces">Microsoft 365 Copilot: nomes de workspace</listBox>
+        <listBox refId="accountRules_m365copilot_markers">Microsoft 365 Copilot: marcadores</listBox>
+        <dropdownList refId="accountRules_m365copilot_business" noSort="true">Microsoft 365 Copilot: conta corporativa</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_personal" noSort="true">Microsoft 365 Copilot: conta pessoal</dropdownList>
+        <dropdownList refId="accountRules_m365copilot_unknown" noSort="true">Microsoft 365 Copilot: conta não detectada</dropdownList>
+      </presentation>
+      <presentation id="dictionary">
+        <textBox refId="dictionary_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="dictionary_hashes">Somas de verificação dos termos</listBox>
+      </presentation>
+      <presentation id="customTerms">
+        <textBox refId="customTerms_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="customTerms_hashes">Somas de verificação dos termos</listBox>
+      </presentation>
+      <presentation id="internalDomains">
+        <textBox refId="internalDomains_salt">
+          <label>Salt</label>
+        </textBox>
+        <listBox refId="internalDomains_hashes">Somas de verificação dos domínios</listBox>
+      </presentation>
+      <presentation id="customPatterns">
+        <listBox refId="customPatterns">Padrões de detecção próprios</listBox>
+      </presentation>
+      <presentation id="labelNames">
+        <listBox refId="labelNames">Nomes de rótulos de confidencialidade próprios</listBox>
+      </presentation>
+      <presentation id="massListMin">
+        <decimalTextBox refId="massListMin" defaultValue="10">Limite para lista de clientes</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinRows">
+        <decimalTextBox refId="tableMinRows" defaultValue="10">Tabelas: número mínimo de linhas</decimalTextBox>
+      </presentation>
+      <presentation id="tableMinColumns">
+        <decimalTextBox refId="tableMinColumns" defaultValue="2">Tabelas: número mínimo de colunas sensíveis</decimalTextBox>
+      </presentation>
+      <presentation id="tableRedaction">
+        <dropdownList refId="tableRedaction" noSort="true">Tabelas: tarjamento</dropdownList>
+      </presentation>
+      <presentation id="identityMinParts">
+        <decimalTextBox refId="identityMinParts" defaultValue="3">Combinação de identidade: partes necessárias</decimalTextBox>
+      </presentation>
+      <presentation id="complianceFrameworks">
+        <listBox refId="complianceFrameworks">Relatório de evidências: referenciais</listBox>
+      </presentation>
+      <presentation id="complianceReportDays">
+        <decimalTextBox refId="complianceReportDays" defaultValue="30">Relatório de evidências: período em dias</decimalTextBox>
+      </presentation>
+      <presentation id="reportingUrl">
+        <textBox refId="reportingUrl">
+          <label>URL de relatórios (reservada)</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

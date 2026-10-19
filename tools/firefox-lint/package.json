@@ -1,0 +1,9 @@
+{
+  "name": "dlx-firefox-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Nur Entwicklung: addons-linter (Engine von web-ext lint) prueft das Firefox-Paket aus scripts/pack-firefox.mjs offline. Installieren nur mit npm ci --ignore-scripts --prefix tools/firefox-lint; wird nie ausgeliefert.",
+  "devDependencies": {
+    "addons-linter": "10.14.0"
+  }
+}

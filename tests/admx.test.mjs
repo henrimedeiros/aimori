@@ -134,4 +134,5 @@ test('ADMX-Vorgaben der verschachtelten Zahlen = Standard der Erweiterung', () =
   assert.match(admx, /<list id="documentFingerprints_data" key="[^"]+\\policy\\documentFingerprints\\data" valuePrefix="" \/>/);
   assert.match(admx, /<decimal id="documentFingerprints_sample" [^>]*valueName="sample" minValue="1" maxValue="64"/);
   assert.match(admx, /<enum id="voiceMode" /);
+  assert.match(admx, /<enum id="screenShareGuard" /);
 });

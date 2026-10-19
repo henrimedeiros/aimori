@@ -185,10 +185,10 @@ test('Ueberschreiben und zurueck auf Automatisch', () => {
 test('cfg fuer Content Scripts enthaelt weder Zeitzone noch Sprachen noch Gruende', () => {
   const e = plain(P.effective({ autoCountryPacks: true }, { countryMode: 'manual' }, { timeZone: 'Europe/Zurich', languages: ['pt-BR', 'en-US'] }));
   // aiSiteMode/allowedAiSites/blockedAiSites entfernt der Service Worker vor dem Senden (tests/aisites.test.mjs).
-  assert.deepEqual(Object.keys(e.cfg).sort(), ['accountRules', 'aiSiteMode', 'allowNotSensitive', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedAiSites', 'allowedSites', 'answerCheck',
-    'blockUncheckedFiles', 'blockWhenInactive', 'blockedAiSites', 'branding', 'competenceHideSensitive', 'competenceRecord', 'complianceFrameworks', 'complianceReport',
+  assert.deepEqual(Object.keys(e.cfg).sort(), ['accountRules', 'aiSiteMode', 'allowNotSensitive', 'allowPause', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedAiSites', 'allowedSites', 'answerCheck',
+    'barCompact', 'barTheme', 'blockUncheckedFiles', 'blockWhenInactive', 'blockedAiSites', 'branding', 'competenceHideSensitive', 'competenceRecord', 'complianceFrameworks', 'complianceReport',
     'complianceReportDays', 'copySidebarHint', 'countryPacks', 'customPatterns', 'customTerms', 'deobfuscation', 'detection', 'dictionary', 'documentFingerprints', 'formGuardSites', 'globalPacks',
-    'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'imageScan', 'labelNames', 'language', 'massListMin', 'rules', 'sensitiveSourceAction', 'sensitiveSources',
+    'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'imageScan', 'internalDomains', 'labelNames', 'language', 'massListMin', 'rules', 'screenShareGuard', 'sensitiveSourceAction', 'sensitiveSources',
     'suggestedAiSite', 'tableMinColumns', 'tableMinRows', 'tableRedaction', 'tableScan', 'trainingAmpel', 'uncertainFindings', 'userTerms', 'voiceMode']);
   const s = JSON.stringify(e.cfg);
   for (const w of ['Europe', 'Zurich', 'pt-BR', 'en-US', 'timezone', 'region', 'reasons']) assert.ok(!s.includes(w), w);

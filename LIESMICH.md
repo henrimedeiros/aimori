@@ -222,9 +222,9 @@ npm run check
 | Ordner | Inhalt |
 |---|---|
 | `extension/` | Erweiterung: `manifest.json`, `managed_schema.json`, `branding.js` (einzige Stelle mit dem Namen im Code), `engine/` (Erkennung, Pakete), `common/` (Richtlinie, Texte, Zähler), `content/` (Content Script, Seitenadapter), `ui/` (Dialog, Popup, Einstellungen), `_locales/` (en, de, fr, it, pt, es) |
-| `enterprise/` | ADMX/ADML (Edge, Chrome; en-US, de-DE), PowerShell Deploy/Detect/Remove, Beispiel-Richtlinien |
+| `enterprise/` | ADMX/ADML (Edge, Chrome; en-US, de-DE, fr-FR, it-IT, es-ES, pt-BR; Übersetzungen in `admx-texte/`), PowerShell Deploy/Detect/Remove, Beispiel-Richtlinien, `firefox/policies.json` |
 | `muster/` | Signierter Gemeinschafts-Katalog für Erkennungsmuster |
-| `scripts/` | ADMX- und Doku-Erzeuger, Prüfskript, Icon-Erzeuger, Store-Paket, E2E-Prüfung in Edge |
+| `scripts/` | ADMX- und Doku-Erzeuger, Prüfskript, Icon-Erzeuger, Store-Paket, Firefox-Paket, E2E-Prüfung in Edge |
 | `tests/` | Unit-Tests (node:test) |
 | `docs/` | Doku, Übersicht in [docs/README.md](docs/README.md); Sicherheits-Reviews je Funktion unter `docs/sicherheit/` |
 

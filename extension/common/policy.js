@@ -7,7 +7,7 @@
   'use strict';
   const DLX = g.DLX;
 
-  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot'];
+  const SITES = ['chatgpt', 'claude', 'gemini', 'copilot', 'm365copilot', 'perplexity'];
   const COUNTRY = ['CH', 'DE', 'AT', 'FR', 'IT', 'BE', 'NL', 'US', 'BR', 'LI', 'ES', 'PT', 'LU', 'SE', 'DK', 'NO', 'FI', 'IS', 'IE', 'GB', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'HR', 'SI', 'GR', 'CY', 'MT', 'EE', 'LT', 'LV', 'CA', 'MX', 'AR', 'CL', 'CO', 'IN', 'CN', 'JP', 'KR', 'SG', 'AU', 'NZ', 'ZA', 'TR', 'IL', 'AE', 'SA', 'NG', 'EU'];
   const GLOBAL = ['finance', 'secrets', 'contact', 'travel', 'marker', 'context', 'community'];
   const LANGS = ['auto', 'en', 'de', 'fr', 'it', 'pt', 'es'];
@@ -38,18 +38,25 @@
   const SOURCE_ACTIONS = ['warn', 'block'];
   // Versteckte Anweisungen (Design-Review KI-Agenten 16.10.2026, Auflage 6).
   const HIDDEN_ACTIONS = ['warn', 'block'];
-  const USER_KEYS = ['language', 'countryMode', 'countryPacks', 'globalPacks', 'rules', 'competenceRecord', 'imageScan', 'detection', 'answerCheck', 'sensitiveSources', 'sensitiveSourceAction', 'hiddenInstructionScan', 'hiddenInstructionAction', 'formGuardSites', 'copySidebarHint'];
+  const USER_KEYS = ['language', 'countryMode', 'countryPacks', 'globalPacks', 'rules', 'competenceRecord', 'imageScan', 'detection', 'answerCheck', 'sensitiveSources', 'sensitiveSourceAction', 'hiddenInstructionScan', 'hiddenInstructionAction', 'formGuardSites', 'copySidebarHint', 'barTheme', 'barCompact', 'screenShareGuard'];
+  // Darstellung der Warnleiste (Design-Review Warnleiste anpassbar 17.10.2026, Auflage 1): nur diese
+  // festen Strings; alles andere = auto (nur Darstellung, keine Schutzwirkung).
+  const BAR_THEMES = ['auto', 'light', 'dark'];
+  const BAR_COMPACT = ['auto', 'on', 'off'];
   // Formularwache: hoechstens 20 Seiten (Design-Review KI-Agenten 16.10.2026, Auflage 12).
   const MAX_FORM_SITES = 20;
   // Sprachmodus und Dokument-Fingerabdruecke (Design-Review Diktat und Fingerabdruecke 16.10.2026):
   // beide nur aus der verwalteten Richtlinie. Fingerabdruecke: hoechstens 100000 Werte in
   // hoechstens 200 Base64-Stuecken zu je hoechstens 8192 Zeichen (Auflagen 12, 15).
   const VOICE_MODES = ['allow', 'warn', 'block'];
+  // Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026): off | warn | mask.
+  const SHARE_MODES = ['off', 'warn', 'mask'];
   const FP_ACTIONS = ['warn', 'block'];
   const MAX_FP = 100000, MAX_FP_PARTS = 200, MAX_FP_PART = 8192;
   const FP_KEYS = ['salt', 'shingle', 'sample', 'minMatches', 'action', 'data'];
   const MAX_HASHES = 20000;
   const MAX_USER_TERMS = 1000;
+  const MAX_DOMAINS = 5000;
   // Eigene Label-Namen (Design-Review Geheimnisse/Vermerke, Auflagen 1 und 4; Grenzen 50 x 64
   // nach Auflage der Pflicht-Pruefung 14.10.2026). Keine Regex-Syntax: nur Buchstaben, Ziffern, . - _ ( ) & \ /.
   const MAX_LABELS = 50;
@@ -170,7 +177,7 @@
   }
 
   function knownRuleIds() {
-    const ids = new Set(['dictionary', 'custom_term']);
+    const ids = new Set(['dictionary', 'custom_term', 'internal_link']);
     if (DLX.engine) for (const d of DLX.engine.allDetectors()) ids.add(d.id);
     return ids;
   }
@@ -397,11 +404,21 @@
           if (HIDDEN_ACTIONS.indexOf(v) !== -1) value.hiddenInstructionAction = v;
           else { errors.push(key); if (!user) value.hiddenInstructionAction = 'block'; }
           break;
+        case 'barTheme': case 'barCompact':
+          // Lokal ungueltig = ignoriert (Standard auto), in der Richtlinie = auto und gesperrt.
+          if (typeof v === 'string' && (key === 'barTheme' ? BAR_THEMES : BAR_COMPACT).includes(v)) value[key] = v;
+          else { errors.push(key); if (!user) value[key] = 'auto'; }
+          break;
         case 'voiceMode':
           // Nur verwaltet; ungueltig = block (fail-closed, Auflage 5).
           if (user) { errors.push('unknown:' + key); break; }
           if (VOICE_MODES.indexOf(v) !== -1) value.voiceMode = v;
           else { errors.push(key); value.voiceMode = 'block'; }
+          break;
+        case 'screenShareGuard':
+          // Ungueltig in der Richtlinie = mask (strengste Stufe), lokal = Standard warn.
+          if (SHARE_MODES.indexOf(v) !== -1) value.screenShareGuard = v;
+          else { errors.push(key); if (!user) value.screenShareGuard = 'mask'; }
           break;
         case 'documentFingerprints': {
           // Nur verwaltet; ungueltig = ganzer Block verworfen, Fehler nennt nur den Schluessel (Auflage 12).
@@ -421,6 +438,8 @@
         case 'copySidebarHint':
         // Tabellen, Verschleierung, Umformulieren (Design-Review 16.10.2026): nur verwaltet (nicht in USER_KEYS).
         case 'tableScan': case 'deobfuscation': case 'allowRephrase':
+        // Pause per Tastenkuerzel (Design-Review Alltag 14.10.2026, Auflage 7): nur verwaltet.
+        case 'allowPause':
           if (typeof v === 'boolean') value[key] = v; else errors.push(key);
           break;
         case 'dictionary': {
@@ -434,6 +453,18 @@
           if (key === 'userTerms' && !user) { errors.push('unknown:' + key); break; }
           const t = termSet(v, key === 'userTerms' ? MAX_USER_TERMS : MAX_HASHES);
           if (t) value[key] = t; else errors.push(key);
+          break;
+        }
+        case 'internalDomains': {
+          // Interne Domains nur aus der verwalteten Richtlinie, nur gesalzene Pruefsummen; streng
+          // (klein-Hex, max. 5000, Duplikate weg), ein Fehler verwirft das ganze Feld, Fehler nennen
+          // nur den Schluessel (Design-Review interne Links 17.10.2026, Auflage 7).
+          if (user) { errors.push('unknown:' + key); break; }
+          const hex = (x) => typeof x === 'string' && /^[0-9a-f]{64}$/.test(x);
+          if (isObj(v) && Object.keys(v).every((k) => k === 'salt' || k === 'hashes') && hex(v.salt) &&
+            Array.isArray(v.hashes) && v.hashes.length <= MAX_DOMAINS && v.hashes.every(hex)) {
+            value.internalDomains = { salt: v.salt, hashes: Array.from(new Set(v.hashes)) };
+          } else errors.push(key);
           break;
         }
         case 'labelNames': {
@@ -508,6 +539,11 @@
         default:
           errors.push('unknown:' + key);
       }
+    }
+    // Eigenes Salz je Feld: dasselbe Salz wie customTerms verwirft internalDomains (Auflage 7).
+    if (value.internalDomains && isObj(raw.customTerms) && raw.customTerms.salt === value.internalDomains.salt) {
+      delete value.internalDomains;
+      errors.push('internalDomains');
     }
     return { value, errors };
   }
@@ -613,6 +649,7 @@
       dictionary: null,
       customTerms: null,
       userTerms: null,
+      internalDomains: null,
       labelNames: null,
       customPatterns: null,
       massListMin: 10,
@@ -623,6 +660,7 @@
       tableRedaction: 'columns',
       deobfuscation: true,
       allowRephrase: true,
+      allowPause: true,
       competenceHideSensitive: false,
       complianceReport: true,
       complianceFrameworks: FRAMEWORKS.slice(),
@@ -636,6 +674,9 @@
       formGuardSites: [],
       copySidebarHint: true,
       voiceMode: 'warn',
+      barTheme: 'auto',
+      barCompact: 'auto',
+      screenShareGuard: 'warn',
       documentFingerprints: null,
     };
   }
@@ -755,16 +796,19 @@
     // Jede Liste mit eigenem Salz, nie vermischt (Auflage 6).
     const terms = [cfg.customTerms, cfg.userTerms].filter((x) => x && x.hashes.length)
       .map((x) => DLX.dictionary.termList(x.salt, x.hashes)).filter(Boolean);
+    // Interne Domains: eigenes Salz, nie mit customTerms vermischt (Design-Review interne Links, Auflage 7).
+    const domains = cfg.internalDomains && cfg.internalDomains.hashes.length
+      ? [{ salt: cfg.internalDomains.salt, hashes: new Set(cfg.internalDomains.hashes) }] : null;
     // Eigene Label-Namen: Muster hier einmal je Richtlinien-Aenderung bauen (Auflage 4).
     const labels = cfg.labelNames && DLX.markers ? DLX.markers.compile(cfg.labelNames) : null;
     // Eigene Muster (Richtlinie customPatterns): einmal je Richtlinien-Aenderung bauen.
     const org = cfg.customPatterns && DLX.muster ? DLX.muster.orgDetectors(cfg.customPatterns) : null;
     // Dokument-Fingerabdruecke: nur wo engine/fingerabdruck.js geladen ist (Content Script).
     const fp = cfg.documentFingerprints && DLX.fingerprint ? DLX.fingerprint.compile(cfg.documentFingerprints, fpValues(cfg.documentFingerprints.data)) : null;
-    return { packs, rules: cfg.rules, dictionary, terms, labels, org, fp, ignore: ign, massMin: cfg.massListMin, idParts: cfg.identityMinParts,
+    return { packs, rules: cfg.rules, dictionary, terms, domains, labels, org, fp, ignore: ign, massMin: cfg.massListMin, idParts: cfg.identityMinParts,
       tableScan: cfg.tableScan, tableMinRows: cfg.tableMinRows, tableMinColumns: cfg.tableMinColumns, tableRedaction: cfg.tableRedaction, deobfuscation: cfg.deobfuscation };
   }
 
-  DLX.policy = { TABLE_REDACTION, VOICE_MODES, FP_ACTIONS, MAX_FP, fpValues, ANSWER_MODES, SOURCE_ACTIONS, HIDDEN_ACTIONS, MAX_FORM_SITES, FRAMEWORKS, REPORT_DAYS, SITES, COUNTRY, GLOBAL, LANGS, ACTIONS, UNCERTAIN, DETECTION, AI_MODES, AI_KEYS, USER_KEYS, MAX_HASHES, MAX_USER_TERMS, MAX_LABELS, validate, defaults, effective, engineConfig, aiDecision, aiSuggestion, countriesForLocale, detectCountries,
+  DLX.policy = { BAR_THEMES, BAR_COMPACT, TABLE_REDACTION, VOICE_MODES, SHARE_MODES, FP_ACTIONS, MAX_FP, fpValues, ANSWER_MODES, SOURCE_ACTIONS, HIDDEN_ACTIONS, MAX_FORM_SITES, FRAMEWORKS, REPORT_DAYS, SITES, COUNTRY, GLOBAL, LANGS, ACTIONS, UNCERTAIN, DETECTION, AI_MODES, AI_KEYS, USER_KEYS, MAX_HASHES, MAX_USER_TERMS, MAX_DOMAINS, MAX_LABELS, validate, defaults, effective, engineConfig, aiDecision, aiSuggestion, countriesForLocale, detectCountries,
     ACCOUNT_LEVELS, ACCOUNT_TYPES, ACCOUNT_MARKERS, normName, accountLevel, accountFindings };
 })(globalThis);

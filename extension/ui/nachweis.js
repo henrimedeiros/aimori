@@ -10,7 +10,7 @@
   const K = DLX.kompetenz;
   const st = await chrome.runtime.sendMessage({ t: 'kompetenz' });
   const b = st.branding;
-  const lang = DLX.i18n.resolveLang(st.language, navigator.language);
+  const lang = await DLX.i18n.ready(st.language, navigator.language);
   const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: b.productName, company: b.companyName }, v || {}));
   document.documentElement.lang = lang;
   DLX.dom.applyBranding(b, false);

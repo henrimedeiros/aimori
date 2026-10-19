@@ -7,7 +7,8 @@ import { load, ENGINE_FILES } from './helpers/load.mjs';
 
 class Node {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {}; this.text = ''; this.style = {}; this.disabled = false; this.parent = null;
-    this.classList = { set: new Set(), add: (c) => this.classList.set.add(c), remove: (c) => this.classList.set.delete(c) }; }
+    this.classList = { set: new Set(), add: (c) => this.classList.set.add(c), remove: (c) => this.classList.set.delete(c),
+      toggle: (c, on) => (on ? this.classList.set.add(c) : this.classList.set.delete(c)) }; }
   setAttribute(k, v) { this.attrs[k] = String(v); }
   getAttribute(k) { return Object.hasOwn(this.attrs, k) ? this.attrs[k] : null; }
   hasAttribute(k) { return Object.hasOwn(this.attrs, k); }
@@ -25,7 +26,7 @@ class Node {
   all(pred, out = []) { for (const c of this.children) { if (pred(c)) out.push(c); c.all(pred, out); } return out; }
 }
 
-function setup(first) {
+function setup(first, innerWidth) {
   const doc = { body: new Node('body'), documentElement: new Node('html'), hidden: false, listeners: {} };
   doc.documentElement.style.setProperty = () => {};
   doc.createElement = (t) => new Node(t);
@@ -53,7 +54,7 @@ function setup(first) {
     disconnect() { this.off = true; }
     fire(visible, target) { this.cb([{ target: target || this.targets[0], isVisible: visible }]); }
   }
-  const win = { addEventListener: () => {} };
+  const win = { addEventListener: () => {}, innerWidth };
   win.top = {};
   const ctx = {
     document: doc, window: win, chrome, navigator: { language: 'de-CH' }, innerHeight: 44, IntersectionObserver: IO,
@@ -483,4 +484,48 @@ test('Umformulieren: Knopf nur bei Senden/Einfuegen mit allowRephrase; Leiste da
   const p = setup(Object.assign({}, LIVE, { mode: 'rephrased', reason: 'paste', allowRephrase: true }));
   await p.flush();
   assert.equal(p.button('undo'), undefined, 'beim Einfuegen kein Rueckgaengig');
+});
+// Design-Review Warnleiste anpassbar 17.10.2026, Auflage 5: kompakt = feste Klasse, 44 px,
+// Kernsatz, Fundart, alle Knoepfe und die Erklaerung (Screenreader) bleiben; Thema nur hell/dunkel.
+test('Warnleiste kompakt: on/off/auto (schmaler als 640 px), 44 bzw. ab 76 px, nichts entfernt', async () => {
+  try {
+    Node.layout = { sw: 500, cw: 500, h: 0 };
+    const voll = setup(SEND, 1000);
+    await voll.flush();
+    const on = setup(Object.assign({}, SEND, { compact: 'on' }), 1000);
+    await on.flush();
+    const bar = on.doc.body.children[0];
+    assert.equal(bar.classList.set.has('dlx-kompakt'), true);
+    assert.deepEqual(sizes(on), [], 'Ziel 44 px = Hoehe der Attrappe (innerHeight 44): keine Meldung');
+    const knoepfe = (s) => s.doc.body.all((n) => n.tagName === 'BUTTON').map((b) => b.getAttribute('data-k'));
+    assert.deepEqual(knoepfe(on), knoepfe(voll), 'dieselben Knoepfe wie normal');
+    assert.equal(on.doc.body.textContent, voll.doc.body.textContent, 'derselbe Text samt Erklaerung');
+    assert.ok(on.doc.body.all((n) => n.getAttribute('class') === 'dlx-bar-warum').length === 1, 'Erklaerung bleibt im DOM');
+    assert.equal(voll.doc.body.children[0].classList.set.has('dlx-kompakt'), false);
+    assert.deepEqual(sizes(voll), [{ t: 'size', h: 56 }]);
+
+    const schmal = setup(SEND, 600);
+    await schmal.flush();
+    assert.equal(schmal.doc.body.children[0].classList.set.has('dlx-kompakt'), true, 'auto unter 640 px');
+    const aus = setup(Object.assign({}, SEND, { compact: 'off' }), 600);
+    await aus.flush();
+    assert.equal(aus.doc.body.children[0].classList.set.has('dlx-kompakt'), false, 'off auch schmal');
+    const fremd = setup(Object.assign({}, SEND, { compact: '__proto__' }), 1000);
+    await fremd.flush();
+    assert.equal(fremd.doc.body.children[0].classList.set.has('dlx-kompakt'), false, 'unbekannt = auto');
+
+    Node.layout = { sw: 1300, cw: 500, h: 60.2 };
+    const zwei = setup(Object.assign({}, SEND, { compact: 'on' }), 1000);
+    await zwei.flush();
+    assert.deepEqual(sizes(zwei), [{ t: 'size', h: 76 }], 'zwei Zeilen kompakt mindestens 76');
+  } finally {
+    Node.layout = null;
+  }
+  const dunkel = setup(Object.assign({}, SEND, { theme: 'dunkel' }));
+  await dunkel.flush();
+  assert.equal(dunkel.doc.documentElement.getAttribute('data-theme'), 'dunkel');
+  const css = (await import('node:fs')).readFileSync(new URL('../extension/ui/ui.css', import.meta.url), 'utf8');
+  assert.match(css, /\.dlx-bar\.dlx-kompakt \.dlx-knopf \{ height: 30px;/, 'Knoepfe mindestens 30 px');
+  assert.match(css, /\.dlx-bar\.dlx-kompakt \.dlx-logo \{ width: 24px; height: 24px; \}/, 'Signet nie unter 24 px (Markenvorgabe)');
+  assert.doesNotMatch(css, /\.dlx-kompakt[^{]*\{[^}]*display:\s*none/, 'nichts ausgeblendet');
 });

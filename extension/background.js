@@ -1,8 +1,10 @@
 // Service Worker: Konfiguration bereitstellen, Dialog-Anfragen vermitteln,
 // Tageszaehler fuehren. Kein Netzwerkzugriff, keine Werte, nur IDs/Zahlen.
-importScripts(
+// Firefox (Hintergrundseite statt Service Worker): dieselben Dateien laedt das
+// Manifest aus scripts/pack-firefox.mjs vorher per background.scripts.
+if (typeof importScripts === 'function') importScripts(
   'branding.js', 'engine/core.js', 'engine/muster.js', 'engine/packs-global.js', 'engine/packs-secrets.js', 'engine/packs-marker.js', 'engine/packs-context.js',
-  'engine/packs-country.js', 'engine/dictionary.js', 'engine/engine.js', 'engine/ki.js', 'engine/bild.js', 'common/aisites.js', 'common/quellen.js', 'common/policy.js', 'common/stats.js',
+  'engine/packs-country.js', 'engine/dictionary.js', 'engine/engine.js', 'engine/ki.js', 'engine/bild.js', 'engine/datei.js', 'common/aisites.js', 'common/quellen.js', 'common/policy.js', 'common/stats.js',
   'common/kompetenz.js', 'common/bericht.js',
   'engine/packs-world.js', // Laenderpakete Phase 2/3: registriert nur Pakete, gelesen erst beim Scan
   'engine/packs-community.js', // Gemeinschafts-Katalog (gebuendelt, signaturgeprueft gebaut; laedt nichts nach)
@@ -24,6 +26,11 @@ const HEX64 = /^[0-9a-f]{64}$/;
 const MODES = ['send', 'paste', 'fileinfo', 'fileblock', 'inactive', 'site', 'live', 'reveal', 'answer', 'image', 'imagewait', 'imagefail', 'doc', 'voice', 'rephrased'];
 const LAYOUTS = ['bar', 'full'];
 const THEMES = ['hell', 'dunkel'];
+// Warnleiste (Design-Review Warnleiste anpassbar 17.10.2026, Auflagen 2, 3): die effektive cfg
+// (Richtlinie schlaegt lokal) erzwingt hell/dunkel statt der Seitenerkennung; an den Frame gehen
+// nur theme und compact, nie die cfg.
+const BAR_COMPACT_OUT = ['auto', 'on', 'off'];
+const barTheme = (cfg, seite) => (cfg.barTheme === 'light' ? 'hell' : cfg.barTheme === 'dark' ? 'dunkel' : seite);
 // Kontoart nur als Enum, nur vom eigenen Content Script im Top-Frame (fromContent);
 // nie in Zaehler, Speicher ausser der offenen Meldung oder Logs (Konto-Regeln Auflage 10).
 const ACCOUNTS = ['business', 'personal', 'unknown'];
@@ -38,7 +45,8 @@ const ALLOWED = {
   // Bilder (Design-Review Bilder 14.10.2026): kein Platzhalter, kein "Kein sensibler Wert".
   image: ['cancel', 'redact', 'override'], imagewait: ['cancel'], imagefail: ['cancel', 'override'],
   // Textdokument mit Hinweis auf versteckte Anweisungen (Design-Review KI-Agenten 16.10.2026).
-  doc: ['cancel', 'override'],
+  // Bereinigte Version hochladen (Design-Review Bereinigen 19.10.2026, Auflage 9).
+  doc: ['cancel', 'redact', 'override'],
   // Sprachmodus (Design-Review Diktat und Fingerabdruecke 16.10.2026, Auflage 5).
   voice: ['cancel', 'override'],
   // Sicher umformulieren (Design-Review Tabellen/Verschleierung/Umformen 16.10.2026, Auflage 13):
@@ -56,8 +64,21 @@ const VIEW_MS = 60000;
 const VIEW_MAX = 200000;
 const placeholdersAllowed = (cfg) => cfg.allowPlaceholders === true;
 const NUDGE_MS = 250; // hoechstens 4 Anstoesse je Sekunde (Auflage 12)
-const SITE_ORIGINS = { 'https://chatgpt.com': 'chatgpt', 'https://claude.ai': 'claude', 'https://gemini.google.com': 'gemini', 'https://copilot.microsoft.com': 'copilot', 'https://copilot.com': 'copilot', 'https://copilot.cloud.microsoft': 'm365copilot', 'https://m365.cloud.microsoft': 'm365copilot' };
-const OWN_ORIGIN = 'chrome-extension://' + chrome.runtime.id;
+const SITE_ORIGINS = { 'https://chatgpt.com': 'chatgpt', 'https://claude.ai': 'claude', 'https://gemini.google.com': 'gemini', 'https://copilot.microsoft.com': 'copilot', 'https://copilot.com': 'copilot', 'https://copilot.cloud.microsoft': 'm365copilot', 'https://m365.cloud.microsoft': 'm365copilot', 'https://perplexity.ai': 'perplexity', 'https://www.perplexity.ai': 'perplexity' };
+// Eigene Herkunft vom Browser: chrome-extension://<id>, in Firefox moz-extension://<uuid>.
+const OWN_ORIGIN = chrome.runtime.getURL('').replace(/\/$/, '');
+// Herkunft eines Absenders: sender.origin; nur wenn der Browser es nicht liefert
+// (undefined, aeltere Firefox), aus sender.url - nur https/http oder genau die
+// eigene Herkunft, alles andere (about:, blob:, data:, "null", Fehler) null
+// (Design-Review Firefox 17.10.2026, Auflage 3).
+function originOf(sender) {
+  if (sender.origin !== undefined) return sender.origin;
+  if (typeof sender.url === 'string' && sender.url.startsWith(OWN_ORIGIN + '/')) return OWN_ORIGIN;
+  try {
+    const u = new URL(sender.url);
+    return (u.protocol === 'https:' || u.protocol === 'http:') && u.origin !== 'null' ? u.origin : null;
+  } catch (e) { return null; }
+}
 // KI-Seiten-Kontrolle (Design-Review KI-Seiten 14.10.2026): Nonce je Banner,
 // einmal gueltig, 60 s bis zum ersten Abruf, gebunden an Tab, Frame und Dokument.
 // Gespeichert werden nur Nonce, Tab, Dokument-ID, Art und Seitenname, nie URLs (Auflage 11).
@@ -66,7 +87,7 @@ const AI_MS = 60000;
 const AI_KEEP_MS = 12 * 3600000;
 const AI_MAX = 200;
 const AI_PREFIX = 'dlx-ai-';
-const KNOWN_IDS = new Set(DLX.engine.allDetectors().map((d) => d.id).concat('dictionary', 'custom_term', 'unscannable', 'clipboard_source', 'hidden_instruction', 'document_match'));
+const KNOWN_IDS = new Set(DLX.engine.allDetectors().map((d) => d.id).concat('dictionary', 'custom_term', 'internal_link', 'unscannable', 'clipboard_source', 'hidden_instruction', 'document_match'));
 const KNOWN_CATS = new Set(DLX.engine.allDetectors().map((d) => d.cat).concat('unscannable', 'source', 'injection'));
 // Ganztext-Funde ohne Wertposition: nicht schwaerzbar (Zwischenablage-Quelle wie unscannable).
 const WHOLE = ['unscannable', 'clipboard_source', 'hidden_instruction', 'document_match'];
@@ -184,6 +205,7 @@ async function trainTab(sender, reported) {
   if (!a) return;
   await trainEdit((tabs) => { tabs[sender.tab.id] = type; });
   try { await chrome.action.setIcon({ tabId: sender.tab.id, imageData: ampelIcon(a.farbe) }); } catch (e) { /* Standardsymbol */ }
+  await DLX.i18n.ready(cfg.language, navigator.language);
   await chrome.action.setTitle({ tabId: sender.tab.id, title: ampelTitle(cfg, a) }).catch(() => {});
 }
 
@@ -315,7 +337,7 @@ function srcFixed() {
   return fixed;
 }
 async function srcSyncNow() {
-  const own = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id).filter((id) => id === SRC_ID || id === FORM_ID || id === COPY_ID);
+  const own = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id).filter((id) => id === SRC_ID || id === FORM_ID || id === COPY_ID || SHARE_IDS.indexOf(id) !== -1);
   if (own.length) await chrome.scripting.unregisterContentScripts({ ids: own });
   const cfg = (await effective()).cfg;
   const srcWanted = new Set(DLX.quellen.originsOf(cfg.sensitiveSources).filter(srcOriginOk));
@@ -323,6 +345,10 @@ async function srcSyncNow() {
   const copyOn = cfg.copySidebarHint !== false;
   const wanted = new Set([...srcWanted, ...formWanted]);
   if (copyOn) wanted.add(COPY_ALL);
+  // Bildschirmteilen: Meeting-Origins nur gewollt, solange screenShareGuard effektiv nicht off ist;
+  // derselbe Abgleich fuer alle Funktionen gibt nur zurueck, was keine braucht (Auflage 6).
+  const shareOn = shareMode(cfg) !== 'off';
+  if (shareOn) for (const o of SHARE_ORIGINS) wanted.add(o);
   const fixed = srcFixed();
   const extra = ((await chrome.permissions.getAll()).origins || []).filter((o) => !fixed.has(o));
   const drop = extra.filter((o) => !wanted.has(o));
@@ -337,11 +363,110 @@ async function srcSyncNow() {
     await chrome.scripting.registerContentScripts([{ id: COPY_ID, matches: [COPY_ALL], excludeMatches: copyExclude(), js: ['content/kopierwache.js'], runAt: 'document_idle',
       world: 'ISOLATED', allFrames: false, matchOriginAsFallback: false, persistAcrossSessions: false }]);
   }
+  await shareRegister(shareOn).catch(() => {});
   const before = (await chrome.storage.session.get(SRC_ACTIVE))[SRC_ACTIVE] || [];
   if (before.some((o) => matches.indexOf(o) === -1)) await srcClear();
   await chrome.storage.session.set({ [SRC_ACTIVE]: matches });
   if (!matches.length) return;
   await chrome.scripting.registerContentScripts([{ id: SRC_ID, matches, js: SRC_FILES, runAt: 'document_start', world: 'ISOLATED', allFrames: false, persistAcrossSessions: false }]);
+}
+// --- Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026, docs/sicherheit/design-review-bildschirmteilen.md) ---
+// Zwei registrierte Skripte nur auf erteilten Meeting-Origins: content/teilen-seite.js (world MAIN,
+// Huelle um die Teilen-Funktion des Browsers) und content/teilen.js (isoliert, meldet nur an/aus und die Art der Flaeche).
+// Zustand nur Tab-ID -> Flaeche und die Tab-IDs der KI-Tabs, die gefragt haben, in storage.session
+// (TRUSTED_CONTEXTS), nie URLs oder Titel (Auflage 7). KI-Tabs erhalten nur {on, mode}; an Meeting-Tabs
+// geht nie etwas (Auflage 4).
+const SHARE_ORIGINS = ['https://meet.google.com/*', 'https://teams.microsoft.com/*', 'https://teams.live.com/*', 'https://teams.cloud.microsoft/*',
+  'https://zoom.us/*', 'https://*.zoom.us/*'];
+const SHARE_HOSTS = ['meet.google.com', 'teams.microsoft.com', 'teams.live.com', 'teams.cloud.microsoft', 'zoom.us'];
+const SHARE_IDS = ['dlx-teilen-seite', 'dlx-teilen'];
+const SHARE_KEY = 'dlx.share';
+const SHARE_SURFACES = ['browser', 'window', 'monitor'];
+const SHARE_RATE = 3;            // Meldungen je Tab und Sekunde (das Skript sendet hoechstens 2, Auflage 3)
+const shareRate = new Map();     // Tab -> Zeitstempel, nur im Speicher
+let shareSt = null;              // { tabs: Map, rx: Set } nach dem ersten Laden
+let shareQ = Promise.resolve();
+const shareMode = (cfg) => (DLX.policy.SHARE_MODES.indexOf(cfg.screenShareGuard) !== -1 ? cfg.screenShareGuard : 'warn');
+// Exakter Host, *.zoom.us nur als Endung ".zoom.us" (Auflage 5).
+const shareHostOk = (h) => SHARE_HOSTS.indexOf(h) !== -1 || (h.length > 8 && h.endsWith('.zoom.us'));
+async function shareLoad() {
+  if (shareSt) return shareSt;
+  const raw = (await chrome.storage.session.get(SHARE_KEY))[SHARE_KEY] || {};
+  const st = { tabs: new Map(), rx: new Set() };
+  for (const [k, v] of Object.entries(raw.tabs || {})) if (/^\d{1,10}$/.test(k) && SHARE_SURFACES.indexOf(v) !== -1) st.tabs.set(Number(k), v);
+  for (const id of Array.isArray(raw.rx) ? raw.rx : []) if (Number.isInteger(id)) st.rx.add(id);
+  // Nach einem Neustart des Service Workers: Tabs, die es nicht mehr gibt, verwerfen (tabs.get ohne tabs-Recht).
+  for (const id of new Set([...st.tabs.keys(), ...st.rx])) {
+    if (!(await chrome.tabs.get(id).then(() => true, () => false))) { st.tabs.delete(id); st.rx.delete(id); }
+  }
+  shareSt = st;
+  return st;
+}
+// Aenderungen nacheinander; Ergebnis: ob sich "es wird geteilt" geaendert hat.
+function shareEdit(fn) {
+  const run = shareQ.then(async () => {
+    const st = await shareLoad();
+    const before = st.tabs.size > 0;
+    fn(st);
+    await chrome.storage.session.set({ [SHARE_KEY]: { tabs: Object.fromEntries(st.tabs), rx: [...st.rx] } });
+    return before !== st.tabs.size > 0;
+  });
+  shareQ = run.catch(() => {});
+  return run;
+}
+async function shareState() {
+  const st = await shareLoad();
+  const mode = shareMode((await effective()).cfg);
+  return { on: mode !== 'off' && st.tabs.size > 0, mode };
+}
+async function shareTell() {
+  const st = await shareLoad();
+  const s = await shareState();
+  for (const id of st.rx) chrome.tabs.sendMessage(id, { t: 'shareState', on: s.on, mode: s.mode }, { frameId: 0 }).catch(() => {});
+}
+// Aus srcSyncNow: Skripte nur bei Richtlinie nicht off UND erteiltem Recht fuer genau diese Origins (Auflage 6).
+async function shareRegister(on) {
+  const matches = [];
+  if (on) for (const o of SHARE_ORIGINS) if (await chrome.permissions.contains({ origins: [o] })) matches.push(o);
+  if (matches.length) {
+    const base = { matches, runAt: 'document_start', allFrames: false, matchOriginAsFallback: false, persistAcrossSessions: false };
+    await chrome.scripting.registerContentScripts([
+      Object.assign({ id: SHARE_IDS[0], js: ['content/teilen-seite.js'], world: 'MAIN' }, base),
+      Object.assign({ id: SHARE_IDS[1], js: ['content/teilen.js'], world: 'ISOLATED' }, base)]);
+  } else await shareEdit((st) => st.tabs.clear());
+  await shareTell();
+}
+async function shareSignal(msg, sender) {
+  const keys = Object.keys(msg).join();
+  if (!(keys === 't,on' && msg.on === false) && !(keys === 't,on,surface' && msg.on === true && SHARE_SURFACES.indexOf(msg.surface) !== -1)) return null;
+  if (sender.id !== chrome.runtime.id || !sender.tab || sender.frameId !== 0 || typeof sender.documentId !== 'string' || sender.documentLifecycle !== 'active') return null;
+  let u;
+  try { u = new URL(sender.url); } catch (e) { return null; }
+  if (u.protocol !== 'https:' || u.port !== '' || sender.origin !== u.origin || !shareHostOk(u.hostname)) return null;
+  const tabId = sender.tab.id;
+  const now = Date.now();
+  const times = (shareRate.get(tabId) || []).filter((x) => now - x < 1000);
+  if (times.length >= SHARE_RATE) return null;
+  times.push(now);
+  shareRate.set(tabId, times);
+  if (shareMode((await effective()).cfg) === 'off' || !(await chrome.permissions.contains({ origins: [u.origin + '/*'] }))) return null;
+  const changed = await shareEdit((st) => {
+    st.rx.delete(tabId);
+    if (msg.on) st.tabs.set(tabId, msg.surface); else st.tabs.delete(tabId);
+  });
+  if (changed) await shareTell();
+  return null;
+}
+async function shareQuery(sender) {
+  const tabId = sender.tab.id;
+  await shareEdit((st) => { st.rx.add(tabId); });
+  return shareState();
+}
+async function shareDropTab(tabId) {
+  const st = await shareLoad();
+  if (!st.tabs.has(tabId) && !st.rx.has(tabId)) return;
+  const changed = await shareEdit((s) => { s.tabs.delete(tabId); s.rx.delete(tabId); });
+  if (changed) await shareTell();
 }
 // Absender genau pruefen (Auflage 6), Nachricht genau {t} (Auflage 14), Einstellung und Recht
 // bei jedem Aufruf neu; Engine je Dokument einmal, Fehler still (Auflage 5). Antwort nur das
@@ -372,7 +497,8 @@ async function copyScan(msg, sender) {
   } catch (e) { return null; }
   const out = {};
   for (const k of COPY_CFG_KEYS) if (Object.hasOwn(cfg, k)) out[k] = cfg[k];
-  return { cfg: out, product: cfg.branding && typeof cfg.branding.productName === 'string' ? cfg.branding.productName : '' };
+  const texts = DLX.i18n.contentTable(await DLX.i18n.ready(cfg.language, navigator.language));
+  return { cfg: out, product: cfg.branding && typeof cfg.branding.productName === 'string' ? cfg.branding.productName : '', texts };
 }
 async function srcClear() {
   const cur = (await chrome.storage.session.get(SRC_KEY))[SRC_KEY];
@@ -469,6 +595,76 @@ async function resolveTab(sender) {
   return null;
 }
 
+// --- Tastenkuerzel und Pause (Design-Review Alltag 14.10.2026, Auflagen 1-8;
+// docs/sicherheit/design-review-kuerzel-17-10.md) ----------------------------
+// Pause: nur der Service Worker setzt sie (Kuerzel), hoechstens 15 Minuten;
+// laengere oder kaputte Werte gelten als ungueltig und werden geloescht. Waehrend
+// der Pause bleiben block, KI-Sperre, Seitensperre und blockWhenInactive in Kraft
+// (das prueft das Content Script). Nie gezaehlt. Das Popup oeffnet der Browser
+// selbst (_execute_action), dafuer gibt es keinen Code.
+const PAUSE_KEY = 'dlx.pause';
+const PAUSE_MS = 15 * 60000;
+const PAUSE_ALARM = 'dlx-pause';
+// Kuerzel -> Entscheidung, feste Zuordnung; nie override/notsensitive (Auflage 2).
+const COMMANDS = { 'redact-all': 'redact' };
+async function clearPause() {
+  await chrome.storage.local.remove(PAUSE_KEY);
+  await chrome.alarms.clear(PAUSE_ALARM);
+  await chrome.action.setBadgeText({ text: '' });
+}
+// Gueltiges Pausenende oder 0; allowPause bei jedem Aufruf frisch aus effective() (Auflage 7).
+async function readPause(cfg) {
+  const raw = (await chrome.storage.local.get(PAUSE_KEY))[PAUSE_KEY];
+  if (raw === undefined) return 0;
+  const until = raw && typeof raw === 'object' && Number.isSafeInteger(raw.until) ? raw.until : 0;
+  const now = Date.now();
+  if (cfg.allowPause !== true || !(until > now) || until > now + PAUSE_MS) { await clearPause(); return 0; }
+  return until;
+}
+async function pauseBadge() {
+  const until = await readPause((await effective()).cfg);
+  await chrome.action.setBadgeText({ text: until ? 'II' : '' });
+  if (until) await chrome.action.setBadgeBackgroundColor({ color: '#5a626c' });
+  return until;
+}
+// Umschalten: laeuft eine Pause, endet sie; sonst 15 Minuten (nur mit allowPause).
+async function togglePause() {
+  const cfg = (await effective()).cfg;
+  if ((await readPause(cfg)) || cfg.allowPause !== true) { await clearPause(); return 0; }
+  const until = Date.now() + PAUSE_MS;
+  await chrome.storage.local.set({ [PAUSE_KEY]: { until } });
+  await chrome.alarms.create(PAUSE_ALARM, { when: until });
+  return pauseBadge();
+}
+// Kuerzel sind Browser-Eingaben (von der Seite nicht faelschbar). Offene Meldung
+// dieses Tabs: gleiche Regeln wie decide, Nachricht nur an dasselbe Dokument
+// (documentId), gezaehlt erst nach Bestaetigung; sonst Auftrag an das eigene
+// Content Script, das Seiten-Erlaubnis und KI-Sperre selbst prueft (Auflagen 1-3).
+async function onCommand(command, tab) {
+  if (!tab || !Number.isInteger(tab.id) || tab.id < 0) return;
+  if (command === 'toggle-pause') { await togglePause(); return; }
+  if (!Object.hasOwn(COMMANDS, command)) return;
+  const choice = COMMANDS[command];
+  const e = await effective();
+  const all = await loadPending();
+  const p = all[tab.id];
+  const open = p && Date.now() - p.created <= PENDING_MAX_MS;
+  if (open && (ALLOWED[p.mode] || []).includes(choice)) {
+    if (!p.documentId || !decisionAllowed(p, choice, false, e.cfg)) return;
+    delete all[tab.id];
+    await savePending(all);
+    const r = await chrome.tabs.sendMessage(tab.id, { t: 'decision', nonce: p.nonce, choice }, { frameId: 0, documentId: p.documentId }).catch(() => null);
+    if (!r || r.ok !== true) return;
+    await count(p, choice);
+    await kDecided(p, e.cfg, choice);
+    if (!SOFT.includes(p.mode)) await closePopup(p);
+    return;
+  }
+  // Andere offene Meldung (z. B. Datei, Seite gesperrt): Kuerzel tut nichts.
+  if (open && !SOFT.includes(p.mode)) return;
+  await chrome.tabs.sendMessage(tab.id, { t: 'cmd', choice }, { frameId: 0 }).catch(() => {});
+}
+
 async function count(p, decision) {
   const r = await chrome.storage.local.get(STATS_KEY);
   const stats = DLX.stats.prune(r[STATS_KEY] || {}, new Date());
@@ -482,7 +678,7 @@ function decisionAllowed(p, choice, confirmed, cfg) {
   const real = p.items.filter((i) => !WHOLE.includes(i.id));
   if (!(ALLOWED[p.mode] || []).includes(choice)) return false;
   if (choice === 'cancel' || choice === 'ok' || choice === 'hide') return true;
-  if (choice === 'redact') return real.length > 0 && (p.action === 'warn' || p.action === 'redact');
+  if (choice === 'redact') return real.length > 0 && (p.action === 'warn' || p.action === 'redact') && (p.mode !== 'doc' || p.fix === true);
   if (choice === 'pseudonym') return real.length > 0 && (p.action === 'warn' || p.action === 'redact') && placeholdersAllowed(cfg);
   // Umformulieren wie Schwaerzen, nie bei Sperre, nur mit Richtlinie allowRephrase (Auflage 13).
   if (choice === 'rephrase') return real.length > 0 && (p.action === 'warn' || p.action === 'redact') && cfg.allowRephrase === true;
@@ -498,7 +694,8 @@ function decisionAllowed(p, choice, confirmed, cfg) {
 let lastNudge = 0;
 // Hoehe der Leiste vom gebundenen Frame: hoechstens 10 Meldungen je Sekunde und
 // Meldung (Design-Review Leiste/Hoehe 15.10.2026, Auflage 5); nur im Speicher.
-const SIZE_MIN = 56, SIZE_MAX = 240, SIZE_PER_S = 10;
+// Untergrenze 44 px fuer die kompakte Leiste (Design-Review Warnleiste anpassbar 17.10.2026, Auflage 4).
+const SIZE_MIN = 44, SIZE_MAX = 240, SIZE_PER_S = 10;
 const sizeRate = new Map();
 function sizeAllowed(nonce) {
   const now = Date.now();
@@ -621,7 +818,25 @@ let ocrRunning = false;
 let ocrCreating = null;
 let ocrIdle = null;
 let ocrLast = 0;
+// Firefox kennt chrome.offscreen nicht; die Hintergrundseite hat dort ein DOM:
+// dieselbe Seite als unsichtbares iframe (eigene Seite, nicht web_accessible,
+// gleiche Nachrichten und Absenderpruefung; Design-Review Firefox 17.10.2026, Auflage 5).
+const OFFSCREEN = !!(chrome.offscreen && chrome.offscreen.createDocument);
+const OCR_FRAME = 'dlx-ocr-frame';
 async function ocrDoc() {
+  if (!OFFSCREEN) {
+    if (document.getElementById(OCR_FRAME)) return;
+    if (!ocrCreating) {
+      ocrCreating = new Promise((resolve) => {
+        const f = document.createElement('iframe');
+        f.id = OCR_FRAME;
+        f.addEventListener('load', () => resolve(), { once: true });
+        f.src = chrome.runtime.getURL(OCR_DOC);
+        document.body.append(f);
+      }).finally(() => { ocrCreating = null; });
+    }
+    return ocrCreating;
+  }
   const has = (await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [chrome.runtime.getURL(OCR_DOC)] })).length > 0;
   if (has) return;
   if (!ocrCreating) {
@@ -633,6 +848,7 @@ async function ocrDoc() {
 async function ocrClose() {
   clearTimeout(ocrIdle);
   kiReady = false;
+  if (!OFFSCREEN) { const f = document.getElementById(OCR_FRAME); if (f) f.remove(); return; }
   try { await chrome.offscreen.closeDocument(); } catch (e) { /* schon zu */ }
 }
 // Ein Bild erkennen; Zeitueberschreitung schliesst das Dokument (beendet den Worker).
@@ -652,7 +868,7 @@ async function ocrRun(data, langs, ms) {
 }
 async function handleOcr(msg) {
   if (typeof msg.data !== 'string' || msg.data.length > OCR_B64_MAX || !/^[A-Za-z0-9+/]*={0,2}$/.test(msg.data.slice(-8))) return { error: 'size' };
-  if (ocrRunning) return { error: 'busy' };
+  if (ocrRunning || docJob) return { error: 'busy' };
   const e = await effective();
   if (e.cfg.imageScan === false) return { error: 'off' };
   const ms = Math.min(DLX.bild.LIMITS.ms, Math.max(1000, Number(msg.ms) || 0));
@@ -663,6 +879,53 @@ async function handleOcr(msg) {
     ocrRunning = false;
   }
 }
+
+// --- Dokumente PDF/DOCX (Design-Review Datei-Uploads 17.10.2026, Auflagen 12-20,
+// docs/sicherheit/design-review-datei-uploads-17-10.md) -------------------------
+// Gelesen wird im Offscreen-Dokument (ui/dokument.js, engine/datei.js), nie auf dem
+// Thread der Seite. Bytes nur vom eigenen Content Script im Top-Frame (fromContent),
+// hoechstens 20 MB Rohbytes (Auflage 12), ein Auftrag gleichzeitig, auch gegen die
+// Texterkennung (sonst busy). Die Antwort gilt nur mit der eigenen Zufalls-ID
+// (Auflage 13); Zeitueberschreitung, geschlossener oder verlassener Tab schliessen
+// das Offscreen-Dokument (Auflage 18). Zurueck nur { text, partial } oder ein
+// fester Code; nichts wird gespeichert oder protokolliert (Auflage 19).
+const DOC_KINDS = ['pdf', 'docx'];
+const DOC_FAILS = ['size', 'type', 'encrypted', 'empty', 'timeout', 'busy', 'fail'];
+let docJob = null;
+const rawBytes = (b64) => (b64.length / 4) * 3 - (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
+async function handleDoc(msg, sender) {
+  if (typeof msg.data !== 'string' || msg.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(msg.data.slice(-8))) return { error: 'fail' };
+  if (rawBytes(msg.data) > DLX.datei.LIMITS.bytes) return { error: 'size' };
+  if (!DOC_KINDS.includes(msg.kind)) return { error: 'type' };
+  if (docJob || ocrRunning) return { error: 'busy' };
+  const ms = Math.min(DLX.datei.LIMITS.ms, Math.max(500, Number(msg.ms) || 0));
+  const job = docJob = { id: nonce(), tab: sender.tab.id };
+  try {
+    clearTimeout(ocrIdle);
+    await ocrDoc();
+    let timer = null;
+    const late = new Promise((r) => { timer = setTimeout(() => r({ error: 'timeout' }), ms + 1000); });
+    const res = await Promise.race([chrome.runtime.sendMessage({ target: 'dlx-doc', t: 'run', id: job.id, data: msg.data, kind: msg.kind, ms }).catch(() => ({ error: 'fail' })), late]);
+    clearTimeout(timer);
+    if (job.gone) return { error: 'fail' };
+    if (res && res.error === 'timeout') await ocrClose();
+    else { ocrLast = Date.now(); docIdle(); }
+    if (!res || typeof res !== 'object' || res.id !== job.id) return { error: res && res.error === 'timeout' ? 'timeout' : 'fail' };
+    if (res.error) return { error: DOC_FAILS.includes(res.error) ? res.error : 'fail' };
+    if (typeof res.text !== 'string' || res.text.length > DLX.datei.LIMITS.chars) return { error: 'fail' };
+    return { text: res.text, partial: res.partial === true };
+  } finally {
+    if (docJob === job) docJob = null;
+  }
+}
+// Tab zu oder verlassen: laufendes Lesen abbrechen, Offscreen-Dokument schliessen (Auflage 18).
+function docAbort(tabId) {
+  if (!docJob || docJob.tab !== tabId) return;
+  docJob.gone = true;
+  docJob = null;
+  ocrClose();
+}
+chrome.tabs.onUpdated.addListener((tabId, info) => { if (info.status === 'loading' || info.url) docAbort(tabId); });
 
 // --- Lokale KI-Erkennung (Design-Review KI 16.10.2026, docs/sicherheit/design-review-ki.md) ---
 // Text nur im Speicher vom eigenen Content Script (fromContent) an das
@@ -690,7 +953,7 @@ function docIdle() {
   clearTimeout(ocrIdle);
   const due = () => Math.max(ocrLast + OCR_IDLE_MS, kiLast + KI_IDLE_MS);
   ocrIdle = setTimeout(() => {
-    if (!ocrRunning && !kiActive && Date.now() >= due()) ocrClose(); else docIdle();
+    if (!ocrRunning && !docJob && !kiActive && Date.now() >= due()) ocrClose(); else docIdle();
   }, Math.max(1000, due() - Date.now()));
 }
 
@@ -885,13 +1148,15 @@ async function handle(msg, sender) {
   if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') return null;
   // Bildbytes nur vom eigenen Content Script im Top-Frame einer KI-Seite (fromContent);
   // jeder andere Absender wird ausdruecklich abgewiesen (Pflicht-Pruefung Bilder 14.10.2026).
-  if ((msg.t === 'ocr' || msg.t === 'ki') && !fromContent(sender)) return { error: 'fail' };
+  if ((msg.t === 'ocr' || msg.t === 'ki' || msg.t === 'doc') && !fromContent(sender)) return { error: 'fail' };
   // Lade-Fortschritt nur vom eigenen Offscreen-Dokument, nie aus einem Tab (Auflagen 2, 3).
   if (msg.t === 'kiFortschritt') return fromExtPage(sender, '/' + OCR_DOC) && !sender.tab ? kiProgress(msg) : null;
 
   if (msg.t === 'aiSite') return aiSiteMsg(sender);
   if (msg.t === 'srcMark') return srcMark(msg, sender);
   if (msg.t === 'copyScan') return copyScan(msg, sender);
+  if (msg.t === 'shareSignal') return shareSignal(msg, sender);
+  if (msg.t === 'shareQuery') return fromContent(sender) ? shareQuery(sender) : null;
   if (msg.t === 'formCfg' || msg.t === 'formFound') return formMsg(msg, sender);
   if ((msg.t === 'formInfo' || msg.t === 'formDecide') && fromExtPage(sender, '/' + FORM_PAGE)) return formPage(msg, sender);
   if ((msg.t === 'aiBanner' || msg.t === 'aiClose') && fromExtPage(sender, '/ui/aibanner.html')) return handleAi(msg, sender);
@@ -910,7 +1175,12 @@ async function handle(msg, sender) {
       for (const k of DLX.policy.AI_KEYS) delete e.cfg[k];
       delete e.cfg.sensitiveSources;
       delete e.cfg.formGuardSites;
-      return { cfg: e.cfg, ignore: ig ? { key: ig.key, hashes: ig.entries.map((x) => x.h) } : null, aiBlocked };
+      // Darstellung der Warnleiste nur an den Leisten-Frame (Design-Review Warnleiste anpassbar, Auflage 3).
+      delete e.cfg.barTheme;
+      delete e.cfg.barCompact;
+      // Texte nur der aufgeloesten Sprache und nur die Content-Schluessel (Design-Review Sprachen, Auflage 7).
+      const texts = DLX.i18n.contentTable(await DLX.i18n.ready(e.cfg.language, navigator.language));
+      return { cfg: e.cfg, ignore: ig ? { key: ig.key, hashes: ig.entries.map((x) => x.h) } : null, aiBlocked, pausedUntil: await readPause(e.cfg), texts };
     }
     if (msg.t === 'ignoreAdd') {
       // Nur einmal je Nonce einer soeben im Dialog getroffenen Entscheidung,
@@ -957,12 +1227,15 @@ async function handle(msg, sender) {
       const p = { nonce: nonce(), created: Date.now(), mode: msg.mode, action: SOFT.includes(msg.mode) ? 'warn' : msg.action, layout, theme, items, code: msg.code === true && items.some((i) => i.lines), account, reason: msg.mode === 'imagefail' ? (IMAGE_FAILS.includes(msg.reason) ? msg.reason : 'fail') : msg.mode === 'answer' && msg.reason === 'copy' ? 'copy' : msg.mode === 'rephrased' && msg.reason === 'paste' ? 'paste' : null, site: SITE_ORIGINS[sender.origin], documentId: sender.documentId || null, frameId: keep, popupTabId: null, popupWindowId: null };
       // Erneuerter Live-Hinweis mit denselben Gruppen gilt als schon gesehen (kein Doppelzaehlen).
       if (msg.mode === 'live' && prev && prev.mode === 'live' && prev.kSeen && sameGroups(prev.items, items)) p.kSeen = true;
+      // Dokument: fix/loss nur als echter Boolean, steuert nur die Anzeige; nie bei Sperre (Auflage 9).
+      if (msg.mode === 'doc' && msg.fix === true && p.action !== 'block') { p.fix = true; p.loss = msg.loss === true; }
       all[tabId] = p;
       await savePending(all);
       if (keep != null) nudge();
       return { nonce: p.nonce };
     }
     if (msg.t === 'ocr') return handleOcr(msg);
+    if (msg.t === 'doc') return handleDoc(msg, sender);
     if (msg.t === 'ki') return handleKi(msg, sender);
     if (msg.t === 'moved') {
       nudge();
@@ -1016,7 +1289,7 @@ async function handle(msg, sender) {
       }
       const layout = r.p.popupTabId === sender.tab.id ? 'full' : r.p.layout;
       const allowNotSensitive = (r.p.mode === 'send' || r.p.mode === 'paste') && r.p.action === 'warn' && ignoreAllowed(e.cfg) && ignorableCount(r.p) > 0;
-      return { mode: r.p.mode, action: r.p.action, items: r.p.items, code: r.p.code === true, account: r.p.account || null, reason: r.p.reason || null, layout, theme: r.p.theme, allowOverride: e.cfg.allowUserOverride, allowNotSensitive,
+      return { mode: r.p.mode, action: r.p.action, items: r.p.items, code: r.p.code === true, fix: r.p.fix === true, loss: r.p.loss === true, account: r.p.account || null, reason: r.p.reason || null, layout, theme: barTheme(e.cfg, r.p.theme), compact: BAR_COMPACT_OUT.includes(e.cfg.barCompact) ? e.cfg.barCompact : 'auto', allowOverride: e.cfg.allowUserOverride, allowNotSensitive,
         allowPlaceholders: placeholdersAllowed(e.cfg), allowRephrase: e.cfg.allowRephrase === true, branding: e.cfg.branding, language: e.cfg.language, managed: e.managed };
     }
     if (msg.t === 'decide') {
@@ -1102,7 +1375,7 @@ async function handle(msg, sender) {
       const s = await chrome.storage.local.get(STATS_KEY);
       const ig = await loadIgnore(e.cfg, false);
       return { cfg: e.cfg, locked: e.locked, managed: e.managed, country: e.country, stats: DLX.stats.prune(s[STATS_KEY] || {}, new Date()),
-        ignoreAllowed: ignoreAllowed(e.cfg), ignored: ig ? ig.entries.length : 0, ki: await kiStatus(e.cfg) };
+        ignoreAllowed: ignoreAllowed(e.cfg), ignored: ig ? ig.entries.length : 0, barInvalid: ['barTheme', 'barCompact'].filter((k) => e.errors.includes(k)), ki: await kiStatus(e.cfg), pausedUntil: await readPause(e.cfg) };
     }
     // Live-Status fuer Popup/Einstellungen; offen = Modell laden, falls noch nicht geschehen (Auflagen 2, 5).
     if (msg.t === 'kiStatus') {
@@ -1153,6 +1426,7 @@ async function handle(msg, sender) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (sender.origin === undefined) sender = Object.assign({}, sender, { origin: originOf(sender) });
   handle(msg, sender).then(sendResponse, () => sendResponse(null));
   return true;
 });
@@ -1161,21 +1435,43 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // bereinigen bzw. loeschen, sobald der Schalter aus ist (Auflagen 4, 5).
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'managed' || (area === 'local' && Object.hasOwn(changes, SETTINGS_KEY))) { kTidy().catch(() => {}); aiSync(); srcSync(); trainingSync(false); kiPreload(); }
+  // allowPause aus der Richtlinie wirkt sofort (Auflage 7).
+  if (area === 'managed') pauseBadge().catch(() => {});
 });
 // Lokale KI kurz nach dem Start vorladen, damit der erste Prompt nicht warten muss.
 const kiLater = () => setTimeout(kiPreload, KI_PRELOAD_DELAY_MS);
-chrome.runtime.onStartup.addListener(() => { kTidy().catch(() => {}); aiSync(); srcSync(); trainingSync(true); kiLater(); });
-chrome.runtime.onInstalled.addListener(() => { kTidy().catch(() => {}); aiSync(); srcSync(); trainingSync(true); kiLater(); });
-chrome.permissions.onAdded.addListener(() => { aiSync(); srcSync(); });
-chrome.permissions.onRemoved.addListener(() => { aiSync(); srcSync(); });
+// Zugriff auf die KI-Seiten des Manifests: in Firefox (MV3) erteilt der Nutzer ihn
+// erst; fehlt er, ist der Schutz still aus. Dann Symbol mit "!" und Titel, bis er
+// erteilt ist (Design-Review Firefox 17.10.2026, Auflage 9; das Popup bietet ihn an).
+async function hostCheck() {
+  const origins = [...new Set((chrome.runtime.getManifest().content_scripts || []).flatMap((c) => c.matches || []))];
+  try {
+    const ok = !origins.length || await chrome.permissions.contains({ origins });
+    // Fehlt der Zugriff, zeigt das Symbol '!'; sonst das Pausen-Symbol (oder nichts).
+    if (ok) await pauseBadge();
+    else { await chrome.action.setBadgeText({ text: '!' }); await chrome.action.setBadgeBackgroundColor({ color: '#b42318' }); }
+    const lang = await DLX.i18n.ready((await effective()).cfg.language, navigator.language);
+    await chrome.action.setTitle({ title: ok ? chrome.i18n.getMessage('extName') : DLX.i18n.t(lang, 'popHostMissing') });
+  } catch (e) { /* Symbol bleibt */ }
+}
+chrome.runtime.onStartup.addListener(() => { kTidy().catch(() => {}); aiSync(); srcSync(); trainingSync(true); hostCheck(); kiLater(); });
+chrome.runtime.onInstalled.addListener(() => { kTidy().catch(() => {}); aiSync(); srcSync(); trainingSync(true); hostCheck(); kiLater(); });
+chrome.permissions.onAdded.addListener(() => { aiSync(); srcSync(); hostCheck(); });
+chrome.permissions.onRemoved.addListener(() => { aiSync(); srcSync(); hostCheck(); });
+// Pause endet per Alarm (Auflage 8); Kuerzel kommen nur vom Browser.
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === PAUSE_ALARM) clearPause().catch(() => {}); });
+chrome.commands.onCommand.addListener((command, tab) => { onCommand(command, tab).catch(() => {}); });
 
 // Tab geschlossen: offene Eintraege verwerfen (Auflage 11).
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  docAbort(tabId);
   const all = await loadPending();
   if (all[tabId]) { delete all[tabId]; await savePending(all); }
   await dropView(tabId);
   kiTab.delete(tabId);
   copyLast.delete(tabId);
+  shareRate.delete(tabId);
+  await shareDropTab(tabId).catch(() => {});
   await trainEdit((tabs) => { delete tabs[tabId]; });
   const ai = await loadAi();
   for (const [n, g] of Object.entries(ai)) if (g.tab === tabId) delete ai[n];

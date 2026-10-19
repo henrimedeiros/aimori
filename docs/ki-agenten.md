@@ -23,6 +23,29 @@ Legende Status: **aktiv** = laut Hersteller verfügbar; **eingestellt** = laut H
 
 Für keinen der Agenten ist belegt, ob seine Eingaben als echte Tastatur-Ereignisse (`isTrusted`) ankommen. Die Erweiterung behandelt Agenten-Eingaben deshalb genau wie menschliche.
 
+## Eingebaute Browser-KIs und KI-Seitenleisten
+
+Stand 17.10.2026. Eine Erweiterung erreicht nur Webseiten, die in einem normalen Tab laufen und die der Browser für Erweiterungen nicht sperrt. Eingebaute KI-Assistenten und Seitenleisten laufen in privilegierten Bereichen des Browsers; was sie lesen, geht nicht über die Webseite. Dort prüft keine Erweiterung etwas, auch AImori nicht. Wirksam ist nur die Browser-Richtlinie ([Für Unternehmen, Kapitel 7](fuer-unternehmen.md#7-ki-seitenleisten-und-ki-erweiterungen-sperren)).
+
+| Oberfläche | Für die Erweiterung erreichbar? | Grund | Was gilt |
+|---|---|---|---|
+| Copilot-Seitenleiste in Edge, Copilot Mode, „Browse with Copilot“ | **Nein** | Lädt Copilot-Hosts (u. a. copilot.microsoft.com, edgeservices.bing.com), die Edge für Erweiterungen fest sperrt; der Seitenkontext geht browserintern an Copilot (Sekundärquelle, Forum; beobachtet mit Edge 155) | Edge-Richtlinien in Kapitel 7.1 (z. B. `EdgeEntraCopilotPageContext`, `CopilotPageContext`, `AllowBrowsingWithCopilot`) |
+| Microsoft Copilot im Tab (copilot.com) | **Ja – geschützt** | Normale Webseite; in Chrome und Edge erreichbar (Attrappe), copilot.microsoft.com nur in Chrome (in Edge gesperrt) | Volle Prüfung wie bisher |
+| Gemini-Seitenfenster in Chrome, „auto browse“ | **Nein** | Privilegiertes Seitenfenster; Erweiterungen dürfen nicht hinein (Sekundärquelle, 03/2026) | Chrome-Richtlinie `GeminiSettings` (Kapitel 7.2); Arbeitskonten nur mit Admin-Freigabe (laut Hersteller) |
+| Gemini im Tab (gemini.google.com) | **Ja – geschützt** | Normale Webseite | Volle Prüfung wie bisher |
+| Assistent-Seitenleiste in Comet | **Nein** | Interne Komponente des Browsers, keine Webseite im Tab (Sekundärquelle) | Hersteller-Steuerung „Comet Policies and Controls“ (Inhalt nicht im Einzelnen geprüft) |
+| Perplexity im Tab (perplexity.ai, www.perplexity.ai), auch in Comet | **Ja – neu geschützt** (17.10.2026) | Normale Webseite; Eingabefeld und Senden-Knopf nach öffentlicher Oberfläche angenommen, nicht an angemeldeten Seiten gemessen. Ohne erkanntes Feld meldet die Erweiterung „Schutz nicht aktiv“ | Volle Prüfung (Tippen, Senden, Einfügen, Ablegen, Hochladen), Site-ID `perplexity`. Andere Subdomains (z. B. labs.perplexity.ai) bewusst nicht |
+| Brave Leo, Opera Aria | **Nein** | Im Browser eingebaut, keine Webseite im Tab | Richtlinien des Herstellers (Namen hier nicht geprüft) |
+| Apps in der Edge-Seitenleiste, Web-Panels in Opera/Vivaldi | **Ungeprüft** | Ob Erweiterungen dort laufen, ist nicht dokumentiert und nicht gemessen; nicht als geschützt betrachten | Edge: `EdgeSidebarAppUrlHostBlockList` (Kapitel 7.1) |
+| KI-Seitenleisten anderer Erweiterungen (z. B. Claude in Chrome) | **Nein** | Seiten fremder Erweiterungen sind für andere Erweiterungen gesperrt | `ExtensionInstallBlocklist` / `ExtensionSettings` (Kapitel 7) |
+| Schreibhilfen in Textfeldern (z. B. Umschreiben mit Copilot in Edge) | **Nein** | Browserintern | Edge: `ComposeInlineEnabled` (Kapitel 7.1) |
+
+Teilschutz für alle „Nein“-Zeilen: Der Hinweis beim Kopieren (`copySidebarHint`, siehe [Für Unternehmen, Kapitel 7](fuer-unternehmen.md#7-ki-seitenleisten-und-ki-erweiterungen-sperren)) erinnert daran, dass Seitenleisten nicht geprüft werden; er hält nichts auf. Die Einstellungsseite von AImori nennt diese Grenze unter „Eingebaute KI-Seitenleisten“ in allen sechs Sprachen.
+
+**Geprüft:** Unit-Tests der Seitenerkennung (`tests/content.test.mjs`: nur exakte Hosts, Gross-/Kleinschreibung, Punkt am Ende, keine Doppelgänger, Userinfo, fremde Hosts; Tippen + Enter, Klick auf Senden, „Schutz nicht aktiv“ ohne Feld) und `tests/manifest.test.mjs` (Manifest und Service Worker kennen dieselben Origins). Nicht auf der echten Perplexity-Seite und nicht in Comet gemessen.
+
+**Änderung 17.10.2026 – Rechte:** Perplexity steht neu fest im Manifest (Content Script). Bei einer von Hand installierten Erweiterung kann der Browser sie beim Update deaktivieren, bis der Nutzer der neuen Seite zustimmt; bis dahin ist der Schutz auf allen Seiten aus. Per Richtlinie installierte Erweiterungen sind nicht betroffen. Bestehende Richtlinien mit `allowedSites` ohne `perplexity` sperren Eingaben auf Perplexity (strenger, nie lockerer).
+
 ## Was die Erweiterung umsetzt
 
 ### Versteckte Anweisungen

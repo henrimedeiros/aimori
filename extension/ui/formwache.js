@@ -8,11 +8,11 @@
   const n = new URLSearchParams(location.search).get('n') || '';
   const send = (msg) => chrome.runtime.sendMessage(Object.assign({ n }, msg));
 
-  send({ t: 'formInfo' }).then((info) => {
+  send({ t: 'formInfo' }).then(async (info) => {
     if (!info || !Array.isArray(info.items)) { window.close(); return; }
     const b = Object.assign({}, DLX.branding, info.branding || {});
     DLX.dom.applyBranding(b, matchMedia('(prefers-color-scheme: dark)').matches);
-    const lang = DLX.i18n.resolveLang(info.language, navigator.language);
+    const lang = await DLX.i18n.ready(info.language, navigator.language);
     const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: DLX.dom.productName(b), company: b.companyName }, v || {}));
     document.title = T('formTitle');
     let done = false;

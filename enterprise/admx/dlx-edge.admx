@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
   <policyNamespaces>
     <target prefix="dlxedge" namespace="Dlx.Policies.Edge" />
   </policyNamespaces>
@@ -353,6 +353,75 @@
         <decimal value="0" />
       </disabledValue>
     </policy>
+    <policy name="barTheme" class="Machine" displayName="$(string.barTheme)" explainText="$(string.barTheme_help)" presentation="$(presentation.barTheme)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="barTheme" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="barTheme" required="true">
+          <item displayName="$(string.barTheme_auto)">
+            <value>
+              <string>auto</string>
+            </value>
+          </item>
+          <item displayName="$(string.barTheme_light)">
+            <value>
+              <string>light</string>
+            </value>
+          </item>
+          <item displayName="$(string.barTheme_dark)">
+            <value>
+              <string>dark</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="barCompact" class="Machine" displayName="$(string.barCompact)" explainText="$(string.barCompact_help)" presentation="$(presentation.barCompact)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="barCompact" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="barCompact" required="true">
+          <item displayName="$(string.barCompact_auto)">
+            <value>
+              <string>auto</string>
+            </value>
+          </item>
+          <item displayName="$(string.barCompact_on)">
+            <value>
+              <string>on</string>
+            </value>
+          </item>
+          <item displayName="$(string.barCompact_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="screenShareGuard" class="Machine" displayName="$(string.screenShareGuard)" explainText="$(string.screenShareGuard_help)" presentation="$(presentation.screenShareGuard)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <enum id="screenShareGuard" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="screenShareGuard" required="true">
+          <item displayName="$(string.screenShareGuard_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
+          <item displayName="$(string.screenShareGuard_warn)">
+            <value>
+              <string>warn</string>
+            </value>
+          </item>
+          <item displayName="$(string.screenShareGuard_mask)">
+            <value>
+              <string>mask</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
     <policy name="voiceMode" class="Machine" displayName="$(string.voiceMode)" explainText="$(string.voiceMode_help)" presentation="$(presentation.voiceMode)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
       <parentCategory ref="dlx_root" />
       <supportedOn ref="SUPPORTED_MV3" />
@@ -653,6 +722,14 @@
         <list id="customTerms_hashes" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy\customTerms\hashes" valuePrefix="" />
       </elements>
     </policy>
+    <policy name="internalDomains" class="Machine" displayName="$(string.internalDomains)" explainText="$(string.internalDomains_help)" presentation="$(presentation.internalDomains)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <elements>
+        <text id="internalDomains_salt" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy\internalDomains" valueName="salt" maxLength="150000" />
+        <list id="internalDomains_hashes" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy\internalDomains\hashes" valuePrefix="" />
+      </elements>
+    </policy>
     <policy name="customPatterns" class="Machine" displayName="$(string.customPatterns)" explainText="$(string.customPatterns_help)" presentation="$(presentation.customPatterns)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy">
       <parentCategory ref="dlx_root" />
       <supportedOn ref="SUPPORTED_MV3" />
@@ -717,6 +794,16 @@
       </elements>
     </policy>
     <policy name="deobfuscation" class="Machine" displayName="$(string.deobfuscation)" explainText="$(string.deobfuscation_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="deobfuscation">
+      <parentCategory ref="dlx_root" />
+      <supportedOn ref="SUPPORTED_MV3" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="allowPause" class="Machine" displayName="$(string.allowPause)" explainText="$(string.allowPause_help)" key="Software\Policies\Microsoft\Edge\3rdparty\extensions\lefajbhockjgdhaohnacgaggfepianjh\policy" valueName="allowPause">
       <parentCategory ref="dlx_root" />
       <supportedOn ref="SUPPORTED_MV3" />
       <enabledValue>

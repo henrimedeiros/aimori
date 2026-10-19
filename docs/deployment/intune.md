@@ -3,7 +3,7 @@
 Zwei Wege – beide setzen dieselben Registry-Werte wie die ADMX.
 
 ## A) Importierte ADMX (empfohlen, ohne Skript)
-1. Intune Admin Center → Geräte → Konfiguration → „Importieren ADMX“: `dlx-edge.admx` (bzw. `dlx-chrome.admx`) mit der passenden `en-US`-ADML hochladen.
+1. Intune Admin Center → Geräte → Konfiguration → „Importieren ADMX“: `dlx-edge.admx` (bzw. `dlx-chrome.admx`) mit der passenden `en-US`-ADML hochladen (Intune nimmt je ADMX nur eine ADML; die Texte in fr-FR/it-IT/es-ES/pt-BR liegen für den Central Store bei).
 2. Neues Profil → Windows 10 und höher → Vorlagen → **Importierte administrative Vorlagen** → Einstellungen unter „<Produktname> (Microsoft Edge)“ setzen.
 3. Gerätegruppe zuweisen. Prüfen auf dem Gerät: `edge://policy`.
 

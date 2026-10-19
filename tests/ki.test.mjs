@@ -163,6 +163,6 @@ test('Quelltext: KI-Dateien ohne Netz, ohne import(), ohne Konsole; CSP unveraen
   assert.match(ig, /^\/extension\/vendor\/ki\/\*$/m);
   assert.match(ig, /^!\/extension\/vendor\/ki\/PINS\.json$/m);
   const bg = fs.readFileSync(path.join(EXT, 'background.js'), 'utf8');
-  assert.match(bg, /if \(\(msg\.t === 'ocr' \|\| msg\.t === 'ki'\) && !fromContent\(sender\)\) return \{ error: 'fail' \};/);
+  assert.match(bg, /if \(\(msg\.t === 'ocr' \|\| msg\.t === 'ki' \|\| msg\.t === 'doc'\) && !fromContent\(sender\)\) return \{ error: 'fail' \};/);
   assert.ok(!/externally_connectable/.test(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')) && !/onMessageExternal/.test(bg));
 });

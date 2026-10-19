@@ -123,7 +123,7 @@ stehen die Werte. Das Popup der Erweiterung zeigt Logo und „Verwaltet von …�
 
 **A) Administrative Vorlagen (empfohlen)**
 1. `_admx/edge/dlx-edge.admx` (bzw. `chrome`) in den Central Store kopieren:
-   `\\<domäne>\SYSVOL\<domäne>\Policies\PolicyDefinitions`, die ADML in `en-US` bzw. `de-DE`.
+   `\\<domäne>\SYSVOL\<domäne>\Policies\PolicyDefinitions`, die ADML in die Sprachordner `en-US`, `de-DE`, `fr-FR`, `it-IT`, `es-ES` und `pt-BR`.
 2. Je Kunde eine GPO anlegen und mit der OU des Kunden verknüpfen.
 3. Computerkonfiguration → Richtlinien → Administrative Vorlagen → „<Produktname> (Microsoft Edge)“: die Werte aus
    `richtlinie.json` übernehmen ([Bedeutung](einstellungen.md)). Das Logo (`branding.logo`) als ganze Zeile
@@ -153,6 +153,7 @@ KI-Desktop-Apps sperren, wenn nur der geschützte Browser genutzt werden soll �
   `U+F000`, Auswahllisten mit dem Wert). Intune begrenzt die Länge einzelner Werte; halten Sie das Logo klein
   (empfohlen unter 20 KB), sonst nehmen Sie Variante B′.
 - Die Anzeige im Browser-Menü und im Store (Name, Symbol der Symbolleiste) lässt sich per Richtlinie nicht ändern.
+- Firefox: dieselbe Richtlinie als `policies.json` (`3rdparty.Extensions`), erzeugt mit `node scripts/pack-firefox.mjs --policies <richtlinie.json> --install-url <https-URL>`; feste Installation braucht eine von Mozilla signierte Datei ([Deployment Firefox](deployment/firefox.md)).
 - Design-Review: [Mandanten-Vorlagen und Firmenlogo](sicherheit/design-review-mandanten.md).
 
 ## 7. KI-Seitenleisten und KI-Erweiterungen sperren

@@ -111,10 +111,11 @@ function sw(managed = {}) {
     runtime: { id: 'testid', onMessage: { addListener: (f) => { listener = f; } }, onStartup: { addListener() {} }, onInstalled: { addListener() {} },
       getManifest: () => ({ content_scripts: [] }), getURL: (p) => 'chrome-extension://testid/' + p, sendMessage: async () => {} },
     storage: { local: area('local'), session: area('session'), managed: area('managed'), onChanged: { addListener: (f) => changed.push(f) } },
+    alarms: { create: async () => {}, clear: async () => true, onAlarm: { addListener() {} } }, commands: { onCommand: { addListener() {} } },
     action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
     permissions: { getAll: async () => ({ origins: [] }), onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
     scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {}, unregisterContentScripts: async () => {} },
-    tabs: { sendMessage: async () => {}, onRemoved: { addListener() {} } },
+    tabs: { sendMessage: async () => {}, onRemoved: { addListener() {} }, onUpdated: { addListener() {} } },
     windows: { create: async () => ({ id: 9, tabs: [{ id: 99 }] }), remove: async () => {}, onRemoved: { addListener() {} } },
   };
   const ctx = vm.createContext({ chrome, crypto: webcrypto, navigator: { language: 'de-CH' }, TextEncoder, performance, URL, setTimeout, Date });

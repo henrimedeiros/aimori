@@ -11,7 +11,7 @@
   const info = await chrome.runtime.sendMessage({ t: 'aiBanner', nonce }).catch(() => null);
   if (!info || (info.a !== 'hint' && info.a !== 'block')) return;
   const b = info.branding || DLX.branding;
-  const lang = DLX.i18n.resolveLang(info.language, navigator.language);
+  const lang = await DLX.i18n.ready(info.language, navigator.language);
   const site = typeof info.site === 'string' ? info.site : '';
   const T = (k) => DLX.i18n.t(lang, k, { product: b.productName, company: b.companyName, site });
   document.documentElement.lang = lang;

@@ -251,7 +251,24 @@ const notizen = `<!doctype html><html><head><meta charset="utf-8"><meta http-equ
 const NOTIZEN_SKRIPT = "document.addEventListener('copy', (e) => { setTimeout(() => { document.getElementById('log').textContent += 'COPY:' + e.defaultPrevented + '|'; }, 0); });";
 const notizenSeite = notizen.replace('NOTIZEN_SKRIPT', NOTIZEN_SKRIPT).replace('sha256-NOTIZEN', 'sha256-' + createHash('sha256').update(NOTIZEN_SKRIPT).digest('base64'));
 
-export const PAGES = { 'bank.example': bank, 'notizen.example': notizenSeite, 'chatgpt.com': chatgpt, 'claude.ai': claude, 'gemini.google.com': gemini, 'copilot.microsoft.com': copilot,
+// Meeting-Attrappe fuer die Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026):
+// startet echtes getDisplayMedia per Klick, stoppt per track.stop() (ohne ended-Ereignis).
+const meet = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>meet</title></head><body>
+<h1>Besprechung (Attrappe)</h1>
+<button id="teilen">Bildschirm teilen</button>
+<pre id="log"></pre>
+<script>
+let strom = null;
+const log = (t) => { document.getElementById('log').textContent += t; };
+document.getElementById('teilen').addEventListener('click', () => {
+  log('START|');
+  navigator.mediaDevices.getDisplayMedia({ video: true }).then((x) => { strom = x; log('AN:' + x.getVideoTracks()[0].getSettings().displaySurface + '|'); }, (e) => log('FEHLER:' + e.name + '|'));
+});
+window.teilStopp = () => { if (strom) for (const t of strom.getTracks()) t.stop(); log('STOPP|'); };
+</script>
+</body></html>`;
+
+export const PAGES = { 'bank.example': bank, 'notizen.example': notizenSeite, 'meet.google.com': meet, 'chatgpt.com': chatgpt, 'claude.ai': claude, 'gemini.google.com': gemini, 'copilot.microsoft.com': copilot,
   'copilot.com': copilot,
   'copilot.cloud.microsoft': m365, 'm365.cloud.microsoft': m365 };
 

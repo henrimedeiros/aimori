@@ -11,7 +11,10 @@
   // aria-labels des Senden-Knopfs je Sprache (claude.ai zeigt sie in der
   // Browsersprache, z. B. "Nachricht senden" bei de-DE).
   const SEND_LABELS = ['Send message', 'Send Message', 'Nachricht senden', 'Envoyer le message', 'Invia messaggio',
-    'Enviar mensaje', 'Enviar mensagem', 'Bericht verzenden'];
+    'Enviar mensaje', 'Enviar mensagem', 'Bericht verzenden',
+    // Oberflaechen in fr/it/es/pt-BR (ChatGPT "Prompt senden", Gemini "Nachricht senden" je Sprache; Design-Review Sprachen, Auflage 8)
+    'Send prompt', 'Prompt senden', 'Envoyer le prompt', 'Envoyer un message', 'Invia prompt', 'Invia un messaggio',
+    'Enviar prompt', 'Enviar un mensaje', 'Enviar uma mensagem'];
   const labelled = (labels) => labels.map((l) => 'button[aria-label="' + l + '"]');
   const M365_COMPOSER = ['#m365-chat-editor-target-element', 'span[contenteditable="true"][aria-label="Message Copilot"]'];
   const M365_SEND = labelled(['Send', 'Senden', 'Envoyer', 'Invia', 'Enviar']).concat(labelled(SEND_LABELS));
@@ -58,6 +61,13 @@
     // Auflage 1; Pflicht-Pruefung: nur dieser Host).
     { id: 'm365copilot', hosts: ['copilot.cloud.microsoft'], composer: M365_COMPOSER, send: M365_SEND },
     { id: 'm365copilot', hosts: ['m365.cloud.microsoft'], onlyComposer: true, composer: M365_COMPOSER, send: M365_SEND },
+    // Perplexity (Stand 17.10.2026 nach oeffentlicher Oberflaeche, nicht an angemeldeten
+    // Seiten gemessen): Eingabe #ask-input als contenteditable (frueher textarea), Senden-Knopf
+    // mit aria-label "Submit". Ohne Treffer "Schutz nicht aktiv" (Design-Review Browser-KIs
+    // 17.10.2026, Auflage 5). Der Assistent in Comet selbst ist nicht erreichbar (docs/ki-agenten.md).
+    { id: 'perplexity', hosts: ['perplexity.ai', 'www.perplexity.ai'],
+      composer: ['#ask-input[contenteditable="true"]', 'textarea#ask-input', '[contenteditable="true"][data-lexical-editor="true"]'],
+      send: ['button[data-testid="submit-button"]', 'button[aria-label="Submit"]', 'button[aria-label="Senden"]'] },
   ];
 
   function make(def) {
@@ -121,8 +131,11 @@
     };
   }
 
+  // Nur exakte Gleichheit mit den festen Hosts, kleingeschrieben, ohne Punkt am Ende
+  // (Design-Review Browser-KIs 17.10.2026, Auflage 4); kein endsWith/includes.
   function forHost(host) {
-    const def = SITES.find((s) => s.hosts.indexOf(host) !== -1);
+    const h = String(host || '').toLowerCase().replace(/\.$/, '');
+    const def = SITES.find((s) => s.hosts.indexOf(h) !== -1);
     return def ? make(def) : null;
   }
 

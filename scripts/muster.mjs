@@ -145,7 +145,7 @@ export function pruefeKatalog(katalog, { fehlalarm = true, katalogDatei = null }
   if (katalog.format !== 1 || typeof katalog.version !== 'string' || !Array.isArray(katalog.muster)) return { fehler: ['katalog: format'], zahlen };
   if (katalog.muster.length > MAX_MUSTER) fehler.push('katalog: zu_viele_muster');
   const DLX = loadMitKatalog({ muster: [] });
-  const builtin = new Set(DLX.engine.allDetectors().map((d) => d.id).concat(['dictionary', 'custom_term', 'unscannable']));
+  const builtin = new Set(DLX.engine.allDetectors().map((d) => d.id).concat(['dictionary', 'custom_term', 'internal_link', 'unscannable']));
   const quellen = new Map(DLX.engine.allDetectors().map((d) => [d.re.source, d.id]));   // gleiche Regex wie ein eingebauter Typ
   const ids = new Set();
   const ok = [];

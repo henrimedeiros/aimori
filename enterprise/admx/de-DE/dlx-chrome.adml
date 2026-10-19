@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.1" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
   <displayName>AImori</displayName>
   <description>Richtlinien der Browser-Erweiterung</description>
   <resources>
@@ -45,7 +45,7 @@
       <string id="uncertainFindings_warn">warn</string>
       <string id="uncertainFindings_enforce">enforce</string>
       <string id="allowedSites">Erlaubte KI-Seiten</string>
-      <string id="allowedSites_help">Welche der unterstuetzten KI-Seiten genutzt werden duerfen (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot). Eingaben auf den anderen unterstuetzten Seiten werden gesperrt. Standard: alle.</string>
+      <string id="allowedSites_help">Welche der unterstuetzten KI-Seiten genutzt werden duerfen (chatgpt, claude, gemini, copilot, m365copilot = Microsoft 365 Copilot, perplexity). Eingaben auf den anderen unterstuetzten Seiten werden gesperrt. Standard: alle.</string>
       <string id="blockWhenInactive">Sperren, wenn Schutz inaktiv</string>
       <string id="blockWhenInactive_help">Wird das Eingabefeld einer unterstuetzten Seite nicht erkannt (Seitenumbau), Senden und Einfuegen sperren. Standard: false.</string>
       <string id="blockUncheckedFiles">Ungepruefte Dateien sperren</string>
@@ -81,6 +81,21 @@
       <string id="formGuardSites_help">Hostnamen der Seiten, deren Formulare beim Absenden geprueft werden, z. B. portal.example.com oder *.hr.example.com (nur https, kein Pfad/Port, hoechstens ein fuehrendes *., mindestens zwei Labels, keine KI-Seiten, keine IP-Adressen). Geprueft werden Textfelder, Textbereiche und bearbeitbare Bereiche des Formulars (nicht Passwort-, Datei- oder versteckte Felder) lokal mit derselben Erkennung wie auf den KI-Seiten, egal ob ein Mensch oder ein KI-Agent sie ausgefuellt hat. Bei Fund wird das Absenden gestoppt und ein eigenes Fenster der Erweiterung fragt Nicht senden / Senden einmal erlauben (nur mit allowUserOverride). Nicht abgedeckt: Seiten, die Daten per Skript statt per Formular senden, form.submit(), versteckte Felder. Benutzer muessen den Zugriff einmal in den Einstellungen erlauben. Per Richtlinie gesetzt koennen Benutzer keine Seiten aendern. Hoechstens 20 Eintraege. Standard: leer.</string>
       <string id="copySidebarHint">Hinweis beim Kopieren (KI-Seitenleisten)</string>
       <string id="copySidebarHint_help">Bei true erscheint beim Kopieren von Text mit sensiblen Daten auf einer beliebigen https-Seite ein dezenter Hinweis, dass KI-Seitenleisten und KI-Erweiterungen (z. B. Copilot in Edge, Gemini in Chrome, Claude in Chrome) nicht geprueft werden. Wirkt erst, wenn der Benutzer in den Einstellungen den optionalen Zugriff auf alle https-Seiten erteilt hat; eine Richtlinie kann diesen Zugriff nicht erteilen. Der markierte Text wird lokal geprueft und verworfen, nichts wird gespeichert oder gesendet. Nicht abgedeckt: http-Seiten, iframes, Kopieren in anderen Programmen. Bei false wird der Zugriff zurueckgegeben. Standard: true.</string>
+      <string id="barTheme">Farbe der Warnleiste</string>
+      <string id="barTheme_help">Farbe der Warnleiste ueber dem Eingabefeld auf KI-Seiten. auto = folgt dem Seitenhintergrund (hell oder dunkel); light = immer hell; dark = immer dunkel. Nur das Aussehen aendert sich, die Pruefung bleibt gleich. Per Richtlinie gesetzt, koennen Benutzer sie nicht aendern. Ungueltiger Wert gilt als auto. Standard: auto.</string>
+      <string id="barTheme_auto">auto</string>
+      <string id="barTheme_light">light</string>
+      <string id="barTheme_dark">dark</string>
+      <string id="barCompact">Kompakte Warnleiste</string>
+      <string id="barCompact_help">Kompakte Warnleiste fuer kleine Bildschirme: 44 statt 56 px hoch, kleinere Knoepfe (30 px); Kernsatz, erkannte Datenart und alle Entscheidungsknoepfe bleiben sichtbar, die Erklaerung bleibt fuer Screenreader und ueber Mehr erfahren lesbar. auto = kompakt, wenn die Leiste schmaler als 640 px ist; on = immer kompakt; off = nie kompakt. Per Richtlinie gesetzt, koennen Benutzer sie nicht aendern. Ungueltiger Wert gilt als auto. Standard: auto.</string>
+      <string id="barCompact_auto">auto</string>
+      <string id="barCompact_on">on</string>
+      <string id="barCompact_off">off</string>
+      <string id="screenShareGuard">Warnung beim Bildschirmteilen</string>
+      <string id="screenShareGuard_help">Wird der Bildschirm im Browser mit Google Meet, Microsoft Teams oder Zoom (Webfassungen) geteilt und ist eine KI-Seite mit erkannten sensiblen Daten im Eingabefeld oder in der letzten Antwort sichtbar, nennt ein Hinweis die Arten (nie Werte) und bietet an, die Treffer auf dem Bildschirm zu verdecken. Verdecken aendert nur die Darstellung; der Text wird nicht geaendert, gespeichert oder gesendet. off = kein Hinweis; warn = Hinweis mit Knopf zum Verdecken; mask = Treffer werden waehrend des Teilens sofort verdeckt. Wirkt erst, wenn der Benutzer in den Einstellungen den optionalen Zugriff auf diese Meeting-Seiten erteilt hat; eine Richtlinie kann ihn nicht erteilen. Erkannt wird ueber eine Huelle um die Browser-Funktion zum Bildschirmteilen auf diesen Seiten; gelesen wird nur, ob geteilt wird und welche Art Flaeche, nie Bild oder Ton. Nicht abgedeckt: Desktop-Apps (Teams, Zoom, Meet), andere Browser und Programme, andere Meeting-Seiten, Teilen aus iframes, Eingabefelder ohne Formatierung (textarea: nur Hinweis). Hilfe, kein Schutz (docs/bildschirm-teilen.md). Ungueltiger Wert gilt als mask. Standard: warn.</string>
+      <string id="screenShareGuard_off">off</string>
+      <string id="screenShareGuard_warn">warn</string>
+      <string id="screenShareGuard_mask">mask</string>
       <string id="voiceMode">Sprachmodus auf KI-Seiten</string>
       <string id="voiceMode_help">Im Sprachmodus (ChatGPT Voice, Gemini Live, Copilot-Sprache, Claude-Sprachmodus) geht Gesprochenes ohne Text im Eingabefeld direkt an die KI und kann nicht geprueft werden. Diktat ins Eingabefeld wird unabhaengig davon wie getippter Text geprueft. allow = keine Meldung; warn = Meldung beim Druck auf den Sprachmodus-Knopf, Benutzer koennen ihn einmal je Seitenaufruf trotzdem starten (nur mit allowUserOverride, sonst wie block); block = der Knopf wird gestoppt. Erkannt ueber feste Selektoren je Seite: nach Seitenumbauten geaenderte Knoepfe, Tastenkuerzel sowie Desktop- und Handy-Apps sind nicht abgedeckt (docs/sprache-und-diktat.md). Ungueltiger Wert gilt als block. Standard: warn.</string>
       <string id="voiceMode_allow">allow</string>
@@ -136,6 +151,8 @@
       <string id="dictionary_help">Firmenbegriffe als SHA-256-Pruefsummen: Hex(SHA-256(Salz + normalisierter Begriff)). Schuetzt nur vor beilaeufigem Lesen.</string>
       <string id="customTerms">Eigene Begriffe</string>
       <string id="customTerms_help">Eigene Begriffe (Kundennamen, Projekt-Codenamen, interne Domains, Kuerzel) nur als gesalzene SHA-256-Pruefsummen, nie im Klartext: Hex(SHA-256(Salz + normalisierter Begriff)). Erzeugen mit scripts/begriffe-hashen.mjs. Normalisierung: Kleinbuchstaben, Umlaute als ae/oe/ue/ss, Akzente entfernt; Leerzeichen, Bindestriche, Punkte und andere Trennzeichen trennen Woerter; 1-5 Woerter, nur ganze Woerter. Das Salz ist fuer Benutzer lesbar: schuetzt nur vor beilaeufigem Lesen. Datentyp custom_term (Regeln).</string>
+      <string id="internalDomains">Interne Domains</string>
+      <string id="internalDomains_help">Interne Domains der Organisation (z. B. Intranet- oder Dateiserver-Domains) nur als gesalzene SHA-256-Pruefsummen, nie im Klartext: Hex(SHA-256(Salz + Domain)). Erzeugen mit scripts/begriffe-hashen.mjs --domains. Normalisierung: unsichtbare Zeichen entfernt, NFKC, Kleinbuchstaben, IDN als Punycode, ohne Punkt am Ende; mindestens zwei Labels. Links mit passendem Host oder passender uebergeordneter Domain = Datentyp internal_link (Regeln). Eigenes Salz, nicht das von customTerms (sonst wird das Feld verworfen). Das Salz ist fuer Benutzer lesbar und interne Domainnamen sind oft erratbar: schuetzt nur vor beilaeufigem Lesen, nicht vor einem Woerterbuchangriff.</string>
       <string id="customPatterns">Eigene Erkennungsmuster</string>
       <string id="customPatterns_help">Eigene regulaere Ausdruecke der Organisation, gemeldet als Datentyp &quot;Eigenes Muster (Organisation)&quot; (das Muster selbst wird nie angezeigt). Nur per Richtlinie. Max. 50 Eintraege, je Zeile ein JSON-Objekt: id (org_ + 2-40 Zeichen a-z 0-9 _), regex (JavaScript, max. 300 Zeichen, nur begrenzte Quantoren {n,m} bis 64, kein * + {n,}, keine Rueckverweise/Lookarounds, Trefferlaenge 3-256), flags (&quot;&quot; oder &quot;i&quot;), category (Standard firma), context (max. 20 Woerter), requireContext (true/false), action (warn, redact, block; Standard warn). Ein ungueltiger Eintrag verwirft die ganze Liste. Siehe docs/muster-mitmachen.md.</string>
       <string id="labelNames">Eigene Label-Namen</string>
@@ -154,6 +171,8 @@
       <string id="tableRedaction_rows">rows</string>
       <string id="deobfuscation">Verschleierte Daten erkennen</string>
       <string id="deobfuscation_help">Bei true (Standard) prueft die Erweiterung auch Varianten des Textes: unsichtbare Zeichen, Vollbreite/Doppelgaenger, Trennzeichen zwischen Ziffern, ausgeschriebene Ziffern, rueckwaerts, Base64/Hex/URL-Kodierung sowie ueber mehrere Nachrichten verteilte Teile (nur fluechtig im Speicher).</string>
+      <string id="allowPause">Pause erlauben</string>
+      <string id="allowPause_help">Bei true (Standard) koennen Benutzer den Schutz per Tastenkuerzel 15 Minuten pausieren; in der Pause fallen nur Warnungen weg, die Benutzer ohnehin uebergehen duerfen; block, Nur schwaerzen, alle Funde bei allowUserOverride=false, gesperrte KI-Seiten, Seitenfreigabe und blockWhenInactive gelten weiter. Pausen werden nicht gezaehlt. Bei false ist keine Pause moeglich, eine laufende endet sofort.</string>
       <string id="allowRephrase">Sicher umformulieren erlauben</string>
       <string id="allowRephrase_help">Bei true (Standard) bietet die Meldung den Knopf &quot;Sicher umformulieren&quot;: heikle Details werden lokal durch allgemeine Beschreibungen ersetzt, die Frage bleibt gleich; Vorschau im Eingabefeld, Rueckgaengig moeglich.</string>
       <string id="identityMinParts">Identitaet: noetige Teile</string>
@@ -254,6 +273,15 @@
       <presentation id="formGuardSites">
         <listBox refId="formGuardSites">Formularwache: Seiten</listBox>
       </presentation>
+      <presentation id="barTheme">
+        <dropdownList refId="barTheme" noSort="true">Farbe der Warnleiste</dropdownList>
+      </presentation>
+      <presentation id="barCompact">
+        <dropdownList refId="barCompact" noSort="true">Kompakte Warnleiste</dropdownList>
+      </presentation>
+      <presentation id="screenShareGuard">
+        <dropdownList refId="screenShareGuard" noSort="true">Warnung beim Bildschirmteilen</dropdownList>
+      </presentation>
       <presentation id="voiceMode">
         <dropdownList refId="voiceMode" noSort="true">Sprachmodus auf KI-Seiten</dropdownList>
       </presentation>
@@ -300,6 +328,12 @@
           <label>Salz</label>
         </textBox>
         <listBox refId="customTerms_hashes">Pruefsummen</listBox>
+      </presentation>
+      <presentation id="internalDomains">
+        <textBox refId="internalDomains_salt">
+          <label>Salz</label>
+        </textBox>
+        <listBox refId="internalDomains_hashes">Pruefsummen</listBox>
       </presentation>
       <presentation id="customPatterns">
         <listBox refId="customPatterns">Eigene Erkennungsmuster</listBox>

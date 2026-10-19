@@ -33,6 +33,7 @@ test('Paket: keine versteckten Dateien, Schluessel oder Pakete; Manifest-Verweis
   assert.deepEqual(problems, []);
   assert.ok(manifestProblems({ manifest_version: 3, version: '1.0', key: 'x', icons: { 16: 'fehlt.png' } }, []).some((p) => p.includes('"key"')));
   assert.ok(manifestProblems({ manifest_version: 3, version: '1.0', icons: { 16: 'fehlt.png' } }, []).some((p) => p.includes('fehlt.png')));
+  assert.ok(manifestProblems({ manifest_version: 3, version: '1.0', host_permissions: ['https://meet.google.com/*'] }, []).some((p) => p.includes('host_permissions')));
 });
 
 test('ZIP: Rundweg mit UTF-8-Namen, leerer und unkomprimierbarer Datei, reproduzierbar', () => {

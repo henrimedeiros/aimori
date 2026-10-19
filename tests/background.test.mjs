@@ -9,7 +9,9 @@ import { webcrypto } from 'node:crypto';
 import { EXT } from './helpers/load.mjs';
 
 // where = { timeZone, languages }: Ort der Attrappe, timeZone darf sich aendern (Reise).
-function setup(managed = {}, where = null) {
+// firefox = true: Hintergrundseite wie in Firefox (kein offscreen/getContexts, moz-extension,
+// DOM mit iframes; Design-Review Firefox 17.10.2026).
+function setup(managed = {}, where = null, firefox = false) {
   const store = { local: {}, session: {}, managed: structuredClone(managed) };
   const area = (name) => ({
     get: async (k) => (k === null ? structuredClone(store[name]) : Object.hasOwn(store[name], k) ? { [k]: structuredClone(store[name][k]) } : {}),
@@ -22,14 +24,18 @@ function setup(managed = {}, where = null) {
   const docs = { open: false, created: [], closed: 0 };
   let listener = null;
   let onRemoved = null;
+  let onUpdated = null;
   // KI-Seiten: gewaehrte optionale Origins, registrierte Skripte, Ereignisse.
   const perm = { origins: [], removed: [] };
   const inject = { calls: [], loaded: false, fail: false };
   const tabsOpen = [];   // tabs.query liefert diese Tabs, protokolliert die Abfrage
+  const tabsGone = [];   // tabs.get kennt diese Tabs nicht mehr
   const queries = [];
   const scripts = [];
   const events = {};
   const on = (name) => ({ addListener: (fn) => { events[name] = fn; } });
+  const alarms = {};
+  const badge = { text: '' };
   const chrome = {
     runtime: { id: 'testid', onMessage: { addListener: (f) => { listener = f; } }, onStartup: on('startup'), onInstalled: on('installed'), getManifest: () => JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')), getURL: (p) => 'chrome-extension://testid/' + p, sendMessage: async (m) => { broadcast.push(m); if (m && m.target === 'dlx-ki') return replies.ki ? replies.ki(m) : undefined; return m && m.target === 'dlx-ocr' && replies.ocr ? replies.ocr(m) : undefined; },
       getContexts: async () => (docs.open ? [{ contextType: 'OFFSCREEN_DOCUMENT' }] : []) },
@@ -46,19 +52,38 @@ function setup(managed = {}, where = null) {
       // Kopierwache: Aufrufe protokollieren; inject.loaded = Engine schon im Dokument, inject.fail = Fehler.
       executeScript: async (o) => { inject.calls.push({ target: structuredClone(o.target), func: !!o.func, files: o.files ? o.files.slice() : undefined }); if (inject.fail) throw new Error('weg'); return [{ result: o.func ? inject.loaded : undefined }]; },
     },
-    action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
-    tabs: { query: async (q) => { queries.push(q); return tabsOpen.slice(); }, sendMessage: async (tab, msg, opt) => { sent.push(JSON.parse(JSON.stringify({ tab, msg, opt }))); return replies.fn ? replies.fn(msg, opt) : undefined; }, onRemoved: { addListener: (f) => { onRemoved = f; } } },
+    alarms: { create: async (name, o) => { alarms[name] = o.when; }, clear: async (name) => { delete alarms[name]; return true; }, onAlarm: on('alarm') },
+    commands: { onCommand: on('command') },
+    action: { setBadgeText: async (o) => { if (o.tabId === undefined) badge.text = o.text; }, setBadgeBackgroundColor: async () => {} },
+    tabs: { get: async (id) => { if (tabsGone.includes(id)) throw new Error('No tab with id'); return { id }; }, query: async (q) => { queries.push(q); return tabsOpen.slice(); }, sendMessage: async (tab, msg, opt) => { sent.push(JSON.parse(JSON.stringify({ tab, msg, opt }))); return replies.fn ? replies.fn(msg, opt) : undefined; }, onRemoved: { addListener: (f) => { onRemoved = f; } }, onUpdated: { addListener: (f) => { onUpdated = f; } } },
     windows: { create: async () => ({ id: 9, tabs: [{ id: 99 }] }), remove: async () => {}, onRemoved: { addListener() {} } },
   };
+  const frames = [];
+  if (firefox) {
+    delete chrome.offscreen;
+    delete chrome.runtime.getContexts;
+    chrome.runtime.getURL = (p) => 'moz-extension://0a1b2c3d-uuid/' + p;
+    chrome.action.setTitle = async () => {};
+  }
+  const document = firefox ? {
+    getElementById: (id) => frames.find((f) => f.id === id && !f.removed) || null,
+    createElement: (tag) => {
+      const el = { tag, id: '', src: '', removed: false, listeners: {}, addEventListener(t, fn) { this.listeners[t] = fn; }, remove() { this.removed = true; } };
+      return el;
+    },
+    body: { append: (el) => { frames.push(el); setTimeout(() => el.listeners.load && el.listeners.load(), 0); } },
+  } : undefined;
   const extra = where ? { Intl: { Locale: Intl.Locale, DateTimeFormat: function () { return { resolvedOptions: () => ({ timeZone: where.timeZone }) }; } } } : {};
   const nav = where ? { language: where.languages[0], languages: where.languages } : { language: 'de-CH' };
-  const ctx = vm.createContext(Object.assign({ chrome, crypto: webcrypto, navigator: nav, TextEncoder, performance, URL, clearTimeout, Date,
+  // fetch nur fuer Paketdateien (DLX.i18n laedt _locales), alles andere scheitert.
+  const fetch = async (u) => { const m = /^(?:chrome|moz)-extension:\/\/[^/]+\/(.*)$/.exec(String(u)); if (!m) throw new Error('kein Netz'); const t = fs.readFileSync(path.join(EXT, m[1]), 'utf8'); return { text: async () => t }; };
+  const ctx = vm.createContext(Object.assign(firefox ? { document } : {}, { chrome, crypto: webcrypto, navigator: nav, TextEncoder, performance, URL, clearTimeout, Date, fetch,
     // Leerlauf-Timer der Texterkennung (60 s) halten den Testlauf nicht auf.
     setTimeout: (f, ms) => { const t = setTimeout(f, ms); t.unref(); return t; } }, extra));
   ctx.importScripts = (...f) => { for (const x of f) vm.runInContext(fs.readFileSync(path.join(EXT, x), 'utf8'), ctx, { filename: x }); };
   vm.runInContext(fs.readFileSync(path.join(EXT, 'background.js'), 'utf8'), ctx, { filename: 'background.js' });
   const send = (msg, sender) => new Promise((res) => listener(msg, sender, (r) => res(r === undefined ? r : JSON.parse(JSON.stringify(r)))));
-  return { store, sent, send, broadcast, replies, removed: (id) => onRemoved(id), perm, scripts, events, docs, tabsOpen, queries, inject };
+  return { store, sent, send, broadcast, replies, removed: (id) => onRemoved(id), updated: (id, info) => onUpdated(id, info), perm, scripts, events, docs, tabsOpen, tabsGone, queries, inject, alarms, badge, frames };
 }
 
 const content = { id: 'testid', tab: { id: 5 }, frameId: 0, origin: 'https://chatgpt.com', url: 'https://chatgpt.com/c/1' };
@@ -168,13 +193,16 @@ test('Laenderpakete automatisch: Reise wird nachgefuehrt, Ort wird nie gespeiche
   const { send, store } = setup({}, where);
   const a = await send({ t: 'cfg' }, content);
   assert.deepEqual(a.cfg.countryPacks, ['CH', 'EU']);
-  assert.deepEqual(Object.keys(a).sort(), ['aiBlocked', 'cfg', 'ignore'], 'Content Script: nur cfg und Liste "Kein sensibler Wert"');
-  assert.deepEqual(Object.keys(a.cfg).filter((k) => k !== 'imageScan').sort(), ['accountRules', 'allowNotSensitive', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedSites', 'answerCheck', 'blockUncheckedFiles', 'blockWhenInactive',
+  assert.deepEqual(Object.keys(a).sort(), ['aiBlocked', 'cfg', 'ignore', 'pausedUntil', 'texts'], 'Content Script: nur cfg, Liste "Kein sensibler Wert", Pausenende und Texte');
+  assert.ok(Object.keys(a.texts).every((k) => /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$)/.test(k)), 'nur Content-Texte (Design-Review Sprachen, Auflage 7)');
+  assert.deepEqual(Object.keys(a.cfg).filter((k) => k !== 'imageScan').sort(), ['accountRules', 'allowNotSensitive', 'allowPause', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedSites', 'answerCheck', 'blockUncheckedFiles', 'blockWhenInactive',
     'branding', 'competenceHideSensitive', 'competenceRecord', 'complianceFrameworks', 'complianceReport', 'complianceReportDays', 'copySidebarHint', 'countryPacks', 'customPatterns', 'customTerms',
-    'deobfuscation', 'detection', 'dictionary', 'documentFingerprints', 'globalPacks', 'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'labelNames',
-    'language', 'massListMin', 'rules', 'sensitiveSourceAction', 'tableMinColumns', 'tableMinRows', 'tableRedaction', 'tableScan', 'trainingAmpel', 'uncertainFindings', 'userTerms',
+    'deobfuscation', 'detection', 'dictionary', 'documentFingerprints', 'globalPacks', 'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'internalDomains', 'labelNames',
+    'language', 'massListMin', 'rules', 'screenShareGuard', 'sensitiveSourceAction', 'tableMinColumns', 'tableMinRows', 'tableRedaction', 'tableScan', 'trainingAmpel', 'uncertainFindings', 'userTerms',
     'voiceMode']);
-  assert.ok(!JSON.stringify(a).includes('Europe') && !JSON.stringify(a).includes('th-TH'));
+  // texts = feste Paket-Texte (z. B. Datentyp-Namen mit «Europe»), ohne Ortsbezug.
+  const ohneTexte = JSON.stringify(Object.assign({}, a, { texts: null }));
+  assert.ok(!ohneTexte.includes('Europe') && !ohneTexte.includes('th-TH'));
   const st = await send({ t: 'state' }, options);
   assert.deepEqual(st.country, { mode: 'auto', countries: ['CH', 'EU'], reasons: { CH: 'timezone', EU: 'eu' } });
   where.timeZone = 'America/Chicago';
@@ -716,13 +744,13 @@ test('Bilder: Arten image/imagefail nur mit festen Entscheidungen; kein Platzhal
 });
 
 // Design-Review Leiste/Hoehe 15.10.2026, Auflagen 1-5 und 10
-test('Hoehe der Leiste: nur Ganzzahl 56..240 vom gebundenen Leisten-Frame, Nonce vom Service Worker, hoechstens 10 je Sekunde', async () => {
+test('Hoehe der Leiste: nur Ganzzahl 44..240 vom gebundenen Leisten-Frame, Nonce vom Service Worker, hoechstens 10 je Sekunde', async () => {
   const { send, sent } = setup();
   const { nonce } = await send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'bar' }, { ...content, documentId: 'DOC-KI' });
   assert.equal(await send({ t: 'size', h: 100 }, dialog), null, 'vor dem ersten hello ist kein Frame gebunden');
   await send({ t: 'hello' }, { ...dialog, documentId: 'DOC-F' });
   sent.length = 0;
-  for (const h of [55, 241, 1.5, '80', null, NaN]) assert.equal(await send({ t: 'size', h }, { ...dialog, documentId: 'DOC-F' }), null, String(h));
+  for (const h of [43, 241, 1.5, '80', '50', null, NaN, Infinity]) assert.equal(await send({ t: 'size', h }, { ...dialog, documentId: 'DOC-F' }), null, String(h));
   assert.deepEqual(await send({ t: 'size', h: 120 }, { ...dialog, frameId: 8, documentId: 'DOC-F' }), { gone: true }, 'anderer Frame');
   assert.equal(await send({ t: 'size', h: 120 }, { ...dialog, documentId: 'DOC-X' }), null, 'anderes Dokument');
   assert.equal(await send({ t: 'size', h: 120 }, { ...dialog, documentId: 'DOC-F', url: 'chrome-extension://testid/ui/dialog.html?x=1' }), null, 'URL mit Query');
@@ -841,7 +869,7 @@ test('Quellen: Abruf nur vom KI-Content-Script im Hauptframe, Push nur an KI-Tab
   tabsOpen.push({ id: 5 }, { id: 6 });
   await send({ t: 'srcMark', hash: SH1 }, bank);
   await tick();
-  assert.deepEqual(JSON.parse(JSON.stringify(queries[queries.length - 1].url)).sort(), ['https://chatgpt.com/*', 'https://claude.ai/*', 'https://copilot.cloud.microsoft/*', 'https://copilot.com/*', 'https://copilot.microsoft.com/*', 'https://gemini.google.com/*', 'https://m365.cloud.microsoft/*']);
+  assert.deepEqual(JSON.parse(JSON.stringify(queries[queries.length - 1].url)).sort(), ['https://chatgpt.com/*', 'https://claude.ai/*', 'https://copilot.cloud.microsoft/*', 'https://copilot.com/*', 'https://copilot.microsoft.com/*', 'https://gemini.google.com/*', 'https://m365.cloud.microsoft/*', 'https://perplexity.ai/*', 'https://www.perplexity.ai/*']);
   const push = sent.filter((x) => x.msg.t === 'srcMarks');
   assert.deepEqual(push.map((x) => [x.tab, x.opt.frameId]), [[5, 0], [6, 0]]);
   const got = await send({ t: 'srcMarks' }, content);
@@ -1189,4 +1217,284 @@ test('KI vorladen: beim Start und Installieren eingeplant, Status nur ueber kiSe
   assert.equal((bg.match(/chrome\.storage\.session\.set\(\{ \[KI_STATUS_KEY\]/g) || []).length, 1, 'ein Schreibweg');
   assert.ok(!/setAccessLevel/.test(bg));
   assert.match(bg, /if \(msg\.t === 'kiFortschritt'\) return fromExtPage\(sender, '\/' \+ OCR_DOC\) && !sender\.tab \? kiProgress\(msg\) : null;/);
+});
+// Design-Review Warnleiste anpassbar 17.10.2026, Auflagen 2-4: Richtlinie schlaegt lokal,
+// an den Frame nur theme und compact, an Content Scripts keines von beiden.
+test('Warnleiste: barTheme/barCompact nur in der Frame-Antwort, Richtlinie schlaegt lokal', async () => {
+  const hello = async (s, theme) => {
+    await s.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'bar', theme }, content);
+    return s.send({ t: 'hello' }, dialog);
+  };
+  const auto = setup();
+  let h = await hello(auto, 'dunkel');
+  assert.deepEqual([h.theme, h.compact], ['dunkel', 'auto'], 'Standard: Seitenerkennung, kompakt automatisch');
+  assert.ok(!('cfg' in h) && !('barTheme' in h) && !('barCompact' in h), 'nie die cfg');
+  auto.store.local['dlx.settings'] = { barTheme: 'light', barCompact: 'on' };
+  h = await hello(auto, 'dunkel');
+  assert.deepEqual([h.theme, h.compact], ['hell', 'on'], 'lokale Einstellung');
+  const c = (await auto.send({ t: 'cfg' }, content)).cfg;
+  assert.ok(!('barTheme' in c) && !('barCompact' in c), 'nie an Content Scripts');
+
+  const m = setup({ barTheme: 'dark', barCompact: 'off' });
+  m.store.local['dlx.settings'] = { barTheme: 'light', barCompact: 'on' };
+  h = await hello(m, 'hell');
+  assert.deepEqual([h.theme, h.compact], ['dunkel', 'off'], 'Richtlinie schlaegt den gespeicherten Wert');
+  const st = await m.send({ t: 'state' }, options);
+  assert.ok(st.locked.barTheme && st.locked.barCompact);
+  assert.deepEqual(st.barInvalid, []);
+
+  const bad = setup({ barTheme: 'DARK', barCompact: { on: true } });
+  bad.store.local['dlx.settings'] = { barTheme: 'dark', barCompact: 'on' };
+  h = await hello(bad, 'hell');
+  assert.deepEqual([h.theme, h.compact], ['hell', 'auto'], 'ungueltige Richtlinie = auto und gesperrt');
+  const st2 = await bad.send({ t: 'state' }, options);
+  assert.deepEqual(st2.barInvalid, ['barTheme', 'barCompact'], 'nur der Schluessel, nie der Wert');
+});
+
+test('Warnleiste: Hoehe 44 (kompakt) und 240 gehen durch, 43 und 241 nicht', async () => {
+  const { send, sent } = setup();
+  await send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'bar' }, { ...content, documentId: 'DOC-KI' });
+  await send({ t: 'hello' }, { ...dialog, documentId: 'DOC-F' });
+  for (const h of [43, 241, 44.5, '44']) assert.equal(await send({ t: 'size', h }, { ...dialog, documentId: 'DOC-F' }), null, String(h));
+  for (const h of [44, 240]) assert.deepEqual(await send({ t: 'size', h }, { ...dialog, documentId: 'DOC-F' }), { ok: true }, String(h));
+  assert.deepEqual(sent.filter((x) => x.msg.t === 'dlgSize').map((x) => x.msg.h), [44, 240]);
+});
+
+// --- Warnung beim Bildschirmteilen (Design-Review Bildschirmteilen 17.10.2026, docs/sicherheit/design-review-bildschirmteilen.md) ---
+const MEET = 'https://meet.google.com/*';
+const meet = (o = {}) => Object.assign({ id: 'testid', tab: { id: 7 }, frameId: 0, documentId: 'd7', documentLifecycle: 'active', origin: 'https://meet.google.com', url: 'https://meet.google.com/abc-defg-hij' }, o);
+const shareMsgs = (s) => s.sent.filter((x) => x.msg.t === 'shareState');
+
+test('Bildschirmteilen: Skripte nur fuer erteilte Meeting-Origins, MAIN + isoliert, Hauptframe, nicht dauerhaft (Auflage 6)', async () => {
+  const s = setup({});
+  s.perm.origins.push(MEET);
+  s.events.added(); await tick();
+  const reg = s.scripts.filter((x) => x.id.startsWith('dlx-teilen')).map((x) => [x.id, x.world, x.js.join(), x.matches.join(), x.allFrames, x.persistAcrossSessions, x.runAt]);
+  assert.deepEqual(reg, [['dlx-teilen-seite', 'MAIN', 'content/teilen-seite.js', MEET, false, false, 'document_start'],
+    ['dlx-teilen', 'ISOLATED', 'content/teilen.js', MEET, false, false, 'document_start']]);
+  // Ohne erteiltes Recht nichts registriert.
+  const n = setup({});
+  n.events.installed(); await tick();
+  assert.equal(n.scripts.filter((x) => x.id.startsWith('dlx-teilen')).length, 0);
+});
+
+test('Bildschirmteilen: off gibt nur die Meeting-Origins zurueck, breites Recht registriert ohne Richtlinie nichts (Auflage 6)', async () => {
+  const s = setup({ screenShareGuard: 'off' });
+  s.perm.origins.push(MEET, ALL, 'https://*.zoom.us/*');
+  s.events.added(); await tick();
+  assert.deepEqual(s.perm.removed.sort(), ['https://*.zoom.us/*', MEET], 'Kopierwache braucht https://*/* weiter');
+  assert.equal(s.scripts.filter((x) => x.id.startsWith('dlx-teilen')).length, 0);
+  assert.equal(await s.send({ t: 'shareSignal', on: true, surface: 'monitor' }, meet()), null);
+  assert.deepEqual(await s.send({ t: 'shareQuery' }, content), { on: false, mode: 'off' });
+  // Formularwache auf einem Meeting-Host braucht das Recht: es bleibt.
+  const f = setup({ screenShareGuard: 'off', formGuardSites: ['meet.google.com'] });
+  f.perm.origins.push(MEET);
+  f.events.added(); await tick();
+  assert.deepEqual(f.perm.removed, []);
+});
+
+test('Bildschirmteilen: nur geprueftes Signal vom Meeting-Hauptframe, KI-Tab erhaelt nur {on, mode}, nie Rueckkanal (Auflagen 3-5)', async () => {
+  const s = setup({});
+  s.perm.origins.push(MEET, 'https://*.zoom.us/*');
+  s.events.added(); await tick();
+  assert.deepEqual(await s.send({ t: 'shareQuery' }, content), { on: false, mode: 'warn' });
+  const bad = [
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'https://meet.google.com.example.com', url: 'https://meet.google.com.example.com/x' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'https://zoom.us.example.com', url: 'https://zoom.us.example.com/x' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'https://evilzoom.us', url: 'https://evilzoom.us/x' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'https://meet.google.com:8443', url: 'https://meet.google.com:8443/x' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'http://meet.google.com', url: 'http://meet.google.com/x' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ origin: 'https://chatgpt.com' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ frameId: 3 })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ documentLifecycle: 'prerender' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ id: 'fremd' })],
+    [{ t: 'shareSignal', on: true, surface: 'monitor' }, meet({ tab: undefined })],
+    [{ t: 'shareSignal', on: true, surface: 'tab' }, meet()],
+    [{ t: 'shareSignal', on: true }, meet()],
+    [{ t: 'shareSignal', on: 'ja', surface: 'monitor' }, meet()],
+    [{ t: 'shareSignal', on: true, surface: 'monitor', url: 'x' }, meet()],
+  ];
+  for (const [m, snd] of bad) assert.equal(await s.send(m, snd), null);
+  assert.equal(shareMsgs(s).length, 0, 'kein Fehlsignal verteilt');
+  assert.deepEqual(await s.send({ t: 'shareQuery' }, content), { on: false, mode: 'warn' });
+  assert.equal(await s.send({ t: 'shareSignal', on: true, surface: 'window' }, meet({ tab: { id: 9 }, origin: 'https://us05web.zoom.us', url: 'https://us05web.zoom.us/wc/1' })), null);
+  assert.equal(await s.send({ t: 'shareSignal', on: true, surface: 'monitor' }, meet()), null);
+  await tick();
+  const m = shareMsgs(s);
+  assert.equal(m.length, 1, 'Wechsel aus -> an einmal gemeldet');
+  assert.deepEqual(m[0], { tab: 5, msg: { t: 'shareState', on: true, mode: 'warn' }, opt: { frameId: 0 } });
+  assert.ok(s.sent.every((x) => x.tab !== 7 && x.tab !== 9), 'nie an Meeting-Tabs');
+  assert.deepEqual(await s.send({ t: 'shareQuery' }, content), { on: true, mode: 'warn' });
+  assert.equal(await s.send({ t: 'shareQuery' }, meet()), null, 'Abfrage nur von KI-Seiten');
+  const st = JSON.stringify(s.store.session['dlx.share']);
+  assert.equal(st, '{"tabs":{"7":"monitor","9":"window"},"rx":[5]}', 'nur Tab-IDs und Flaeche');
+  // Erst wenn kein Tab mehr teilt: aus.
+  await s.send({ t: 'shareSignal', on: false }, meet());
+  await tick();
+  assert.equal(shareMsgs(s).length, 1);
+  await s.removed(9); await tick();
+  assert.deepEqual(shareMsgs(s).pop().msg, { t: 'shareState', on: false, mode: 'warn' });
+});
+
+test('Bildschirmteilen: Drossel je Tab, Neustart stellt Zustand ohne geschlossene Tabs her (Auflagen 3, 7)', async () => {
+  const s = setup({});
+  s.perm.origins.push(MEET);
+  s.events.added(); await tick();
+  await s.send({ t: 'shareQuery' }, content);
+  for (let i = 0; i < 3; i++) await s.send({ t: 'shareSignal', on: false }, meet());
+  await s.send({ t: 'shareSignal', on: true, surface: 'monitor' }, meet());
+  await tick();
+  assert.equal(shareMsgs(s).length, 0, 'vierte Meldung in derselben Sekunde verworfen');
+  await sleep(1050);
+  await s.send({ t: 'shareSignal', on: true, surface: 'monitor' }, meet());
+  await tick();
+  assert.equal(shareMsgs(s).length, 1);
+  // Neuer Service Worker mit gespeichertem Zustand: Tab 8 gibt es nicht mehr.
+  const r = setup({});
+  r.perm.origins.push(MEET);
+  r.store.session['dlx.share'] = { tabs: { 7: 'monitor', 8: 'window', x: 'monitor', 6: 'evil' }, rx: [5, 8, 'a'] };
+  r.tabsGone.push(8);
+  assert.deepEqual(await r.send({ t: 'shareQuery' }, content), { on: true, mode: 'warn' });
+  assert.equal(JSON.stringify(r.store.session['dlx.share']), '{"tabs":{"7":"monitor"},"rx":[5]}');
+  // Richtlinie mask wird an KI-Tabs weitergegeben, off beendet die Warnung.
+  const k = setup({ screenShareGuard: 'mask' });
+  k.perm.origins.push(MEET);
+  k.events.added(); await tick();
+  await k.send({ t: 'shareQuery' }, content);
+  await k.send({ t: 'shareSignal', on: true, surface: 'browser' }, meet());
+  await tick();
+  assert.deepEqual(shareMsgs(k).pop().msg, { t: 'shareState', on: true, mode: 'mask' });
+  k.store.managed.screenShareGuard = 'off';
+  k.events.changed({}, 'managed'); await tick();
+  assert.deepEqual(shareMsgs(k).pop().msg, { t: 'shareState', on: false, mode: 'off' });
+  assert.equal(k.scripts.filter((x) => x.id.startsWith('dlx-teilen')).length, 0);
+});
+
+// --- Tastenkuerzel und Pause (Design-Review Alltag 14.10.2026, docs/sicherheit/design-review-kuerzel-17-10.md) ---
+const popup = { id: 'testid', origin: 'chrome-extension://testid', url: 'chrome-extension://testid/ui/popup.html' };
+test('Pause: Kuerzel schaltet 15 Minuten um, Alarm und Badge; erneut = wieder an (Auflagen 5, 8)', async () => {
+  const s = setup({}, null);
+  const t0 = Date.now();
+  await s.events.command('toggle-pause', { id: 5 }); await tick();
+  const until = s.store.local['dlx.pause'].until;
+  assert.ok(until >= t0 + 15 * 60000 && until <= Date.now() + 15 * 60000, String(until - t0));
+  assert.equal(s.alarms['dlx-pause'], until);
+  assert.equal(s.badge.text, 'II');
+  assert.equal((await s.send({ t: 'cfg' }, content)).pausedUntil, until);
+  assert.equal((await s.send({ t: 'state' }, popup)).pausedUntil, until);
+  await s.events.command('toggle-pause', { id: 5 }); await tick();
+  assert.equal(s.store.local['dlx.pause'], undefined);
+  assert.equal(s.alarms['dlx-pause'], undefined);
+  assert.equal(s.badge.text, '');
+  assert.equal((await s.send({ t: 'cfg' }, content)).pausedUntil, 0);
+  // Ablauf per Alarm
+  await s.events.command('toggle-pause', { id: 5 }); await tick();
+  s.events.alarm({ name: 'dlx-pause' }); await tick();
+  assert.equal(s.store.local['dlx.pause'], undefined, 'Alarm loescht');
+  assert.equal(s.badge.text, '');
+});
+
+test('Pause: manipulierte oder zu lange Werte gelten nicht und werden geloescht (Auflage 6)', async () => {
+  for (const bad of [{ until: Date.now() + 3600000 }, { until: 'morgen' }, 'x', { until: Date.now() - 1 }]) {
+    const s = setup({}, null);
+    s.store.local['dlx.pause'] = bad;
+    assert.equal((await s.send({ t: 'cfg' }, content)).pausedUntil, 0, JSON.stringify(bad));
+    assert.equal(s.store.local['dlx.pause'], undefined);
+  }
+});
+
+test('Pause: Richtlinie allowPause=false verhindert sie und beendet eine laufende (Auflage 7)', async () => {
+  const s = setup({ allowPause: false }, null);
+  await s.events.command('toggle-pause', { id: 5 }); await tick();
+  assert.equal(s.store.local['dlx.pause'], undefined);
+  s.store.local['dlx.pause'] = { until: Date.now() + 60000 };
+  s.events.changed({}, 'managed'); await tick(); await tick();
+  assert.equal(s.store.local['dlx.pause'], undefined, 'Richtlinienwechsel loescht');
+});
+
+test('Kuerzel mit offener Meldung: Entscheidung nur an dasselbe Dokument, gezaehlt; sonst Auftrag ans Content Script (Auflagen 1-3)', async () => {
+  const s = setup({}, null);
+  const sender = Object.assign({}, content, { documentId: 'DOC1' });
+  await s.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, sender);
+  s.replies.fn = (msg, opt) => (opt && opt.documentId === 'DOC1' ? { ok: true } : undefined);
+  await s.events.command('redact-all', { id: 5 }); await tick();
+  const d = s.sent.filter((x) => x.msg.t === 'decision');
+  assert.equal(d.length, 1);
+  assert.deepEqual([d[0].msg.choice, d[0].opt.frameId, d[0].opt.documentId], ['redact', 0, 'DOC1']);
+  const stats = JSON.stringify(s.store.local['dlx.stats']);
+  assert.ok(stats.includes('redact'), stats);
+  assert.equal((s.store.session['dlx.pending'] || {})[5], undefined, 'Meldung erledigt');
+  // Ohne offene Meldung: Auftrag an das eigene Content Script im Hauptframe.
+  await s.events.command('redact-all', { id: 5 }); await tick();
+  const c = s.sent.filter((x) => x.msg.t === 'cmd');
+  assert.deepEqual(JSON.parse(JSON.stringify([c[0].msg, c[0].opt])), [{ t: 'cmd', choice: 'redact' }, { frameId: 0 }]);
+});
+
+test('Kuerzel: altes Dokument zaehlt nicht, unbekannte Befehle und ohne Tab nichts, Datei-Meldung und Sperre bleiben', async () => {
+  const s = setup({}, null);
+  await s.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, Object.assign({}, content, { documentId: 'ALT' }));
+  s.replies.fn = () => undefined;   // Dokument weg: keine Bestaetigung
+  await s.events.command('redact-all', { id: 5 }); await tick();
+  assert.equal(s.store.local['dlx.stats'], undefined, 'nichts gezaehlt');
+  const n = s.sent.length;
+  for (const cmd of ['override', 'notsensitive', 'placeholder-all', '_execute_action']) await s.events.command(cmd, { id: 5 });
+  await s.events.command('redact-all', undefined);
+  await s.events.command('redact-all', { id: -1 });
+  await tick();
+  assert.equal(s.sent.length, n, 'nichts gesendet');
+  await s.send({ t: 'found', mode: 'fileblock', action: 'block', items: [] }, Object.assign({}, content, { documentId: 'D2' }));
+  await s.events.command('redact-all', { id: 5 }); await tick();
+  assert.equal(s.sent.length, n, 'Datei-Meldung: Kuerzel tut nichts');
+  const b = setup({ rules: { iban: 'block' } }, null);
+  await b.send({ t: 'found', mode: 'send', action: 'block', items: ITEMS }, Object.assign({}, content, { documentId: 'D3' }));
+  await b.events.command('redact-all', { id: 5 }); await tick();
+  assert.equal(b.sent.filter((x) => x.msg.t === 'decision').length, 0, 'block: kein Schwaerzen per Kuerzel');
+});
+
+// --- Firefox (Design-Review Firefox 17.10.2026) ---------------------------------
+const FX = 'moz-extension://0a1b2c3d-uuid';
+const fxContent = { id: 'testid', tab: { id: 5 }, frameId: 0, url: 'https://chatgpt.com/c/1' };   // Firefox ohne sender.origin
+const fxOcr = { id: 'testid', url: FX + '/ui/ocr.html' };
+
+test('Firefox: Herkunft aus sender.url nur ohne sender.origin, fail-closed (Auflage 3)', async () => {
+  const s = setup({}, null, true);
+  assert.ok((await s.send({ t: 'cfg' }, fxContent)).cfg, 'Content Script ohne origin aus sender.url erkannt');
+  for (const bad of [
+    { ...fxContent, url: 'https://evil.example.com/' },
+    { ...fxContent, url: 'about:blank' },
+    { ...fxContent, url: 'blob:https://chatgpt.com/1234' },
+    { ...fxContent, url: 'data:text/html,x' },
+    { ...fxContent, url: 'kein url' },
+    { ...fxContent, url: undefined },
+    { ...fxContent, frameId: 2 },
+    { ...fxContent, id: 'fremd' },
+    // vorhandenes origin gewinnt immer, auch gegen ein gefaelschtes sender.url
+    { ...fxContent, origin: 'https://evil.example.com' },
+    { ...fxContent, origin: 'null' },
+  ]) assert.equal(await s.send({ t: 'cfg' }, bad), null, JSON.stringify(bad));
+  // Chrome-Weg unveraendert: origin gesetzt, url gefaelscht -> origin zaehlt.
+  const c = setup();
+  assert.ok((await c.send({ t: 'cfg' }, { ...content, url: 'https://evil.example.com/' })).cfg, 'origin gesetzt: url wird nicht gelesen');
+  assert.equal(await c.send({ t: 'cfg' }, { ...evil, url: 'https://chatgpt.com/c/1' }), null, 'gefaelschtes url hebt falsches origin nie auf');
+  // Eigene Seiten: moz-extension-Herkunft aus sender.url.
+  assert.ok(await s.send({ t: 'state' }, { id: 'testid', url: FX + '/ui/popup.html' }));
+  assert.equal(await s.send({ t: 'state' }, { id: 'testid', url: 'moz-extension://andere-uuid/ui/popup.html' }), null);
+});
+
+test('Firefox: Texterkennung/KI in unsichtbarem iframe statt Offscreen; Fortschritt nur von ocr.html ohne Tab (Auflage 5)', async () => {
+  const s = setup({}, null, true);
+  s.replies.ki = async (m) => (m.t === 'run' ? { ents: [], ep: 'wasm', ms: 5 } : { ok: true, ep: 'wasm' });
+  const r = await s.send({ t: 'ki', text: 'Hallo Welt', seq: 1 }, fxContent);
+  assert.deepEqual(r, { ents: [], ep: 'wasm' });
+  assert.equal(s.frames.length, 1, 'genau ein iframe');
+  assert.equal(s.frames[0].src, FX + '/ui/ocr.html');
+  assert.equal(s.docs.created.length, 0, 'kein Offscreen-API-Aufruf');
+  await s.send({ t: 'ki', text: 'Noch ein Text', seq: 2 }, fxContent);
+  assert.equal(s.frames.filter((f) => !f.removed).length, 1, 'iframe wird wiederverwendet');
+  // Content Scripts und fremde Seiten koennen die Typen der OCR-Seite nie senden.
+  for (const who of [fxContent, { ...fxOcr, tab: { id: 5 } }, { id: 'testid', url: FX + '/ui/popup.html' }, { ...fxOcr, id: 'fremd' }, { id: 'testid', url: 'https://chatgpt.com/ui/ocr.html' }]) {
+    assert.equal(await s.send({ t: 'kiFortschritt', p: 30 }, who), null, JSON.stringify(who));
+  }
+  const m = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
+  assert.ok(!m.web_accessible_resources.some((w) => w.resources.includes('ui/ocr.html')), 'ocr.html nie web_accessible');
 });

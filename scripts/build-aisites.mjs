@@ -16,7 +16,8 @@ export function manifestFor(m) {
   const origins = Array.from(ai.origins());
   const out = JSON.parse(JSON.stringify(m));
   // activeTab und declarativeContent nur fuer die Training-Ampel (Design-Review Training-Ampel 16.10.2026, Auflage 1).
-  out.permissions = ['storage', 'scripting', 'offscreen', 'activeTab', 'declarativeContent'];
+  // alarms nur fuer das Ende der Pause per Tastenkuerzel (Design-Review Alltag 14.10.2026, Auflage 8).
+  out.permissions = ['storage', 'scripting', 'offscreen', 'activeTab', 'declarativeContent', 'alarms'];
   // Dazu https://*/* nur optional fuer vertrauliche Quellen (Zwischenablage-Schutz); angefordert
   // werden nur die Origins der Quellenliste (Design-Review Antwort/Zwischenablage 16.10.2026, Auflagen 7, 23).
   out.optional_host_permissions = origins.concat('https://*/*');
