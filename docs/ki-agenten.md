@@ -55,7 +55,7 @@ Beim **Einfügen, Ablegen (Drag & Drop) und Hochladen** auf den unterstützten K
 - **Unsichtbare Unicode-Zeichen:** Zero-Width-Zeichen, Bidi-Steuerzeichen, Unicode-Tag-Zeichen. Ausgenommen sind Zeichen, die in Emojis, Flaggen, Schriften mit Schreibrichtung rechts nach links und als BOM normal vorkommen.
 - **Versteckter Text in eingefügtem HTML:** `display:none`, `visibility:hidden`, Attribut `hidden`, `opacity: 0`, winzige Schrift, Text in Hintergrundfarbe (z. B. Weiss auf Weiss), weit ausserhalb des sichtbaren Bereichs positioniert.
 - **Typische Umgehungs-Sätze** wie „ignore previous instructions“ und ähnliche Formulierungen in 6 Sprachen.
-- **Textdokumente** `.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.html`, `.log` bis 2 MB werden vor dem Hochladen auf dieselben Merkmale geprüft; die KI-Seite erhält das Dokument erst danach. Grössere Dokumente gelten als nicht prüfbar (`warn`: Hinweis, `block`: gesperrt).
+- **Textdokumente** `.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.html`, `.log` bis 20 MB werden vor dem Hochladen auf dieselben Merkmale geprüft; die KI-Seite erhält das Dokument erst danach. Grössere Dokumente gelten als nicht prüfbar (`warn`: Hinweis, `block`: gesperrt).
 
 Der Hinweis nennt nur **Art und Anzahl** der Funde, nie Ausschnitte des Textes. Es wird nichts gespeichert und nichts gesendet.
 

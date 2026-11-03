@@ -62,7 +62,7 @@ function setup(first, innerWidth) {
     setTimeout: (f, ms) => { timers.push({ at: now + ms, f }); return timers.length; }, clearTimeout: (id) => { if (timers[id - 1]) timers[id - 1].f = null; },
     requestAnimationFrame: (f) => f(),
   };
-  load(['branding.js', ...ENGINE_FILES, 'common/i18n.js', 'common/dom.js', 'ui/dialog.js'], ctx);
+  load(['branding.js', ...ENGINE_FILES, 'engine/ki.js', 'common/i18n.js', 'common/dom.js', 'ui/dialog.js'], ctx);
   const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
   const advance = (ms) => { const end = now + ms; for (const t of timers) if (t.f && t.at <= end) { now = Math.max(now, t.at); const f = t.f; t.f = null; f(); } now = end; };
   const button = (k) => doc.body.all((n) => n.getAttribute('data-k') === k)[0];
@@ -225,6 +225,114 @@ test('Live-Hinweis nur mit unsicheren Funden: dezent ("moeglicherweise"), Klasse
   await s.flush();
   assert.match(s.doc.body.textContent, /möglicherweise/);
   assert.ok(s.doc.body.all((n) => n.getAttribute('class') && n.getAttribute('class').includes('dlx-leise')).length === 1);
+});
+
+test('Teilpruefung (ki_partial) ist kein Fund: kein Schwaerzen, kein "moeglicherweise", klarer Satz', async () => {
+  const s = setup(Object.assign({}, LIVE, { items: [{ id: 'ki_partial', cat: 'unscannable', n: 1, sure: false }] }));
+  await s.flush();
+  assert.equal(s.button('redact'), undefined, 'nichts zu schwaerzen');
+  assert.equal(s.button('pseudonym'), undefined);
+  assert.ok(s.button('hide'), 'ausblenden geht');
+  const t = s.doc.body.textContent;
+  assert.ok(!/möglicherweise|bitte prüfen|erkannt/.test(t), t);
+  assert.match(t, /Sehr langer Text: Die lokale KI hat nur den ersten Teil geprüft, die Regeln den ganzen Text/);
+  assert.ok(s.doc.body.all((n) => n.getAttribute('class') && n.getAttribute('class').includes('dlx-leise')).length === 1);
+});
+
+test('Teilpruefung neben echten Funden: Schwaerzen bleibt, der Satz steht daneben und zaehlt nicht als Typ', async () => {
+  const s = setup(Object.assign({}, LIVE, { items: [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'ki_partial', cat: 'unscannable', n: 1, sure: false }] }));
+  await s.flush();
+  assert.ok(s.button('redact'));
+  const t = s.doc.body.textContent;
+  assert.match(t, /IBAN.* erkannt/);
+  assert.match(t, /Sehr langer Text/);
+  assert.ok(!/möglicherweise/.test(t), t);
+});
+
+test('Senden: unsichere Funde dezent in derselben Leiste, Vollbild-Karte nennt sie ebenso; ergaenzte Funde per nudge', async () => {
+  const items = [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'person', cat: 'person', n: 2, sure: false }];
+  const s = setup(Object.assign({}, SEND, { items }));
+  await s.flush();
+  const t = s.doc.body.textContent;
+  assert.match(t, /IBAN.* erkannt/);
+  assert.match(t, /möglicherweise 2× Name einer Person/);
+  assert.ok(s.button('redact'));
+  const full = setup(Object.assign({}, SEND, { layout: 'full', items }));
+  await full.flush();
+  assert.match(full.doc.body.textContent, /möglicherweise Name einer Person \(lokale KI\)/);
+  // Nachgereichte Funde: gleiche Leiste, kein neues Fenster, keine neue Entscheidung.
+  const m = setup(SEND);
+  await m.flush();
+  assert.ok(!/Name einer Person/.test(m.doc.body.textContent));
+  m.setInfo(Object.assign({}, SEND, { items: [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'person', cat: 'person', n: 1 }] }));
+  m.nudge();
+  await m.flush();
+  assert.match(m.doc.body.textContent, /IBAN.*, Name einer Person.* erkannt/);
+  assert.equal(m.decisions().length, 0);
+});
+
+const DOC = Object.assign({}, BASE, { mode: 'doc', allowOverride: true });
+test('Dokument zu lang: klarer Satz statt "erkannt", Trotzdem sichtbar, kein Schwaerzen', async () => {
+  const s = setup(Object.assign({}, DOC, { reason: 'long', items: [{ id: 'unscannable', cat: 'unscannable', n: 1 }] }));
+  await s.flush();
+  const t = s.doc.body.textContent;
+  assert.match(t, /Dokument angehalten/);
+  assert.match(t, /zu lang für die vollständige Prüfung \(höchstens 20 MB/);
+  assert.ok(!/erkannt|Text konnte nicht/.test(t), t);
+  assert.equal(s.button('redact'), undefined);
+  assert.ok(s.button('cancel') && s.button('override'));
+  assert.equal(s.button('override').parent.getAttribute('class').includes('dlx-optionen'), false, 'nicht hinter "Weitere Optionen"');
+  const u = setup(Object.assign({}, DOC, { items: [{ id: 'unscannable', cat: 'unscannable', n: 1 }] }));
+  await u.flush();
+  assert.match(u.doc.body.textContent, /konnte nicht vollständig geprüft werden/);
+  // Funde bleiben genannt, der Satz steht daneben; Vollbild-Karte mit eigener Einleitung.
+  const m = setup(Object.assign({}, DOC, { reason: 'long', items: [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'unscannable', cat: 'unscannable', n: 1 }] }));
+  await m.flush();
+  assert.match(m.doc.body.textContent, /IBAN.* erkannt · zu lang/);
+  const f = setup(Object.assign({}, DOC, { layout: 'full', reason: 'long', items: [{ id: 'unscannable', cat: 'unscannable', n: 1 }] }));
+  await f.flush();
+  assert.match(f.doc.body.textContent, /Das Dokument ist zu lang für die vollständige Prüfung/);
+});
+
+test('Dokument mit bereinigter Fassung: Trotzdem bleibt hinter "Weitere Optionen"', async () => {
+  const s = setup(Object.assign({}, DOC, { fix: true, items: [{ id: 'iban', cat: 'finanz', n: 1 }] }));
+  await s.flush();
+  assert.ok(s.button('redact'));
+  assert.equal(s.button('override').parent.getAttribute('class').includes('dlx-optionen'), true);
+});
+
+test('Unsichere Funde und Teilpruefung zeigen nur Typ, Kategorie und Anzahl, nie einen Wert', async () => {
+  const WERT = 'Synthetischer Wert 4711';
+  const items = [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'person', cat: 'person', n: 2, sure: false, value: WERT, text: WERT, name: WERT }, { id: 'ki_partial', cat: 'unscannable', n: 1, sure: false, value: WERT, text: WERT }];
+  for (const info of [LIVE, SEND, Object.assign({}, SEND, { mode: 'paste' }), Object.assign({}, SEND, { layout: 'full' })]) {
+    const s = setup(Object.assign({}, info, { items }));
+    await s.flush();
+    const t = s.doc.body.textContent;
+    assert.match(t, /Name einer Person/);
+    assert.ok(!t.includes(WERT), t);
+    assert.ok(!JSON.stringify(s.doc.body.all((n) => Object.keys(n.attrs).length).map((n) => n.attrs)).includes(WERT), 'auch nicht in Attributen');
+  }
+});
+
+test('Dokument wird geprueft: einzige Wahl ist Abbrechen, auch in der Vollbild-Karte', async () => {
+  for (const layout of ['bar', 'full']) {
+    const s = setup(Object.assign({}, BASE, { mode: 'docwait', layout, allowOverride: true, allowPlaceholders: true, allowNotSensitive: true, allowRephrase: true, items: [] }));
+    await s.flush();
+    const knoepfe = s.doc.body.all((n) => n.tagName === 'BUTTON').map((n) => n.getAttribute('data-k'));
+    assert.deepEqual(knoepfe, ['cancel'], layout);
+    s.click('cancel');
+    await s.flush();
+    assert.deepEqual(s.decisions().map((d) => d.choice), ['cancel']);
+  }
+});
+
+test('Dokument wird geprueft: Hinweis nur mit Abbrechen', async () => {
+  const s = setup(Object.assign({}, BASE, { mode: 'docwait', items: [] }));
+  await s.flush();
+  assert.match(s.doc.body.textContent, /Dokument wird lokal geprüft/);
+  assert.ok(s.button('cancel'));
+  assert.equal(s.button('override'), undefined);
+  assert.equal(s.button('redact'), undefined);
 });
 
 test('Platzhalter: Knopf neben Schwaerzen nur mit allowPlaceholders; Antwort-Leiste mit "Mit echten Werten anzeigen"', async () => {

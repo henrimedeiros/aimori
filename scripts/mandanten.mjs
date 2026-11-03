@@ -381,11 +381,11 @@ function anleitung(kunde, erw, dateien) {
   for (const b of Object.keys(erw)) {
     const l = BROWSER[b].label;
     if (has(`intune/${b}-extensionsettings.json`)) L.push(`| \`intune/${b}-extensionsettings.json\` | ${l}: Wert für „ExtensionSettings“ (Erweiterung erzwingen) im Einstellungskatalog bzw. in der GPO |`);
-    L.push(`| \`intune/${b}-oma-uri.json\` | ${l}: Zeilen für ein benutzerdefiniertes Intune-Profil (OMA-URI, ADMX-Ingestion) |`);
+    if (has(`intune/${b}-oma-uri.json`)) L.push(`| \`intune/${b}-oma-uri.json\` | ${l}: Zeilen für ein benutzerdefiniertes Intune-Profil (OMA-URI, ADMX-Ingestion) |`);
     L.push(`| \`gpo/${b}-richtlinie.reg\` | ${l}: Registry-Variante (ersetzt nur den eigenen Schlüssel) |`);
   }
   L.push('| `Rollout.ps1` | PowerShell-Rollout (Intune-Plattformskript, GPO-Startskript, RMM); zuerst mit `-PlanOnly` |',
-    '| `../_admx/` | ADMX/ADML für GPO (Central Store) bzw. Intune-Import |', '');
+    '| `../_admx/` | ADMX/ADML für GPO (Central Store) bzw. Intune-Import (nur Chrome; Edge-Werte blockiert Windows beim ADMX-Import) |', '');
   for (const [b, e] of Object.entries(erw)) {
     L.push(`- ${BROWSER[b].label}: Erweiterungs-ID \`${e.id}\`${e.updateUrl ? '' : ' – keine Update-URL angegeben: Erweiterung wird nicht erzwungen (nur Richtlinie).'}`);
   }
@@ -452,7 +452,9 @@ export function erzeuge(datei) {
     const dateien = { 'richtlinie.json': JSON.stringify(policy, null, 2) + '\n' };
     for (const [b, e] of Object.entries(erw)) {
       if (e.updateUrl) dateien[`intune/${b}-extensionsettings.json`] = extensionSettings(e.id, e.updateUrl) + '\n';
-      dateien[`intune/${b}-oma-uri.json`] = JSON.stringify(omaZeilen(b, e.id, policy), null, 2) + '\n';
+      // Windows laesst ADMX-Ingestion (Intune-Import, OMA-URI) nicht unter Software\Policies\Microsoft
+      // schreiben: fuer Edge wirken nur Rollout.ps1 bzw. die .reg-Datei.
+      if (b !== 'edge') dateien[`intune/${b}-oma-uri.json`] = JSON.stringify(omaZeilen(b, e.id, policy), null, 2) + '\n';
       dateien[`gpo/${b}-richtlinie.reg`] = regDatei(b, e.id, policy);
     }
     dateien['Rollout.ps1'] = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(rolloutPs1(erw, policy))]);

@@ -7,7 +7,7 @@
       <string id="SUPPORTED_MV3">Microsoft Edge avec extensions Manifest V3 (version 110 ou ultérieure)</string>
       <string id="cat_root">AImori (Microsoft Edge)</string>
       <string id="branding">Personnalisation de la marque</string>
-      <string id="branding_help">Apparence en marque blanche affichée dans la fenêtre contextuelle, la page des paramètres et la boîte de dialogue d’avertissement.</string>
+      <string id="branding_help">Apparence en marque blanche affichée dans la fenêtre contextuelle, la page des paramètres et la boîte de dialogue d’avertissement. Les champs vides conservent la valeur par défaut.</string>
       <string id="language">Langue</string>
       <string id="language_help">Langue de l’interface. auto = langue du navigateur.</string>
       <string id="language_auto">auto</string>

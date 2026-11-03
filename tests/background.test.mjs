@@ -56,7 +56,7 @@ function setup(managed = {}, where = null, firefox = false) {
     commands: { onCommand: on('command') },
     action: { setBadgeText: async (o) => { if (o.tabId === undefined) badge.text = o.text; }, setBadgeBackgroundColor: async () => {} },
     tabs: { get: async (id) => { if (tabsGone.includes(id)) throw new Error('No tab with id'); return { id }; }, query: async (q) => { queries.push(q); return tabsOpen.slice(); }, sendMessage: async (tab, msg, opt) => { sent.push(JSON.parse(JSON.stringify({ tab, msg, opt }))); return replies.fn ? replies.fn(msg, opt) : undefined; }, onRemoved: { addListener: (f) => { onRemoved = f; } }, onUpdated: { addListener: (f) => { onUpdated = f; } } },
-    windows: { create: async () => ({ id: 9, tabs: [{ id: 99 }] }), remove: async () => {}, onRemoved: { addListener() {} } },
+    windows: { create: async (o) => { windowsCreated.push(o.url); return { id: 9, tabs: [{ id: 99 }] }; }, remove: async () => {}, onRemoved: { addListener() {} } },
   };
   const frames = [];
   if (firefox) {
@@ -86,6 +86,7 @@ function setup(managed = {}, where = null, firefox = false) {
   return { store, sent, send, broadcast, replies, removed: (id) => onRemoved(id), updated: (id, info) => onUpdated(id, info), perm, scripts, events, docs, tabsOpen, tabsGone, queries, inject, alarms, badge, frames };
 }
 
+const windowsCreated = [];
 const content = { id: 'testid', tab: { id: 5 }, frameId: 0, origin: 'https://chatgpt.com', url: 'https://chatgpt.com/c/1' };
 const dialog = { id: 'testid', tab: { id: 5 }, frameId: 7, origin: 'chrome-extension://testid', url: 'chrome-extension://testid/ui/dialog.html' };
 const options = { id: 'testid', origin: 'chrome-extension://testid', url: 'chrome-extension://testid/ui/options.html' };
@@ -107,7 +108,7 @@ test('Fund -> 128-Bit-Nonce, in storage.session nur IDs und Anzahlen', async () 
   assert.match(r.nonce, /^[0-9a-f]{32}$/);
   const p = store.session['dlx.pending']['5'];
   assert.deepEqual(p.items, ITEMS);
-  assert.deepEqual(Object.keys(p).sort(), ['account', 'action', 'code', 'created', 'frameId', 'items', 'layout', 'mode', 'nonce', 'popupTabId', 'popupWindowId', 'reason', 'site', 'theme', 'documentId'].sort());
+  assert.deepEqual(Object.keys(p).sort(), ['account', 'action', 'code', 'created', 'frameId', 'items', 'layout', 'mode', 'nonce', 'reason', 'site', 'theme', 'documentId'].sort());
   assert.equal(await send({ t: 'found', mode: 'send', action: 'warn', items: [{ id: 'iban', cat: 'finanz', n: 1, value: 'x' }, { id: 'nope', cat: 'finanz', n: 1 }] }, content), null, 'unbekannte ID');
   assert.equal(await send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS }, evil), null);
 });
@@ -154,12 +155,42 @@ test('abgelaufene Anfrage (> 120 s) gilt als weg', async () => {
   assert.deepEqual(await send({ t: 'hello' }, dialog), { gone: true });
 });
 
-test('Rueckfall-Popup wird dem KI-Tab zugeordnet', async () => {
+// Edge zeigte das Rueckfall-Popupfenster als ERR_BLOCKED_BY_CLIENT (23.10.2026): kein Fenster mehr,
+// stattdessen Vollbild im Seiten-Overlay (Design-Review kein Fenster 23.10.2026, Auflagen 1, 5, 8).
+test('Kein Rueckfall-Fenster: fallback unbekannt, nie windows.create; Meldungs-Frame nur im eigenen KI-Tab', async () => {
+  windowsCreated.length = 0;
   const { send } = setup();
-  await send({ t: 'found', mode: 'paste', action: 'warn', items: ITEMS }, content);
-  assert.deepEqual(await send({ t: 'fallback' }, content), { ok: true });
+  await send({ t: 'found', mode: 'paste', action: 'warn', items: ITEMS, layout: 'bar' }, content);
+  assert.equal(await send({ t: 'fallback' }, content), null);
+  assert.deepEqual(windowsCreated, []);
   const popup = { id: 'testid', tab: { id: 99 }, frameId: 0, origin: 'chrome-extension://testid', url: 'chrome-extension://testid/ui/dialog.html' };
-  assert.equal((await send({ t: 'hello' }, popup)).mode, 'paste');
+  assert.deepEqual(await send({ t: 'hello' }, popup), { gone: true }, 'eigener Tab/Fenster');
+  assert.deepEqual(await send({ t: 'hello' }, { ...dialog, tab: { id: 6 } }), { gone: true }, 'anderer Tab');
+  assert.deepEqual(await send({ t: 'hello' }, { ...dialog, frameId: 0 }), { gone: true }, 'Hauptframe');
+  assert.equal((await send({ t: 'hello' }, dialog)).mode, 'paste');
+  assert.deepEqual(await send({ t: 'hello' }, { ...dialog, frameId: 8 }), { gone: true }, 'anderer Frame nach der Bindung');
+});
+
+test('Leiste -> Vollbild: nur mit der Nonce der Leiste, einmalig, neue Nonce, Bindung neu, Layout vom Service Worker', async () => {
+  const { send, store } = setup();
+  const r = await send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'bar' }, content);
+  await send({ t: 'hello' }, dialog);
+  assert.equal(await send({ t: 'full', nonce: 'f'.repeat(32) }, content), null, 'falsche Nonce');
+  assert.equal(await send({ t: 'full', nonce: r.nonce }, dialog), null, 'nicht vom Frame');
+  const x = await send({ t: 'full', nonce: r.nonce }, content);
+  assert.match(x.nonce, /^[0-9a-f]{32}$/);
+  assert.notEqual(x.nonce, r.nonce);
+  const p = store.session['dlx.pending']['5'];
+  assert.equal(p.layout, 'full');
+  assert.equal(p.frameId, null);
+  assert.equal(await send({ t: 'full', nonce: x.nonce }, content), null, 'nur einmal');
+  assert.equal(await send({ t: 'full', nonce: r.nonce }, content), null, 'alte Nonce ungueltig');
+  const full = { ...dialog, frameId: 11 };
+  assert.equal((await send({ t: 'hello' }, full)).layout, 'full', 'neuer Frame bindet, Layout vom Service Worker');
+  assert.deepEqual(await send({ t: 'hello' }, dialog), { gone: true }, 'alter Leisten-Frame nicht mehr');
+  const l = setup();
+  const lr = await l.send({ t: 'found', mode: 'live', action: 'warn', items: ITEMS, layout: 'bar' }, content);
+  assert.equal(await l.send({ t: 'full', nonce: lr.nonce }, content), null, 'nie fuer leise Hinweise');
 });
 
 test('Optionen speichern nur Benutzerschluessel, Admin-Schluessel nie', async () => {
@@ -194,7 +225,7 @@ test('Laenderpakete automatisch: Reise wird nachgefuehrt, Ort wird nie gespeiche
   const a = await send({ t: 'cfg' }, content);
   assert.deepEqual(a.cfg.countryPacks, ['CH', 'EU']);
   assert.deepEqual(Object.keys(a).sort(), ['aiBlocked', 'cfg', 'ignore', 'pausedUntil', 'texts'], 'Content Script: nur cfg, Liste "Kein sensibler Wert", Pausenende und Texte');
-  assert.ok(Object.keys(a.texts).every((k) => /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$)/.test(k)), 'nur Content-Texte (Design-Review Sprachen, Auflage 7)');
+  assert.ok(Object.keys(a.texts).every((k) => /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$|noticeFailed$|noticeChecking$)/.test(k)), 'nur Content-Texte (Design-Review Sprachen, Auflage 7)');
   assert.deepEqual(Object.keys(a.cfg).filter((k) => k !== 'imageScan').sort(), ['accountRules', 'allowNotSensitive', 'allowPause', 'allowPlaceholders', 'allowRephrase', 'allowUserOverride', 'allowedSites', 'answerCheck', 'blockUncheckedFiles', 'blockWhenInactive',
     'branding', 'competenceHideSensitive', 'competenceRecord', 'complianceFrameworks', 'complianceReport', 'complianceReportDays', 'copySidebarHint', 'countryPacks', 'customPatterns', 'customTerms',
     'deobfuscation', 'detection', 'dictionary', 'documentFingerprints', 'globalPacks', 'hiddenInstructionAction', 'hiddenInstructionScan', 'identityMinParts', 'internalDomains', 'labelNames',
@@ -360,10 +391,6 @@ test('Live-Nonce: nur Schwaerzen/Ausblenden, nie Trotzdem/Abbrechen; verdraengt 
   const s = await send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'bar' }, content);
   assert.equal(await send({ t: 'found', mode: 'live', action: 'warn', items: ITEMS, layout: 'bar' }, content), null);
   assert.equal(store.session['dlx.pending']['5'].nonce, s.nonce);
-  // Fallback-Popup nie fuer Live.
-  const l = setup();
-  await l.send({ t: 'found', mode: 'live', action: 'warn', items: ITEMS, layout: 'bar' }, content);
-  assert.equal(await l.send({ t: 'fallback' }, content), null);
 });
 
 test('hide gilt nur fuer Live; Sende-Meldung kennt kein hide', async () => {
@@ -606,6 +633,79 @@ test('Regeln je Konto: Kontoart nur als Enum vom Content Script, Dialog erhaelt 
 const B64 = Buffer.from('bild').toString('base64');
 const WORDS = [[['IBAN:', 1, 1, 9, 9], ['CH93', 10, 1, 19, 9]]];
 
+// --- Lange Texte: eine Meldung mit allen Funden, Teilpruefung kein Fund ---------
+const IBAN_ONE = { id: 'iban', cat: 'finanz', n: 1 };
+const PERSON_MAYBE = { id: 'person', cat: 'person', n: 2, sure: false };
+
+test('Nachgereichte KI-Funde: nur zur offenen Sende-/Einfuege-Meldung, gleiche Nonce, Aktion nie schwaecher', async () => {
+  const { send } = setup();
+  // Ohne offene Meldung, mit fremder Nonce, unbekanntem Typ oder fremdem Absender: nichts.
+  assert.equal(await send({ t: 'foundMore', nonce: 'x', action: 'warn', items: [IBAN_ONE] }, content), null);
+  const { nonce } = await send({ t: 'found', mode: 'send', action: 'warn', items: [IBAN_ONE], layout: 'bar' }, content);
+  assert.equal(await send({ t: 'foundMore', nonce: 'falsch', action: 'warn', items: [IBAN_ONE, PERSON_MAYBE] }, content), null);
+  assert.equal(await send({ t: 'foundMore', nonce, action: 'warn', items: [{ id: 'erfunden', cat: 'x', n: 1 }] }, content), null);
+  assert.equal(await send({ t: 'foundMore', nonce, action: 'warn', items: [] }, content), null);
+  assert.equal(await send({ t: 'foundMore', nonce, action: 'warn', items: [IBAN_ONE, PERSON_MAYBE] }, dialog), null);
+  assert.deepEqual(await send({ t: 'foundMore', nonce, action: 'warn', items: [IBAN_ONE, PERSON_MAYBE] }, content), { ok: true });
+  const info = await send({ t: 'hello' }, dialog);
+  assert.deepEqual(JSON.parse(JSON.stringify(info.items)), [IBAN_ONE, PERSON_MAYBE], 'unsicher bleibt markiert');
+  // Strenger geht, schwaecher nicht.
+  await send({ t: 'foundMore', nonce, action: 'block', items: [IBAN_ONE, PERSON_MAYBE] }, content);
+  assert.equal((await send({ t: 'hello' }, dialog)).action, 'block');
+  await send({ t: 'foundMore', nonce, action: 'warn', items: [IBAN_ONE, PERSON_MAYBE] }, content);
+  assert.equal((await send({ t: 'hello' }, dialog)).action, 'block');
+});
+
+test('Nachgereichte KI-Funde: nie zu einem leisen Hinweis', async () => {
+  const { send } = setup();
+  const { nonce } = await send({ t: 'found', mode: 'live', action: 'warn', items: [IBAN_ONE], layout: 'bar' }, content);
+  assert.equal(await send({ t: 'foundMore', nonce, action: 'warn', items: [IBAN_ONE, PERSON_MAYBE] }, content), null);
+});
+
+test('Teilpruefung (ki_partial): Service Worker erlaubt kein Schwaerzen und zaehlt sie nicht; unsicher nur live, senden, einfuegen', async () => {
+  const { send, store } = setup();
+  const note = { id: 'ki_partial', cat: 'unscannable', n: 1, sure: false };
+  await send({ t: 'found', mode: 'live', action: 'warn', items: [note], layout: 'bar' }, content);
+  await send({ t: 'hello' }, dialog);
+  assert.deepEqual(await send({ t: 'decide', choice: 'redact' }, dialog), { ok: false });
+  await send({ t: 'found', mode: 'image', action: 'warn', items: [Object.assign({}, IBAN_ONE, { sure: false })], layout: 'bar' }, content);
+  const img = await send({ t: 'hello' }, Object.assign({}, dialog, { frameId: 8 }));
+  assert.deepEqual(JSON.parse(JSON.stringify(img.items)), [IBAN_ONE]);
+  assert.ok(!JSON.stringify(store.local).includes('unscannable'), 'Hinweis erscheint nicht in der Statistik');
+});
+
+test('Statistik: unsichere Funde zaehlen beim Schwaerzen mit, beim Abbrechen nicht', async () => {
+  const total = (store) => {
+    const s = JSON.stringify(store.local);
+    return { person: s.includes('"person"'), finanz: s.includes('"finanz"') };
+  };
+  const a = setup();
+  await a.send({ t: 'found', mode: 'send', action: 'warn', items: [IBAN_ONE, PERSON_MAYBE], layout: 'bar' }, content);
+  await a.send({ t: 'hello' }, dialog);
+  await a.send({ t: 'decide', choice: 'cancel' }, dialog);
+  assert.deepEqual(total(a.store), { person: false, finanz: true });
+  const b = setup();
+  await b.send({ t: 'found', mode: 'send', action: 'warn', items: [IBAN_ONE, PERSON_MAYBE], layout: 'bar' }, content);
+  await b.send({ t: 'hello' }, dialog);
+  await b.send({ t: 'decide', choice: 'redact' }, dialog);
+  assert.deepEqual(total(b.store), { person: true, finanz: true });
+});
+
+test('Lange Dokumente: Grund nur als fester Wert, Warte-Hinweis nur Abbrechen und ohne Zaehlung', async () => {
+  const { send, store } = setup();
+  await send({ t: 'found', mode: 'doc', action: 'warn', items: [{ id: 'unscannable', cat: 'unscannable', n: 1 }], reason: 'long', layout: 'bar' }, content);
+  assert.equal((await send({ t: 'hello' }, dialog)).reason, 'long');
+  await send({ t: 'found', mode: 'doc', action: 'warn', items: [{ id: 'unscannable', cat: 'unscannable', n: 1 }], reason: '<b>', layout: 'bar' }, content);
+  assert.equal((await send({ t: 'hello' }, Object.assign({}, dialog, { frameId: 8 }))).reason, null);
+  await send({ t: 'found', mode: 'docwait', action: 'warn', items: [], layout: 'bar' }, content);
+  const d9 = Object.assign({}, dialog, { frameId: 9 });
+  assert.equal((await send({ t: 'hello' }, d9)).mode, 'docwait');
+  assert.deepEqual(await send({ t: 'decide', choice: 'override', confirmed: true }, d9), { ok: false });
+  const vorher = JSON.stringify(store.local);
+  await send({ t: 'cancelPending' }, content);
+  assert.equal(JSON.stringify(store.local), vorher, 'Schliessen des Hinweises zaehlt nicht');
+});
+
 // --- Lokale KI-Erkennung (Design-Review KI 16.10.2026, Auflagen 12, 14, 17, 19) ---
 test('KI: Text nur vom eigenen Content Script, Laengengrenze, Antwort geprueft, Status ohne Text', async () => {
   const s = setup();
@@ -762,14 +862,13 @@ test('Hoehe der Leiste: nur Ganzzahl 44..240 vom gebundenen Leisten-Frame, Nonce
   assert.equal(sent.length, 9, 'hoechstens 10 je Sekunde und Meldung');
 });
 
-test('Hoehe der Leiste: nie vom Rueckfall-Popup und nie bei Vollbild', async () => {
+test('Hoehe der Leiste: nie aus einem eigenen Fenster und nie bei Vollbild', async () => {
   const { send, sent } = setup();
   await send({ t: 'found', mode: 'paste', action: 'warn', items: ITEMS, layout: 'bar' }, content);
-  await send({ t: 'fallback' }, content);
   const popup = { id: 'testid', tab: { id: 99 }, frameId: 0, origin: 'chrome-extension://testid', url: 'chrome-extension://testid/ui/dialog.html' };
   await send({ t: 'hello' }, popup);
   sent.length = 0;
-  assert.equal(await send({ t: 'size', h: 100 }, popup), null);
+  assert.deepEqual(await send({ t: 'size', h: 100 }, popup), { gone: true });
   const full = setup();
   await full.send({ t: 'found', mode: 'send', action: 'warn', items: ITEMS, layout: 'full' }, content);
   await full.send({ t: 'hello' }, dialog);

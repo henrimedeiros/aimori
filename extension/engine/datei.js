@@ -13,7 +13,7 @@
 (function (g) {
   'use strict';
   const DLX = g.DLX = g.DLX || {};
-  const LIMITS = Object.freeze({ files: 5, bytes: 20 * 1024 * 1024, inflated: 60 * 1024 * 1024, entries: 2000, chars: 500000, ms: 10000, depth: 8, objects: 200000 });
+  const LIMITS = Object.freeze({ files: 5, bytes: 20 * 1024 * 1024, inflated: 60 * 1024 * 1024, entries: 2000, chars: 5000000, ms: 30000, depth: 8, objects: 200000 });
 
   const fail = (code) => { const e = new Error(code); e.code = code; return e; };
 

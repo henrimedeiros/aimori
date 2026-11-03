@@ -4,7 +4,7 @@
  "policies": {
   "branding": [
    "Personalización de marca",
-   "Apariencia de marca blanca en la ventana emergente, la página de configuración y el cuadro de diálogo de advertencia."
+   "Apariencia de marca blanca en la ventana emergente, la página de configuración y el cuadro de diálogo de advertencia. Los campos vacíos mantienen el valor predeterminado."
   ],
   "branding.productName": [
    "Nombre del producto"

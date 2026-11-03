@@ -1,20 +1,19 @@
 // Meldung (erweiterungseigene Herkunft): als schmale Leiste oberhalb des
-// Eingabefelds, als Vollbild-Dialog (Rueckfall) oder im Rueckfall-Popup.
+// Eingabefelds oder als Vollbild-Dialog (Rueckfall), immer eingebettet in die KI-Seite.
 // Kennt nur Datentyp-IDs und Anzahlen, nie die Werte. Entscheidungen gehen
 // an den Service Worker, der sie prueft (Auflage B3, Design-Review 14.10.2026).
 (async function () {
   'use strict';
   const DLX = globalThis.DLX;
   const { h } = DLX.dom;
-  const inPopup = window.top === window;
+  // Nie als eigenes Fenster oder Tab: nicht eingebettet = keine Funktion (Design-Review
+  // kein Fenster 23.10.2026, Auflage 6); der Service Worker bindet nur Frames im KI-Tab.
+  if (window.top === window) return;
   const ARM_MIN_MS = 400, ARM_MAX_MS = 4000, VISIBLE_MS = 400, LOCK_MS = 400, FIRST_SEEN_MS = 2000;
 
   const hello = () => chrome.runtime.sendMessage({ t: 'hello' }).catch(() => null);
   let info = await hello();
-  if (!info || info.gone) {
-    if (inPopup) window.close();
-    return;
-  }
+  if (!info || info.gone) return;
   await DLX.i18n.ready(info.language, navigator.language);
 
   let lockedUntil = 0;          // nach dem Nachfuehren 400 ms keine Klicks (Auflage 9)
@@ -26,7 +25,6 @@
     done = true;
     for (const btn of document.querySelectorAll('button')) btn.disabled = true;
     await chrome.runtime.sendMessage({ t: 'decide', choice, confirmed: confirmed === true }).catch(() => null);
-    if (inPopup) window.close();
   }
   const locked = () => performance.now() < lockedUntil;
 
@@ -58,7 +56,7 @@
       }, { trackVisibility: true, delay: 100, threshold: [0, 1] });
       io.observe(target);
     } catch (e) { io = null; return; }  // ohne v2: kein "Trotzdem", Schwaerzen/Bearbeiten bleiben
-    if (!inPopup) seenTimer = setTimeout(() => { if (watched === target && vis.supported && !vis.ever) lost(); }, FIRST_SEEN_MS);
+    seenTimer = setTimeout(() => { if (watched === target && vis.supported && !vis.ever) lost(); }, FIRST_SEEN_MS);
   }
 
   // "Trotzdem": zwei echte Klicks auf denselben Knopf, 400 ms bis 4 s Abstand,
@@ -106,22 +104,25 @@
     const b = info.branding;
     const lang = DLX.i18n.resolveLang(info.language, navigator.language);
     const T = (k, v) => DLX.i18n.t(lang, k, Object.assign({ product: b.productName, company: b.companyName }, v || {}));
-    const bar = info.layout === 'bar' && !inPopup;
+    const bar = info.layout === 'bar';
     const root = document.documentElement;
     root.lang = lang;
-    if (!inPopup && (info.theme === 'hell' || info.theme === 'dunkel')) root.setAttribute('data-theme', info.theme);
+    if (info.theme === 'hell' || info.theme === 'dunkel') root.setAttribute('data-theme', info.theme);
     const dark = root.getAttribute('data-theme') === 'dunkel' || (!root.hasAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
     DLX.dom.applyBranding(b, dark);
     document.body.className = bar ? 'dlx-frame dlx-bar-seite' : 'dlx-frame dlx-voll-seite';
 
-    // Ganztext-Funde (nicht pruefbar, vertrauliche Quelle) lassen sich nicht schwaerzen.
-    const real = info.items.filter((i) => i.id !== 'unscannable' && i.id !== 'clipboard_source' && i.id !== 'hidden_instruction' && i.id !== 'document_match');
+    // Ganztext-Funde (nicht pruefbar, vertrauliche Quelle) lassen sich nicht schwaerzen,
+    // ebenso wenig der Hinweis auf eine Teilpruefung: der ist gar kein Fund.
+    const real = info.items.filter((i) => i.id !== 'unscannable' && i.id !== 'clipboard_source' && i.id !== 'hidden_instruction' && i.id !== 'document_match' && i.id !== 'ki_partial');
+    const partly = info.items.some((i) => i.id === 'ki_partial');
     const input = info.mode === 'send' || info.mode === 'paste';
     // Bilder (Design-Review Bilder 14.10.2026): Fund, Pruefung laeuft, nicht pruefbar.
     const img = info.mode === 'image';
     const imgAny = img || info.mode === 'imagewait' || info.mode === 'imagefail';
     // Textdokument mit Hinweis auf versteckte Anweisungen: nur Abbrechen/Trotzdem (Design-Review KI-Agenten).
     const doc = info.mode === 'doc';
+    const docWait = info.mode === 'docwait';
     // Sprachmodus (Design-Review Diktat und Fingerabdruecke 16.10.2026): nur Abbrechen/Trotzdem.
     const voice = info.mode === 'voice';
     const block = (input || img || doc) && info.action === 'block';
@@ -152,13 +153,14 @@
     if (info.mode === 'rephrased' && info.reason !== 'paste') actions.push(button(T('undo'), 'dlx-knopf', () => decide('undo'), 'undo'));
     if (info.mode === 'reveal' && info.allowPlaceholders === true) actions.push(primary = button(T('showReal'), 'dlx-knopf dlx-haupt', () => decide('show'), 'show'));
     if (input) actions.push(button(paste ? T('discard') : T('edit'), 'dlx-knopf', () => decide('cancel'), 'cancel'));
-    else if (imgAny || doc) actions.push(button(T('cancel'), primary ? 'dlx-knopf' : 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
+    else if (imgAny || doc || docWait) actions.push(button(T('cancel'), primary ? 'dlx-knopf' : 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
     else if (info.mode === 'fileinfo') actions.push(primary = button(T('ok'), 'dlx-knopf dlx-haupt', () => decide('ok'), 'ok'));
     else if (!soft(info.mode)) actions.push(primary = button(T('ok'), 'dlx-knopf dlx-haupt', () => decide('cancel'), 'cancel'));
     if (canOverride) {
       const o = h('button', { type: 'button', class: 'dlx-knopf dlx-trotzdem', 'data-k': 'override' }, voice ? T('voiceAnyway') : doc ? T('uploadAnyway') : imgAny ? T('pasteImageAnyway') : paste ? T('pasteAnyway') : T('sendAnyway'));
       armOverride(o, voice ? T('reallyVoice') : doc ? T('reallyUpload') : imgAny ? T('reallyPasteImage') : paste ? T('reallyPaste') : T('reallySend'));
-      extra.push(o);
+      // Dokument ohne bereinigte Fassung: sonst bliebe nur "Abbrechen" sichtbar und das Hochladen wirkte unmoeglich.
+      (doc && !docFix ? actions : extra).push(o);
     }
     if (input && info.allowNotSensitive === true) {
       const ns = h('button', { type: 'button', class: 'dlx-knopf dlx-trotzdem', 'data-k': 'notsensitive', title: T('confirmNotSensitive') }, T('notSensitive'));
@@ -173,9 +175,13 @@
     }
 
     // Typen: in der Leiste Kurzname ohne Klammerzusatz ("2× IBAN"), hoechstens zwei, dann "+n".
-    // Live-Hinweis: unsichere Funde nur dezent ("moeglicherweise"), sie halten das Senden nie an.
-    const sureItems = info.mode === 'live' ? info.items.filter((it) => it.sure !== false) : info.items;
-    const maybeItems = info.mode === 'live' ? info.items.filter((it) => it.sure === false) : [];
+    // Live-Hinweis, Senden, Einfuegen: unsichere Funde nur dezent ("moeglicherweise"), sie halten das Senden nie an.
+    const graded = info.mode === 'live' || input;
+    // Dokument: "nicht pruefbar" ist kein Fund, sondern ein Satz (zu lang oder nicht ganz lesbar).
+    const docNote = doc && info.items.some((it) => it.id === 'unscannable');
+    const listed = info.items.filter((it) => it.id !== 'ki_partial' && !(doc && it.id === 'unscannable'));
+    const sureItems = graded ? listed.filter((it) => it.sure !== false) : listed;
+    const maybeItems = graded ? listed.filter((it) => it.sure === false) : [];
     const quiet = info.mode === 'live' && !sureItems.length;
     const shownOf = (list) => {
       const names = list.map((it) => {
@@ -226,9 +232,15 @@
       if (info.mode === 'reveal') return part('revealAsk', info.items);
       // KI-Antwort: nur Typname und Anzahl; nach dem Kopieren eigener Satz.
       if (info.mode === 'answer') return part(info.reason === 'copy' ? 'answerCopy' : 'answerAsk', info.items);
-      if (info.mode !== 'live') return part('detected', info.items);
-      const out = sureItems.length ? part('liveAsk', sureItems) : [];
+      if (doc) {
+        const out = listed.length ? part('detected', listed) : [];
+        if (docNote) out.push(out.length ? ' · ' : '', h('span', { 'data-k': 'docnote' }, T(info.reason === 'long' ? 'barDocLong' : 'barDocUnread')));
+        return out;
+      }
+      if (!graded) return part('detected', info.items);
+      const out = sureItems.length ? part(info.mode === 'live' ? 'liveAsk' : 'detected', sureItems) : [];
       if (maybeItems.length) out.push(sureItems.length ? ' · ' : '', ...part('liveMaybe', maybeItems));
+      if (partly) out.push(out.length ? ' · ' : '', h('span', { 'data-k': 'partly' }, DLX.i18n.typeName(lang, 'ki_partial')));
       return out;
     };
 
@@ -241,7 +253,7 @@
     if (bar) {
       const lead = { send: block ? 'blockSend' : 'stopSend', paste: block ? 'blockPaste' : 'stopPaste', image: block ? 'blockImage' : 'stopImage', doc: block ? 'blockDoc' : 'stopDoc' }[info.mode];
       const fail = ['size', 'type', 'timeout', 'count', 'busy'].includes(info.reason) ? info.reason : 'fail';
-      const text = { fileinfo: 'barFileInfo', fileblock: 'barFileBlock', site: 'barSite', inactive: 'barInactive', imagewait: 'barImageWait', imagefail: 'barImageFail_' + fail, voice: info.action === 'block' ? 'barVoiceBlock' : 'barVoiceWarn', rephrased: 'barRephrased' }[info.mode];
+      const text = { fileinfo: 'barFileInfo', fileblock: 'barFileBlock', site: 'barSite', inactive: 'barInactive', imagewait: 'barImageWait', docwait: 'barDocWait', imagefail: 'barImageFail_' + fail, voice: info.action === 'block' ? 'barVoiceBlock' : 'barVoiceWarn', rephrased: 'barRephrased' }[info.mode];
       // Bereinigen: "nach erkannten Datentypen", bei PDF "Layout geht verloren" (Restrisiko Review).
       const fixNote = docFix ? T(info.loss ? 'docFixLoss' : 'docFix') : '';
       const why = !text && whyCats.length ? T('why_' + whyCats[0]) : fixNote;
@@ -263,15 +275,16 @@
       fit();
       watchVisibility(el);
     } else {
-      const intro = { send: 'introSend', paste: 'introPaste', fileinfo: 'introFileInfo', fileblock: 'introFileBlock', inactive: 'introInactive', site: 'introSite', live: 'introSend', image: 'introImage', imagewait: 'introImageWait', imagefail: 'introImageFail', doc: info.items.some((it) => it.id === 'hidden_instruction') ? 'introDoc' : info.items.some((it) => it.id === 'document_match') ? 'introDocMatch' : info.items.some((it) => it.id !== 'mass_list' && it.id !== 'unscannable') ? 'introDocData' : 'introDocTable', voice: 'introVoice' }[info.mode];
+      const intro = { send: 'introSend', paste: 'introPaste', fileinfo: 'introFileInfo', fileblock: 'introFileBlock', inactive: 'introInactive', site: 'introSite', live: 'introSend', image: 'introImage', imagewait: 'introImageWait', imagefail: 'introImageFail', docwait: 'introDocWait', doc: info.reason === 'long' && !listed.length ? 'introDocLong' : info.items.some((it) => it.id === 'hidden_instruction') ? 'introDoc' : info.items.some((it) => it.id === 'document_match') ? 'introDocMatch' : info.items.some((it) => it.id !== 'mass_list' && it.id !== 'unscannable') ? 'introDocData' : 'introDocTable', voice: 'introVoice' }[info.mode];
       const card = h('main', { class: 'dlx-karte', role: 'alertdialog', 'aria-label': b.productName },
         DLX.dom.brand(b, b.companyName || ''),
         input || img || doc ? h('h1', null, T('title')) : null,
         account ? h('p', null, account) : null,
         h('p', { class: 'dlx-intro' }, T(intro)));
       if (info.items.length) {
+        const [maybeBefore, maybeAfter] = T('liveMaybe').split('{types}');
         card.append(h('ul', { class: 'dlx-liste' }, info.items.map((it) =>
-          h('li', null, h('span', null, h('mark', { class: 'dlx-fund' }, DLX.i18n.typeName(lang, it.id)), h('span', { class: 'dlx-kat' }, T('cat_' + it.cat)),
+          h('li', null, h('span', null, it.sure === false ? maybeBefore : null, h('mark', { class: 'dlx-fund' }, DLX.i18n.typeName(lang, it.id)), it.sure === false ? maybeAfter : null, h('span', { class: 'dlx-kat' }, T('cat_' + it.cat)),
             Array.isArray(it.lines) && it.lines.length ? h('span', { class: 'dlx-zeile', 'data-k': 'lines' }, T('lineWord') + ' ' + it.lines.join(', ')) : null),
             h('strong', { class: 'dlx-zahl' }, '× ' + it.n)))));
       }
@@ -307,7 +320,7 @@
   let barEl = null;
   function fit() {
     const el = barEl;
-    if (!el || inPopup || info.layout !== 'bar' || !el.isConnected) return;
+    if (!el || info.layout !== 'bar' || !el.isConnected) return;
     const k = kompakt();
     el.classList.toggle('dlx-kompakt', k);
     el.classList.remove('dlx-bar-2');

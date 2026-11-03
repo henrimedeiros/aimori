@@ -7,7 +7,7 @@
       <string id="SUPPORTED_MV3">Google Chrome mit Manifest-V3-Erweiterungen (ab Version 110)</string>
       <string id="cat_root">AImori (Google Chrome)</string>
       <string id="branding">Branding</string>
-      <string id="branding_help">Whitelabel-Darstellung im Popup, in den Einstellungen und im Warn-Dialog.</string>
+      <string id="branding_help">Whitelabel-Darstellung im Popup, in den Einstellungen und im Warn-Dialog. Leere Felder behalten den Standard.</string>
       <string id="language">Sprache</string>
       <string id="language_help">Sprache der Oberflaeche. auto = Browsersprache.</string>
       <string id="language_auto">auto</string>

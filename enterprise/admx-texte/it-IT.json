@@ -4,7 +4,7 @@
  "policies": {
   "branding": [
    "Branding",
-   "Aspetto white label mostrato nel popup, nella pagina delle impostazioni e nella finestra di avviso."
+   "Aspetto white label mostrato nel popup, nella pagina delle impostazioni e nella finestra di avviso. I campi vuoti mantengono il valore predefinito."
   ],
   "branding.productName": [
    "Nome del prodotto"

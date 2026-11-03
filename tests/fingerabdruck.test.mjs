@@ -13,7 +13,7 @@ import { load, ENGINE_FILES, ROOT, EXT } from './helpers/load.mjs';
 import { buildPolicy, docxDocumentXml, docxXmlText, htmlText, encode, loadEngine } from '../scripts/dokumente-fingerabdruck.mjs';
 import { DOKUMENT, FREMD, AUSZUG, SALZ, richtlinie } from './helpers/firmendokument.mjs';
 
-const DLX = load(['branding.js', ...ENGINE_FILES, 'engine/fingerabdruck.js', 'common/policy.js']);
+const DLX = load(['branding.js', ...ENGINE_FILES, 'engine/fingerabdruck.js', 'common/policy.js'], { setTimeout });
 const FP = DLX.fingerprint;
 const P = DLX.policy;
 const plain = (x) => JSON.parse(JSON.stringify(x));
@@ -243,4 +243,16 @@ test('Quelltext: Fingerabdruck-Code und Werkzeug ohne Netz', () => {
   for (const src of [ext, tool]) assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|node:(https?|net|tls|dgram|dns)|require\(/.test(src.replace(/^\s*\/\/.*$/gm, '')));
   const imports = [...tool.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]).sort();
   assert.deepEqual(imports, ['node:crypto', 'node:fs', 'node:path', 'node:url', 'node:vm', 'node:zlib']);
+});
+
+test('Lange Dokumente: scanLong zaehlt ueber alle Stuecke, Laenge allein ist keine Zeitueberschreitung', async () => {
+  const fp = compile(richtlinie());
+  const fill = 'Ein ganz anderer Satz ohne jeden Bezug zum Inhalt dieser Datei. '.repeat(40000);
+  const far = Date.now() + 60000;
+  const clean = await DLX.fingerprint.scanLong(fill, fp, far);
+  assert.deepEqual([clean.hit, clean.timeout], [false, false]);
+  const hit = await DLX.fingerprint.scanLong(fill + AUSZUG, fp, far);
+  assert.deepEqual([hit.hit, hit.timeout], [true, false], 'Auszug ganz hinten');
+  assert.equal((await DLX.fingerprint.scanLong(fill, fp, Date.now() - 1)).timeout, true, 'Frist abgelaufen');
+  assert.deepEqual(Object.assign({}, await DLX.fingerprint.scanLong('x', null, far)), { n: 0, hit: false, timeout: false });
 });

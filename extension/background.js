@@ -23,7 +23,7 @@ const IGNORE_MS = 30 * 86400000;
 const IGNORE_MAX = 500;
 const GRANT_MS = 60000;
 const HEX64 = /^[0-9a-f]{64}$/;
-const MODES = ['send', 'paste', 'fileinfo', 'fileblock', 'inactive', 'site', 'live', 'reveal', 'answer', 'image', 'imagewait', 'imagefail', 'doc', 'voice', 'rephrased'];
+const MODES = ['send', 'paste', 'fileinfo', 'fileblock', 'inactive', 'site', 'live', 'reveal', 'answer', 'image', 'imagewait', 'imagefail', 'doc', 'docwait', 'voice', 'rephrased'];
 const LAYOUTS = ['bar', 'full'];
 const THEMES = ['hell', 'dunkel'];
 // Warnleiste (Design-Review Warnleiste anpassbar 17.10.2026, Auflagen 2, 3): die effektive cfg
@@ -43,7 +43,7 @@ const ALLOWED = {
   live: ['redact', 'pseudonym', 'hide'], reveal: ['show', 'hide'], answer: ['hide'],
   fileinfo: ['ok', 'cancel'], fileblock: ['cancel'], inactive: ['cancel'], site: ['cancel'],
   // Bilder (Design-Review Bilder 14.10.2026): kein Platzhalter, kein "Kein sensibler Wert".
-  image: ['cancel', 'redact', 'override'], imagewait: ['cancel'], imagefail: ['cancel', 'override'],
+  image: ['cancel', 'redact', 'override'], imagewait: ['cancel'], docwait: ['cancel'], imagefail: ['cancel', 'override'],
   // Textdokument mit Hinweis auf versteckte Anweisungen (Design-Review KI-Agenten 16.10.2026).
   // Bereinigte Version hochladen (Design-Review Bereinigen 19.10.2026, Auflage 9).
   doc: ['cancel', 'redact', 'override'],
@@ -90,7 +90,7 @@ const AI_PREFIX = 'dlx-ai-';
 const KNOWN_IDS = new Set(DLX.engine.allDetectors().map((d) => d.id).concat('dictionary', 'custom_term', 'internal_link', 'unscannable', 'clipboard_source', 'hidden_instruction', 'document_match'));
 const KNOWN_CATS = new Set(DLX.engine.allDetectors().map((d) => d.cat).concat('unscannable', 'source', 'injection'));
 // Ganztext-Funde ohne Wertposition: nicht schwaerzbar (Zwischenablage-Quelle wie unscannable).
-const WHOLE = ['unscannable', 'clipboard_source', 'hidden_instruction', 'document_match'];
+const WHOLE = ['unscannable', 'clipboard_source', 'hidden_instruction', 'document_match', 'ki_partial'];
 
 // --- Konfiguration (B14: Richtlinie vor Benutzerwerten, fail-closed) -----------
 async function effective() {
@@ -560,7 +560,7 @@ async function loadIgnore(cfg, create) {
   if (store !== raw || entries.length !== store.entries.length) await chrome.storage.local.set({ [IGNORE_KEY]: clean });
   return clean;
 }
-const ignorableCount = (p) => p.items.filter((i) => DLX.engine.ignorable(i.id)).reduce((a, i) => a + i.n, 0);
+const ignorableCount = (p) => p.items.filter((i) => i.sure !== false && DLX.engine.ignorable(i.id)).reduce((a, i) => a + i.n, 0);
 
 const validLines = (l) => Array.isArray(l) && l.length >= 1 && l.length <= 5 && l.every((x) => Number.isInteger(x) && x >= 1 && x <= 100000);
 
@@ -569,8 +569,8 @@ function validItems(items, mode) {
   const out = [];
   for (const it of items) {
     if (!it || !KNOWN_IDS.has(it.id) || !KNOWN_CATS.has(it.cat) || !Number.isInteger(it.n) || it.n < 1 || it.n > 10000) return null;
-    // Unsicher (nur Live-Hinweis, grau) als einziges Zusatzfeld, nur der Wert false.
-    const o = it.sure === false && mode === 'live' ? { id: it.id, cat: it.cat, n: it.n, sure: false } : { id: it.id, cat: it.cat, n: it.n };
+    // Unsicher (grau, "moeglicherweise") als einziges Zusatzfeld, nur der Wert false.
+    const o = it.sure === false && (mode === 'live' || mode === 'send' || mode === 'paste') ? { id: it.id, cat: it.cat, n: it.n, sure: false } : { id: it.id, cat: it.cat, n: it.n };
     // Zeilennummern bei eingefuegtem Code: nur 1-5 ganze Zahlen 1..100000, sonst verworfen,
     // der Fund bleibt (Design-Review Code und Bilder 16.10.2026, Auflage 5).
     if (validLines(it.lines)) o.lines = it.lines.slice();
@@ -579,7 +579,7 @@ function validItems(items, mode) {
   return out;
 }
 
-// Zu welchem KI-Tab gehoert ein Dialog? iframe im Tab oder Rueckfall-Popup.
+// Zu welchem KI-Tab gehoert ein Dialog? Nur das iframe im eigenen KI-Tab (nie ein Fenster).
 // Das Content Script laeuft nur im Top-Frame (fromContent: frameId 0), daher ein
 // Eintrag je Tab; der Meldungs-Frame wird beim ersten hello gebunden (Auflage 11).
 async function resolveTab(sender) {
@@ -587,7 +587,7 @@ async function resolveTab(sender) {
   const tabId = sender.tab && sender.tab.id;
   for (const [aiTab, p] of Object.entries(all)) {
     const inTab = Number(aiTab) === tabId && sender.frameId !== 0 && (p.frameId == null || p.frameId === sender.frameId);
-    if (inTab || p.popupTabId === tabId) {
+    if (inTab) {
       if (Date.now() - p.created > PENDING_MAX_MS) { delete all[aiTab]; await savePending(all); return null; }
       return { aiTab: Number(aiTab), p, all };
     }
@@ -658,7 +658,6 @@ async function onCommand(command, tab) {
     if (!r || r.ok !== true) return;
     await count(p, choice);
     await kDecided(p, e.cfg, choice);
-    if (!SOFT.includes(p.mode)) await closePopup(p);
     return;
   }
   // Andere offene Meldung (z. B. Datei, Seite gesperrt): Kuerzel tut nichts.
@@ -670,8 +669,11 @@ async function onCommand(command, tab) {
 async function count(p, decision) {
   const r = await chrome.storage.local.get(STATS_KEY);
   const stats = DLX.stats.prune(r[STATS_KEY] || {}, new Date());
+  // Unsichere Funde zaehlen nur, wenn sie wirklich ersetzt wurden; der Hinweis auf eine Teilpruefung nie.
+  const replaced = decision === 'redact' || decision === 'pseudonym';
+  const items = p.items.filter((i) => i.id !== 'ki_partial' && (replaced || i.sure !== false));
   // Sprachmodus: nur die Tageszahl (Auflage 6).
-  const cats = p.items.length ? p.items : [{ cat: p.mode === 'site' ? 'site' : p.mode === 'inactive' ? 'inactive' : p.mode === 'voice' ? 'voice' : 'file', n: 1 }];
+  const cats = items.length ? items : p.items.length ? [] : [{ cat: p.mode === 'site' ? 'site' : p.mode === 'inactive' ? 'inactive' : p.mode === 'voice' ? 'voice' : 'file', n: 1 }];
   for (const it of cats) DLX.stats.add(stats, new Date(), p.site, it.cat, decision, it.n);
   await chrome.storage.local.set({ [STATS_KEY]: stats });
 }
@@ -764,10 +766,6 @@ async function handleView(msg, sender) {
     return { ok: true };
   }
   return null;
-}
-
-async function closePopup(p) {
-  if (p.popupWindowId) await chrome.windows.remove(p.popupWindowId).catch(() => {});
 }
 
 // --- KI-Kompetenz (Design-Review 14.10.2026, docs/sicherheit/design-review-kompetenz.md)
@@ -1226,7 +1224,7 @@ async function handle(msg, sender) {
       // (renew); eine neu geladene Seite bindet ihren neuen Frame neu (Auflage 11).
       const keep = msg.mode === 'live' && msg.renew === true && prev && prev.mode === 'live' ? prev.frameId : null;
       const account = ACCOUNTS.includes(msg.account) ? msg.account : null;
-      const p = { nonce: nonce(), created: Date.now(), mode: msg.mode, action: SOFT.includes(msg.mode) ? 'warn' : msg.action, layout, theme, items, code: msg.code === true && items.some((i) => i.lines), account, reason: msg.mode === 'imagefail' ? (IMAGE_FAILS.includes(msg.reason) ? msg.reason : 'fail') : msg.mode === 'answer' && msg.reason === 'copy' ? 'copy' : msg.mode === 'rephrased' && msg.reason === 'paste' ? 'paste' : null, site: SITE_ORIGINS[sender.origin], documentId: sender.documentId || null, frameId: keep, popupTabId: null, popupWindowId: null };
+      const p = { nonce: nonce(), created: Date.now(), mode: msg.mode, action: SOFT.includes(msg.mode) ? 'warn' : msg.action, layout, theme, items, code: msg.code === true && items.some((i) => i.lines), account, reason: msg.mode === 'imagefail' ? (IMAGE_FAILS.includes(msg.reason) ? msg.reason : 'fail') : msg.mode === 'answer' && msg.reason === 'copy' ? 'copy' : msg.mode === 'rephrased' && msg.reason === 'paste' ? 'paste' : msg.mode === 'doc' && msg.reason === 'long' ? 'long' : null, site: SITE_ORIGINS[sender.origin], documentId: sender.documentId || null, frameId: keep };
       // Erneuerter Live-Hinweis mit denselben Gruppen gilt als schon gesehen (kein Doppelzaehlen).
       if (msg.mode === 'live' && prev && prev.mode === 'live' && prev.kSeen && sameGroups(prev.items, items)) p.kSeen = true;
       // Dokument: fix/loss nur als echter Boolean, steuert nur die Anzeige; nie bei Sperre (Auflage 9).
@@ -1236,6 +1234,20 @@ async function handle(msg, sender) {
       if (keep != null) nudge();
       return { nonce: p.nonce };
     }
+    // KI-Funde, die nach dem Anhalten eintreffen: dieselbe Meldung ergaenzen (gleiche Nonce, nie eine
+    // zweite), nur Senden/Einfuegen, nur geprueft, Aktion nie schwaecher; der Frame holt den Stand per nudge.
+    if (msg.t === 'foundMore') {
+      const all = await loadPending();
+      const p = all[tabId];
+      if (!p || (p.mode !== 'send' && p.mode !== 'paste') || typeof msg.nonce !== 'string' || msg.nonce !== p.nonce) return null;
+      const items = validItems(msg.items, p.mode);
+      if (!items || !items.length) return null;
+      p.items = items;
+      if (DLX.policy.ACTIONS.indexOf(msg.action) !== -1) p.action = DLX.engine.strictest([{ action: p.action }, { action: msg.action }]);
+      await savePending(all);
+      nudge();
+      return { ok: true };
+    }
     if (msg.t === 'ocr') return handleOcr(msg);
     if (msg.t === 'doc') return handleDoc(msg, sender);
     if (msg.t === 'ki') return handleKi(msg, sender);
@@ -1243,20 +1255,24 @@ async function handle(msg, sender) {
       nudge();
       return { ok: true };
     }
-    if (msg.t === 'fallback') {
+    // Leiste -> Vollbild im Seiten-Overlay statt Rueckfall-Popupfenster (Design-Review kein
+    // Fenster 23.10.2026, Auflagen 1 und 5): nur mit der Nonce der offenen Leiste, einmalig;
+    // Layout und neue Nonce setzt der Service Worker, der Leisten-Frame verliert seine Bindung.
+    if (msg.t === 'full') {
       const all = await loadPending();
       const p = all[tabId];
-      if (!p || p.popupWindowId || SOFT.includes(p.mode)) return null;
-      const w = await chrome.windows.create({ url: chrome.runtime.getURL('ui/dialog.html'), type: 'popup', width: 480, height: 600, focused: true });
-      p.popupWindowId = w.id;
-      p.popupTabId = w.tabs && w.tabs[0] ? w.tabs[0].id : null;
+      if (!p || SOFT.includes(p.mode) || p.layout !== 'bar' || typeof msg.nonce !== 'string' || msg.nonce !== p.nonce) return null;
+      p.nonce = nonce();
+      p.layout = 'full';
+      p.frameId = null;
+      delete p.frameDoc;
       await savePending(all);
-      return { ok: true };
+      return { nonce: p.nonce };
     }
     if (msg.t === 'cancelPending') {
       const all = await loadPending();
       const p = all[tabId];
-      if (p) { delete all[tabId]; await savePending(all); if (!SOFT.includes(p.mode) && p.mode !== 'imagewait') await count(p, 'cancel'); await closePopup(p); }
+      if (p) { delete all[tabId]; await savePending(all); if (!SOFT.includes(p.mode) && p.mode !== 'imagewait' && p.mode !== 'docwait') await count(p, 'cancel'); }
       if (msg.views === true) await dropView(tabId);
       return { ok: true };
     }
@@ -1273,7 +1289,7 @@ async function handle(msg, sender) {
     // (Design-Review Leiste/Hoehe 15.10.2026, Auflagen 1-4).
     if (msg.t === 'size') {
       const h = msg.h;
-      if (sender.url !== OWN_ORIGIN + '/ui/dialog.html' || r.p.layout !== 'bar' || r.p.popupTabId === sender.tab.id
+      if (sender.url !== OWN_ORIGIN + '/ui/dialog.html' || r.p.layout !== 'bar'
         || r.p.frameId !== sender.frameId || (r.p.frameDoc && r.p.frameDoc !== sender.documentId)) return null;
       if (typeof h !== 'number' || !Number.isInteger(h) || h < SIZE_MIN || h > SIZE_MAX || !sizeAllowed(r.p.nonce)) return null;
       chrome.tabs.sendMessage(r.aiTab, { t: 'dlgSize', nonce: r.p.nonce, h }, r.p.documentId ? { documentId: r.p.documentId } : { frameId: 0 }).catch(() => {});
@@ -1281,7 +1297,7 @@ async function handle(msg, sender) {
     }
     const e = await effective();
     if (msg.t === 'hello') {
-      if (r.p.frameId == null && r.p.popupTabId !== sender.tab.id) { r.p.frameId = sender.frameId; r.p.frameDoc = sender.documentId || null; await savePending(r.all); }
+      if (r.p.frameId == null) { r.p.frameId = sender.frameId; r.p.frameDoc = sender.documentId || null; await savePending(r.all); }
       chrome.tabs.sendMessage(r.aiTab, { t: 'dlgReady', nonce: r.p.nonce }, { frameId: 0 }).catch(() => {});
       const kGroups = DLX.kompetenz.groupsOf(r.p.items);
       // Ohne Lernmodus zeigt die Meldung keine Erklaerung, also zaehlt auch nichts als gesehen.
@@ -1290,7 +1306,7 @@ async function handle(msg, sender) {
         await savePending(r.all);
         await kCount(e.cfg, kGroups, 'seen');
       }
-      const layout = r.p.popupTabId === sender.tab.id ? 'full' : r.p.layout;
+      const layout = r.p.layout;
       const allowNotSensitive = (r.p.mode === 'send' || r.p.mode === 'paste') && r.p.action === 'warn' && ignoreAllowed(e.cfg) && ignorableCount(r.p) > 0;
       return { mode: r.p.mode, action: r.p.action, items: r.p.items, code: r.p.code === true, fix: r.p.fix === true, loss: r.p.loss === true, account: r.p.account || null, reason: r.p.reason || null, layout, theme: barTheme(e.cfg, r.p.theme), compact: BAR_COMPACT_OUT.includes(e.cfg.barCompact) ? e.cfg.barCompact : 'auto', allowOverride: e.cfg.allowUserOverride, allowNotSensitive,
         allowPlaceholders: placeholdersAllowed(e.cfg), allowRephrase: e.cfg.allowRephrase === true, learning: e.cfg.learningMode !== false, branding: e.cfg.branding, language: e.cfg.language, managed: e.managed };
@@ -1301,8 +1317,6 @@ async function handle(msg, sender) {
       delete r.all[r.aiTab];
       await savePending(r.all);
       if (choice === 'show') {
-        // Ansicht nur aus dem Hinweis-Frame dieses Tabs (nicht aus dem Popup).
-        if (r.p.popupTabId === sender.tab.id) return { ok: false };
         const v = { nonce: nonce(), created: Date.now(), doc: r.p.documentId, frameId: null, used: false };
         await saveViews(Object.assign(await loadViews(), { [r.aiTab]: v }));
         await chrome.tabs.sendMessage(r.aiTab, { t: 'decision', nonce: r.p.nonce, choice, view: v.nonce }, { frameId: 0 }).catch(() => {});
@@ -1318,11 +1332,10 @@ async function handle(msg, sender) {
       await chrome.tabs.sendMessage(r.aiTab, { t: 'decision', nonce: r.p.nonce, choice }, { frameId: 0 }).catch(() => {});
       if (SOFT.includes(r.p.mode)) { if (choice === 'redact' || choice === 'pseudonym') { await count(r.p, choice); await kDecided(r.p, e.cfg, choice); } return { ok: true }; }
       // Umformulieren zaehlt in der Tagesstatistik als Schwaerzen (nur Anzahl je Art, Auflage 20).
-      if (choice === 'rephrase') { await count(r.p, 'redact'); await kDecided(r.p, e.cfg, 'redact'); await closePopup(r.p); return { ok: true }; }
+      if (choice === 'rephrase') { await count(r.p, 'redact'); await kDecided(r.p, e.cfg, 'redact'); return { ok: true }; }
       const decision = choice === 'cancel' && r.p.action === 'block' ? (r.p.mode === 'send' || r.p.mode === 'paste' || r.p.mode === 'image' || r.p.mode === 'doc' || r.p.mode === 'voice' ? 'blocked' : r.p.mode === 'fileblock' || r.p.mode === 'imagefail' || r.p.mode === 'imagewait' ? 'file' : r.p.mode) : choice === 'ok' ? 'file' : choice;
       await count(r.p, decision);
       await kDecided(r.p, e.cfg, decision);
-      await closePopup(r.p);
       return { ok: true };
     }
     return null;
@@ -1481,15 +1494,3 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   await saveAi(ai);
 });
 
-// Rueckfall-Popup geschlossen ohne Entscheidung -> Abbrechen.
-chrome.windows.onRemoved.addListener(async (windowId) => {
-  const all = await loadPending();
-  for (const [aiTab, p] of Object.entries(all)) {
-    if (p.popupWindowId === windowId) {
-      delete all[aiTab];
-      await savePending(all);
-      await chrome.tabs.sendMessage(Number(aiTab), { t: 'decision', nonce: p.nonce, choice: 'cancel' }, { frameId: 0 }).catch(() => {});
-      await count(p, 'cancel');
-    }
-  }
-});

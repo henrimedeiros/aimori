@@ -4,7 +4,7 @@
  "policies": {
   "branding": [
    "Personnalisation de la marque",
-   "Apparence en marque blanche affichée dans la fenêtre contextuelle, la page des paramètres et la boîte de dialogue d’avertissement."
+   "Apparence en marque blanche affichée dans la fenêtre contextuelle, la page des paramètres et la boîte de dialogue d’avertissement. Les champs vides conservent la valeur par défaut."
   ],
   "branding.productName": [
    "Nom du produit"

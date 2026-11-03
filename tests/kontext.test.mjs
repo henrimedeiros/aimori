@@ -213,7 +213,7 @@ test('Auflage 4: Zusammenfassung nur id/cat/n, Anzahl gedeckelt; Content Script 
   const src = fs.readFileSync(path.join(EXT, 'content', 'content.js'), 'utf8');
   // Sende-Zusammenfassung: id/cat/n, bei Code zusaetzlich nur Zeilennummern aus DLX.code.linesOf (Design-Review Code und Bilder, Auflage 5).
   assert.ok(src.includes("lines && !WHOLE(s) && lines.get(s.id) && lines.get(s.id).length ? { lines: lines.get(s.id).slice() } : null"), 'Sende-Zusammenfassung');
-  assert.ok(src.includes('DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, p.findings) : null'), 'Zeilen nur aus linesOf');
+  assert.ok(src.includes('DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, all) : null'), 'Zeilen nur aus linesOf');
   assert.ok(src.includes('(s) => Object.assign({ id: s.id, cat: s.cat, n: s.n },'), 'Live-Zusammenfassung');
   const ctx = fs.readFileSync(path.join(EXT, 'engine', 'packs-context.js'), 'utf8');
   assert.ok(!/console\.|fetch\(|XMLHttpRequest|sendMessage|postMessage|storage\./.test(ctx), 'Paket ohne Ausgabe, Netz, Nachrichten, Speicher');

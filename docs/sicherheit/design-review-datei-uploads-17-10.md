@@ -15,9 +15,9 @@ Urteil Sicherheits-Review: **FREIGEGEBEN MIT AUFLAGEN** (Auflagen 1–11), Nachf
 
 | Nr. | Auflage | Umsetzung |
 |---|---|---|
-| 1 | `engine/datei.js` byte-gleich dem geprüften Stand vom 16.10. | Git-Blob `cc713456…` = Stand des Zweigs vom 16.10.; Test `Quelltext: Leser byte-gleich` |
+| 1 | `engine/datei.js` byte-gleich dem geprüften Stand vom 16.10. | Git-Blob `cc713456…` = Stand des Zweigs vom 16.10.; Test `Quelltext: Leser byte-gleich`. Änderung vom 30.10.2026: nur die Grenzen `chars` (500 000 → 5 000 000) und `ms` (10 s → 30 s) für lange Dokumente, neue Prüfsumme im Test |
 | 2 | Thread höchstens ~50 ms am Stück | PDF/DOCX im Offscreen-Dokument (Nachfrage); Erkenner in Stücken mit `setTimeout(0)` dazwischen, Test misst längstes Stück < 100 ms am 200k-Ziffernblock |
-| 3 | Gesamtgrenzen je Ablage/Auswahl | höchstens 5 Dateien, zusammen 20 MB Rohbytes, 20 s Gesamt-Zeitbudget; darüber gilt alles noch nicht Geprüfte als „nicht prüfbar“. Entpacken: je Datei 60 MB, Dateien nacheinander, Puffer nach jeder Datei frei (Speicherspitze 60 MB; der byte-gleiche Leser zählt nicht dateiübergreifend) |
+| 3 | Gesamtgrenzen je Ablage/Auswahl | höchstens 5 Dateien, zusammen 20 MB Rohbytes, 120 s Gesamt-Zeitbudget (seit 30.10.2026, vorher 20 s; dauert es länger als 0,6 s, zeigt die Leiste die laufende Prüfung mit Abbrechen); darüber gilt alles noch nicht Geprüfte als „nicht prüfbar“. Entpacken: je Datei 60 MB, Dateien nacheinander, Puffer nach jeder Datei frei (Speicherspitze 60 MB; der byte-gleiche Leser zählt nicht dateiübergreifend) |
 | 4 | Abfangen vor der Seite, Originaldatei, Feld leeren | bestehender Capture-Weg; E2E `dateien`: Capture-Handler der Seite auf `window` sieht vor dem Urteil nichts, Trotzdem gibt dieselbe Datei weiter (Prüfsumme), Abbrechen = Feld leer |
 | 5 | Lokale KI nur über bestehenden Weg | Dokumenttext geht nie an die lokale KI (keine neue Nachrichtenart); geprüft wird mit den Regel-Erkennern |
 | 6 | fail-closed | Lesefehler, Zeitüberschreitung, verschlüsselt, teilweise, Ausnahme = Fund „nicht prüfbar“; bisherige Funde bleiben, `block` bleibt `block` (strengste Aktion); `blockUncheckedFiles` sperrt Dateien weiter ganz |

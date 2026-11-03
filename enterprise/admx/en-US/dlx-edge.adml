@@ -7,7 +7,7 @@
       <string id="SUPPORTED_MV3">Microsoft Edge with Manifest V3 extensions (version 110 or later)</string>
       <string id="cat_root">AImori (Microsoft Edge)</string>
       <string id="branding">Branding</string>
-      <string id="branding_help">White-label appearance shown in the popup, options page and warning dialog.</string>
+      <string id="branding_help">White-label appearance shown in the popup, options page and warning dialog. Empty fields keep the default.</string>
       <string id="language">Language</string>
       <string id="language_help">User interface language. auto = browser language.</string>
       <string id="language_auto">auto</string>

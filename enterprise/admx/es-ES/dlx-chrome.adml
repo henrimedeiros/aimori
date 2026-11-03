@@ -7,7 +7,7 @@
       <string id="SUPPORTED_MV3">Google Chrome con extensiones Manifest V3 (versión 110 o posterior)</string>
       <string id="cat_root">AImori (Google Chrome)</string>
       <string id="branding">Personalización de marca</string>
-      <string id="branding_help">Apariencia de marca blanca en la ventana emergente, la página de configuración y el cuadro de diálogo de advertencia.</string>
+      <string id="branding_help">Apariencia de marca blanca en la ventana emergente, la página de configuración y el cuadro de diálogo de advertencia. Los campos vacíos mantienen el valor predeterminado.</string>
       <string id="language">Idioma</string>
       <string id="language_help">Idioma de la interfaz. auto = idioma del navegador.</string>
       <string id="language_auto">auto</string>

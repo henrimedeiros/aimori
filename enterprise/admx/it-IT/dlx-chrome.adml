@@ -7,7 +7,7 @@
       <string id="SUPPORTED_MV3">Google Chrome con estensioni Manifest V3 (versione 110 o successiva)</string>
       <string id="cat_root">AImori (Google Chrome)</string>
       <string id="branding">Branding</string>
-      <string id="branding_help">Aspetto white label mostrato nel popup, nella pagina delle impostazioni e nella finestra di avviso.</string>
+      <string id="branding_help">Aspetto white label mostrato nel popup, nella pagina delle impostazioni e nella finestra di avviso. I campi vuoti mantengono il valore predefinito.</string>
       <string id="language">Lingua</string>
       <string id="language_help">Lingua dell’interfaccia utente. auto = lingua del browser.</string>
       <string id="language_auto">auto</string>

@@ -51,11 +51,11 @@ Fehler nennt das Werkzeug nur den Feldpfad (nie den Wert) und erzeugt nichts.
 
 ```
 ausgabe/
-  _admx/edge/…, _admx/chrome/…        ADMX/ADML für Central Store bzw. Intune-Import
+  _admx/edge/…, _admx/chrome/…        ADMX/ADML für Central Store bzw. Intune-Import (nur Chrome)
   kunde-a/
     richtlinie.json                   fertige Richtlinie
     intune/edge-extensionsettings.json  Wert für „ExtensionSettings“ (Erweiterung erzwingen)
-    intune/edge-oma-uri.json          Zeilen für ein benutzerdefiniertes Intune-Profil (OMA-URI)
+    intune/chrome-oma-uri.json        Zeilen für ein benutzerdefiniertes Intune-Profil (OMA-URI, nur Chrome)
     gpo/edge-richtlinie.reg           Registry-Variante
     (dasselbe für chrome)
     Rollout.ps1                       PowerShell-Rollout (Plattformskript, Startskript, RMM)
@@ -98,12 +98,16 @@ Voraussetzung: Die Erweiterung ist im Store veröffentlicht oder liegt als signi
    Bestehende `ExtensionSettings` für andere Erweiterungen zusammenführen – die Richtlinie gibt es nur einmal pro Gerät.
 4. Gerätegruppe des Kunden zuweisen.
 
-**B) Richtlinie der Erweiterung – Variante benutzerdefiniertes Profil (OMA-URI)**
+**B) Richtlinie der Erweiterung – Variante benutzerdefiniertes Profil (OMA-URI, nur Google Chrome)**
+
+Für **Microsoft Edge** gibt es diese Variante nicht: Windows lässt ADMX-Ingestion (OMA-URI und „Importierte
+administrative Vorlagen“) nicht unter `Software\Policies\Microsoft\…` schreiben, also auch nicht in den Schlüssel der
+Erweiterung unter `…\Edge\3rdparty\…`. Für Edge **B′** nutzen.
 1. Konfiguration → Erstellen → Windows 10 und höher → Vorlagen → **Benutzerdefiniert**.
-2. Für **jede Zeile** aus `intune/edge-oma-uri.json` eine OMA-URI-Einstellung anlegen: Name = `name`,
+2. Für **jede Zeile** aus `intune/chrome-oma-uri.json` eine OMA-URI-Einstellung anlegen: Name = `name`,
    OMA-URI = `omaUri`, Datentyp = **Zeichenfolge**, Wert = `value`. Die **erste Zeile** (`…/ADMXInstall/…`) lädt die
    ADMX ins Gerät und muss dabei sein; die weiteren setzen die Werte (`<enabled/><data … />`).
-3. Gerätegruppe zuweisen. Für Chrome dasselbe mit `chrome-oma-uri.json` (eigenes Profil).
+3. Gerätegruppe zuweisen.
 
 **B′) Variante Plattformskript (einfacher, ein Schritt)**
 1. Geräte → Skripts und Wartungen → Plattformskripts → Hinzufügen → Windows 10 und höher.

@@ -19,7 +19,7 @@ Typen mit Prüfziffer werden nie ganz verworfen, höchstens unsicher. Typen, die
 **Richtlinie** `uncertainFindings`: `hint` (Standard), `warn` (unsichere Funde öffnen den Dialog, höchstens „Warnen“), `enforce` (Regeln gelten wie für sichere Funde – für Organisationen, die vorher `block`/`redact` für Telefon o. Ä. gesetzt hatten).
 
 ### Geänderte Wirkung (Release-Hinweis)
-- Telefonnummern und öffentliche IPv4-Adressen **ohne Kontextwort** (z. B. „Tel.“, „Telefon“, „Server“) halten das Senden nicht mehr an; sie erscheinen nur als dezenter Hinweis. Bisheriges Verhalten: `uncertainFindings=enforce`.
+- Telefonnummern und öffentliche IPv4-Adressen **ohne Kontextwort** (z. B. „Tel.“, „Telefon“, „Server“) halten das Senden nicht mehr an; sie erscheinen nur als dezenter Hinweis. Hält ein sicherer Fund an, stehen sie als „möglicherweise“ in derselben Meldung, und „Schwärzen“ ersetzt sie mit. Bisheriges Verhalten: `uncertainFindings=enforce`.
 - Unformatierte Karten-, AHV-, NIR- und BE-Nummern ohne Kontextwort ebenso. Mit Kontextwort („Karte“, „AHV“ …) oder im Normformat bleiben sie sicher.
 - Neu erkannt: Karte mit nachfolgendem CVV oder Ablaufdatum in derselben Zifferngruppe (`4242 4242 4242 4242 123`), bisher eine Lücke.
 

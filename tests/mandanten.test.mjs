@@ -34,10 +34,12 @@ test('Beispiel mit drei erfundenen Kunden ergibt gueltige Richtlinien (Schema un
     assert.ok(r.value.branding.logo.startsWith('data:image/'), 'Logo wird von der Erweiterung angenommen');
     assert.ok(r.value.branding.companyName, 'Firmenname aus dem Kundennamen');
     arten.push(p.branding.logo.slice(0, 20));
-    for (const f of ['intune/edge-extensionsettings.json', 'intune/chrome-extensionsettings.json', 'intune/edge-oma-uri.json',
+    for (const f of ['intune/edge-extensionsettings.json', 'intune/chrome-extensionsettings.json',
       'intune/chrome-oma-uri.json', 'gpo/edge-richtlinie.reg', 'gpo/chrome-richtlinie.reg', 'Rollout.ps1', 'ANLEITUNG.md']) {
       assert.ok(k.dateien[f], `${k.id}: ${f}`);
     }
+    // ADMX-Ingestion darf nicht unter Software\Policies\Microsoft schreiben: keine OMA-URI-Zeilen fuer Edge.
+    assert.equal(k.dateien['intune/edge-oma-uri.json'], undefined, `${k.id}: keine OMA-URI fuer Edge`);
   }
   assert.equal(arten.filter((a) => a.includes('png')).length, 2);
   assert.equal(arten.filter((a) => a.includes('svg')).length, 1);
@@ -230,7 +232,7 @@ test('Ausgabe im Repo nur in gitignorierten Ordnern, ohne --force nichts uebersc
   try {
     const erg = erzeuge(BEISPIEL);
     const r = schreibeAlles(erg, ziel, false);
-    assert.equal(r.dateien, 41);   // +8 ADML fr-FR/it-IT/es-ES/pt-BR je Browser (17.10.2026)
+    assert.equal(r.dateien, 38);   // +8 ADML fr-FR/it-IT/es-ES/pt-BR je Browser; -3 OMA-URI Edge (je Kunde)
     assert.throws(() => schreibeAlles(erg, ziel, false), /existiert bereits/);
     fs.writeFileSync(path.join(ziel, 'alpenbau', 'eigene-notiz.txt'), 'x');
     schreibeAlles(erg, ziel, true);

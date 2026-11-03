@@ -15,6 +15,10 @@
     zipEntries: 500, entry: 4 * 1024 * 1024, total: 8 * 1024 * 1024, ratio: 100, ratioSlack: 65536, sheets: 3, fileMs: 2000,
     jsonDepth: 6, jsonNest: 64, textChars: 2000000, cell: 10000, markup: 1000000,
   });
+  // textChars gilt fuer gelesenen Text (XLSX, wie PDF und DOCX), fileChars fuer Textdateien (Dateigrenze 20 MB).
+  // Hochgeladene Dateien: die Zeilen werden abschnittsweise bewertet, also gibt es keine Zeilengrenze
+  // mehr; der Text laeuft in Abschnitten mit Pausen. Grenzen nur noch gegen Speicher und Zeit.
+  const LONG = Object.freeze({ rows: 200000, entry: 96 * 1024 * 1024, total: 96 * 1024 * 1024, ratio: 1000, ms: 30000, textChars: 5000000, fileChars: 20 * 1024 * 1024, segment: 500000, sliceMs: 40 });
   const MIN_ROWS = 10, MIN_COLS = 2;
   class Unscannable extends Error {}
   const now = () => (g.performance && g.performance.now ? g.performance.now() : Date.now());
@@ -393,6 +397,64 @@
       return { rows: 0, leak: false, unscannable: true };
     }
   }
+  // Lange Tabelle (Datei): jeder Abschnitt von LIMITS.rows Zeilen wird mit dem Tabellenkopf bewertet,
+  // so zaehlt jede Zeile. Nur was nicht vollstaendig vorliegt oder zu breit ist, bleibt "nicht pruefbar".
+  function windows(tables, opts, cut, tick) {
+    let rows = 0, leak = false, over = !!cut;
+    for (const t of tables) {
+      if (t.over || t.total > t.rows.length || t.rows.some((r) => r.length > LIMITS.cols)) over = true;
+      if (!t.rows.length) continue;   // leeres Blatt: nichts zu bewerten
+      for (let i = 1; i < Math.max(2, t.rows.length); i += LIMITS.rows) {
+        tick();
+        const part = [t.rows[0]].concat(t.rows.slice(i, i + LIMITS.rows));
+        const a = analyze(part, opts, part.length);
+        if (a.leak) { leak = true; rows += a.data; }
+      }
+    }
+    return { rows, leak, unscannable: !leak && over };
+  }
+  // Beginn der letzten k Zeilen von part.
+  function tailStart(part, k) {
+    let p = part.length - 1;
+    for (let n = 0; n < k && p > 0; n++) p = part.lastIndexOf('\n', p - 1);
+    return p > 0 ? p + 1 : 0;
+  }
+  // Datei-Upload, auch lang: Text an Zeilenenden in Abschnitte teilen, dazwischen den Thread freigeben.
+  // Vor jedem Abschnitt stehen die letzten Zeilen des vorigen und der Kopf einer noch offenen Tabelle:
+  // sonst bliebe eine Tabelle ueber der Abschnittsgrenze beidseits unter der Mindestzeilenzahl oder ohne Kopf.
+  // deadline in Date.now()-Zeit wie im Aufrufer; ohne gueltige Frist gilt LONG.ms. HTML und JSON wie checkText.
+  async function checkFile(file, text, opts, deadline) {
+    if (HTML_FILE(file) || JSON_FILE(file)) return checkText(file, text, opts);
+    const limit = Number.isFinite(deadline) ? deadline : Date.now() + LONG.ms;
+    const tick = () => { if (Date.now() > limit) throw new Unscannable('timeout'); };
+    try {
+      if (typeof text !== 'string' || text.length > LONG.fileChars) throw new Unscannable('size');
+      const keep = Math.max(MIN_ROWS, opts && Number.isInteger(opts.minRows) ? opts.minRows : 0) + 2;
+      let rows = 0, leak = false, over = false, carry = '', carried = 0;
+      for (let i = 0; i < text.length;) {
+        let end = Math.min(text.length, i + LONG.segment);
+        if (end < text.length) { const e = text.lastIndexOf('\n', end); if (e > i) end = e + 1; }
+        const part = carry + text.slice(i, end);
+        const found = inText(part, tick);
+        const tables = found.map((t) => ({ rows: t.rows.map((r) => r.cells.map((c) => part.slice(c.s, c.e))), total: t.rows.length }));
+        const v = windows(tables, opts, false, tick);
+        if (v.leak) { rows += Math.max(0, v.rows - (leak ? carried : 0)); leak = true; }
+        if (v.unscannable) over = true;
+        const from = tailStart(part, keep);
+        const last = found[found.length - 1];
+        const open = last && !part.slice(last.end).trim();
+        carry = (open && last.start < from ? part.slice(last.rows[0].start, last.rows[0].end) + '\n' : '') + part.slice(from);
+        carried = keep;
+        // Riesige Zeilen: Fliesstext traegt nichts weiter, eine offene Tabelle waere ohne Kopf nicht mehr pruefbar.
+        if (carry.length > LONG.segment) { if (open) over = true; carry = ''; carried = 0; }
+        i = end;
+        if (i < text.length) await new Promise((r) => setTimeout(r, 0));
+      }
+      return { rows, leak, unscannable: !leak && over };
+    } catch (e) {
+      return { rows: 0, leak: false, unscannable: true };
+    }
+  }
   // Ueber einer Obergrenze (Zeilen, Spalten, Text) ohne Leck -> nicht pruefbar statt still
   // abgeschnitten und "sauber" (Auflage 8).
   function verdict(tables, opts, cut) {
@@ -446,7 +508,7 @@
   // Entpacken mit Zaehlung der echten Bytes (Groessenangaben im ZIP sind nur Hinweise).
   async function inflate(b, e, budget, deadline) {
     const data = b.subarray(e.start, e.start + e.comp);
-    const max = Math.min(LIMITS.entry, budget.left, LIMITS.ratio * e.comp + LIMITS.ratioSlack);
+    const max = Math.min(budget.long ? LONG.entry : LIMITS.entry, budget.left, (budget.long ? LONG.ratio : LIMITS.ratio) * e.comp + LIMITS.ratioSlack);
     if (e.method === 0) {
       if (data.length > max) throw new Unscannable('size');
       budget.left -= data.length;
@@ -499,14 +561,20 @@
     }, tick);
     return out;
   }
-  function sheetRows(xml, shared, tick) {
+  function sheetRows(xml, shared, tick, maxRows = LIMITS.rows) {
     const rows = [];
     let row = null, col = -1, type = null, val = null, inV = false, total = 0, wide = false;
+    // Nur Zeilen mit Wert zaehlen: formatierte Leerzeilen sind keine ungelesenen Daten. Auch eine
+    // Zeile ohne schliessendes Tag zaehlt (beim naechsten <row> und am Ende), sonst fiele sie still weg.
+    const flush = () => {
+      if (row && row.some((x) => x)) { total++; if (rows.length <= maxRows) rows.push(row); }
+      row = null;
+    };
     tokenize(xml, true, (kind, name, attrs, text) => {
       if (kind === 'text') { if (inV && val !== null) val.push(text); return; }
       if (name === 'row') {
-        if (kind === 'open') { row = []; total++; }
-        else { if (row && rows.length <= LIMITS.rows && row.some((x) => x)) rows.push(row); row = null; }
+        if (kind === 'open') { flush(); row = []; }
+        else flush();
       } else if (name === 'c' && row) {
         if (kind === 'open') { col = colIndex(attrs.r); if (col < 0) col = row.length; type = attrs.t || null; val = []; }
         else {
@@ -521,14 +589,17 @@
         }
       } else if (name === 'v' || name === 't') inV = kind === 'open';
     }, tick);
+    flush();
     return { rows, total: Math.max(total, rows.length), over: wide };
   }
   const TEXT_PARTS = /^xl\/(?:comments[0-9]*\.xml|threadedComments\/[^/]+\.xml|tables\/[^/]+\.xml)$/i;
   const UNREAD_PARTS = /^xl\/(?:pivotCache\/pivotCacheRecords|externalLinks\/|charts\/|richData\/|embeddings\/)/i;
   // Ergebnis: { rows, leak, unscannable, text } - text (Zellen + Kommentare) fuer die
   // bestehenden Text-Pruefungen (versteckte Anweisungen, Fingerabdruecke).
-  async function xlsx(bytes, opts) {
-    const deadline = now() + LIMITS.fileMs;
+  // long: Datei-Upload, Grenzen nur gegen Speicher und Zeit (LONG), jede Zeile wird bewertet (windows).
+  async function xlsx(bytes, opts, long) {
+    const deadline = now() + (long ? LONG.ms : LIMITS.fileMs);
+    const maxText = long ? LONG.textChars : LIMITS.textChars;
     const tick = () => { if (now() > deadline) throw new Unscannable('timeout'); };
     try {
       const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -536,15 +607,16 @@
       const names = Array.from(entries.keys());
       const sheets = names.filter((n) => /^xl\/worksheets\/sheet[0-9]+\.xml$/i.test(n));
       if (!sheets.length || sheets.length > LIMITS.sheets || names.some((n) => UNREAD_PARTS.test(n))) throw new Unscannable('partial');
-      const budget = { left: LIMITS.total };
+      const budget = { left: long ? LONG.total : LIMITS.total, long: !!long };
       const read = async (n) => utf8(await inflate(b, entries.get(n), budget, deadline));
       const shared = entries.has('xl/sharedStrings.xml') ? sharedStrings(await read('xl/sharedStrings.xml'), tick) : [];
       const tables = [];
       const text = [];
       let chars = 0;
-      const addText = (s) => { if (chars < LIMITS.textChars) { text.push(s); chars += s.length + 1; } };
+      // Auch Verworfenes zaehlen: sonst bliebe Text genau an der Grenze still ungeprueft.
+      const addText = (s) => { if (chars < maxText) text.push(s); chars += s.length + 1; };
       for (const s of sheets) {
-        const t = sheetRows(await read(s), shared, tick);
+        const t = sheetRows(await read(s), shared, tick, long ? LONG.rows : LIMITS.rows);
         tables.push(t);
         for (const r of t.rows) addText(r.join('\t'));
         tick();
@@ -557,7 +629,7 @@
         }, tick);
         addText(parts.join(' '));
       }
-      return Object.assign(verdict(tables, opts, chars > LIMITS.textChars), { text: text.join('\n').slice(0, LIMITS.textChars) });
+      return Object.assign((long ? windows : verdict)(tables, opts, chars > maxText, tick), { text: text.join('\n').slice(0, maxText) });
     } catch (e) {
       // Jede Ausnahme = nicht pruefbar, nie still durchlassen (Auflage 3).
       return { rows: 0, leak: false, unscannable: true, text: '' };
@@ -565,5 +637,5 @@
   }
   const XLSX_FILE = (f) => !!f && (/\.xlsx$/i.test(f.name || '') || f.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-  DLX.tabelle = Object.freeze({ LIMITS, MIN_ROWS, MIN_COLS, headerKind, valueKind, analyze, parse, inText, findings, tokenize, htmlTables, jsonTables, checkText, zipEntries, xlsx, XLSX_FILE, Unscannable });
+  DLX.tabelle = Object.freeze({ LIMITS, MIN_ROWS, MIN_COLS, headerKind, valueKind, analyze, parse, inText, findings, tokenize, htmlTables, jsonTables, checkText, checkFile, zipEntries, xlsx, XLSX_FILE, Unscannable });
 })(globalThis);

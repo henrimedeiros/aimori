@@ -148,3 +148,37 @@ E2E_BILDER=docs/store/bilder E2E_NUR=store node scripts/e2e/e2e.mjs
 - [ ] Namensrechte der Marke geprüft
 - [ ] Bilder und Werbekachel hochgeladen
 - [ ] Nach der Freigabe: Store-URL in `README.md` eintragen; bei neuer ID die Richtlinien-Vorlagen neu erzeugen
+
+## 5. Updates per API (ohne Dashboard)
+
+Neue Versionen lassen sich mit `scripts/store-hochladen.mjs` über die Chrome-Web-Store-API (v2) hochladen und einreichen. Der Eintrag (Texte, Bilder, Datenschutz) bleibt im Dashboard.
+
+```
+node scripts/pack-store.mjs
+node scripts/store-hochladen.mjs status
+node scripts/store-hochladen.mjs hochladen
+node scripts/store-hochladen.mjs einreichen
+```
+
+- `hochladen` nimmt `dist/aimori-<version>-chrome.zip` (oder `--zip <datei>`), prüft vorher die SHA-256 von `pack-store`, dass die Version der im Repository entspricht und höher ist als im Store, und dass weder `key.pem` noch das Manifest-Feld `key` im Paket liegen. Reicht noch **nicht** ein.
+- `einreichen` schickt die hochgeladene Version zur Überprüfung; nach der Freigabe wird sie sofort veröffentlicht. Mit `--gestaffelt` wartet sie nach der Freigabe, bis sie im Dashboard veröffentlicht wird.
+- `status` zeigt veröffentlichte und eingereichte Version sowie den Stand der Überprüfung.
+- `hochladen` und `einreichen` laufen nur im eigenen Terminal: Ohne Eingabe-Konsole bricht das Skript ab, und vor dem Senden muss die Version eingetippt werden. In automatisierten Sitzungen bricht es ebenfalls ab, auch bei `anmelden` (das ebenfalls ein Terminal verlangt): Fest gesperrt sind `CI` und weitere im Skript hinterlegte Kennzeichen; `.git/info/store-sperre` (ein Variablenname pro Zeile, lokal je Rechner, nicht versioniert) kann die Sperre erweitern, aber nicht aufheben.
+
+### Zugangsdaten einmal einrichten
+
+1. [Google Cloud Console](https://console.cloud.google.com/): neues Projekt anlegen, unter *APIs und Dienste → Bibliothek* die **Chrome Web Store API** aktivieren.
+2. *OAuth-Zustimmungsbildschirm*: Nutzertyp **Extern**, eigene Adresse als Testnutzer eintragen. Danach den Status auf **In Produktion** setzen (ohne Überprüfung durch Google; beim Anmelden erscheint dann der Hinweis „nicht überprüfte App“). Im Status *Testen* laufen Refresh-Tokens nach 7 Tagen ab.
+3. *Anmeldedaten → Anmeldedaten erstellen → OAuth-Client-ID*, Typ **Webanwendung**, autorisierte Weiterleitungs-URI `http://localhost:8765`. Im Fenster danach **JSON herunterladen** (das Client-Secret ist später nicht mehr abrufbar).
+4. Publisher-ID: die lange ID in der Dashboard-Adresse nach `/devconsole/`.
+5. Anmelden und Zugangsdatei schreiben lassen:
+   ```
+   node scripts/store-hochladen.mjs anmelden --client <heruntergeladene client_secret_….json> --publisher <Publisher-ID>
+   ```
+   Die ausgegebene Adresse im Browser öffnen, mit dem Konto des Store-Eintrags anmelden und zulassen. Das Skript empfängt die Antwort auf `localhost:8765`, holt das Refresh-Token und schreibt `.aimori-store.json` in den Benutzerordner (nicht ins Repository – das Skript verweigert dort). Die heruntergeladene Client-Datei danach löschen.
+
+   **Verschlüsselung:** Unter Windows stehen Client-Secret und Refresh-Token per DPAPI verschlüsselt in der Datei; nur dasselbe Benutzerkonto auf demselben Rechner kann sie lesen. Eine Klartext-Datei lehnt das Skript unter Windows ab. Manuell angelegte Dateien (`{ "clientId": "…", "clientSecret": "…", "refreshToken": "…", "publisherId": "…" }`) verschlüsselt `node scripts/store-hochladen.mjs schuetzen`. Auf anderen Systemen bleibt die Datei Klartext.
+
+   Anderer Ort: `--zugang <datei>` oder Umgebungsvariable `AIMORI_STORE_ZUGANG`. Die Datei gibt Zugriff auf den Store-Eintrag: nicht teilen, nicht in Sync-Ordner legen. Widerrufen unter [Google-Konto → Sicherheit → Drittanbieter-Zugriff](https://myaccount.google.com/connections).
+
+Das Skript gibt Tokens nie aus, auch nicht in Fehlermeldungen.

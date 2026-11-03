@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { load, ENGINE_FILES } from './helpers/load.mjs';
 import { zip, shared, sheet, workbook } from './helpers/xlsx.mjs';
 
-const DLX = load(ENGINE_FILES.concat(['engine/umformen.js']), { TextDecoder, DecompressionStream });
+const DLX = load(ENGINE_FILES.concat(['engine/umformen.js']), { TextDecoder, DecompressionStream, setTimeout });
 const ALL = { packs: Object.keys(DLX.packs) };
 const AHV = '756.1234.5678.97';            // Beispiel der ZAS
 const IBAN = 'CH9300762011623852957';      // SWIFT-Beispiel
@@ -340,4 +340,157 @@ test('Umformulieren: Funde der lokalen KI (Person, Firma) werden mit ersetzt', (
   const t = 'Was schreibe ich Bruno Keller von Musterfirma wegen der Offerte?';
   const out = DLX.umformen.rephrase(t, [{ id: 'person', cat: 'person', start: 17, end: 29 }, { id: 'company', cat: 'firma', start: 34, end: 45 }], 'de').text;
   assert.equal(out, 'Was schreibe ich eine Person von eine Firma wegen der Offerte?');
+});
+
+test('Lange Tabellen in Dateien: jede Zeile wird bewertet, lange Dateien ohne Leck gelten nicht mehr als nicht pruefbar', async () => {
+  const far = Date.now() + 60000;
+  const plain = (x) => JSON.parse(JSON.stringify(x));
+  const artikel = (n) => 'Artikel;Menge;Lager\n' + Array.from({ length: n }, (_, i) => 'Schraube ' + (i % 7) + ';' + (i % 90 + 1) + ';Halle ' + (i % 4)).join('\n');
+  assert.deepEqual(plain(await DLX.tabelle.checkFile({ name: 'a.csv' }, artikel(20000), {}, far)), { rows: 0, leak: false, unscannable: false });
+  // Personen erst hinter den ersten Abschnitten, ohne Kopf: der Abschnitt mit den Werten meldet sie.
+  const spaet = 'A;B;C\n' + Array.from({ length: 2500 }, (_, i) => 'Teil' + i + ';x;y').join('\n') + '\n'
+    + Array.from({ length: 1500 }, (_, i) => 'p' + i + '@beispiel.example;+41 44 123 ' + String(1000 + i) + ';z').join('\n');
+  const v = await DLX.tabelle.checkFile({ name: 'b.csv' }, spaet, {}, far);
+  assert.equal(v.leak, true, 'Leck hinter Zeile 1000');
+  // Text ueber einem Abschnitt: Kopf gilt auch im naechsten Abschnitt.
+  const lang = 'Name;Vorname;E-Mail\n' + Array.from({ length: 30000 }, (_, i) => 'Muster' + i + ';Eva;eva' + i + '@beispiel.example').join('\n');
+  assert.ok(lang.length > 500000);
+  const w = await DLX.tabelle.checkFile({ name: 'c.csv' }, lang, {}, far);
+  assert.deepEqual([w.leak, w.rows >= 29000, w.unscannable], [true, true, false]);
+  // Frist abgelaufen, kein Text, zu breit: weiter nicht pruefbar.
+  assert.equal((await DLX.tabelle.checkFile({ name: 'd.csv' }, artikel(20000), {}, Date.now() - 1)).unscannable, true);
+  assert.equal((await DLX.tabelle.checkFile({ name: 'e.csv' }, null, {}, far)).unscannable, true);
+  const wide = Array.from({ length: 12 }, (_, r) => Array.from({ length: 60 }, (_, c) => 'w' + r + c).join('\t')).join('\n');
+  assert.equal((await DLX.tabelle.checkFile({ name: 'f.tsv' }, wide, {}, far)).unscannable, true);
+  // HTML und JSON bleiben beim bisherigen Weg.
+  assert.equal((await DLX.tabelle.checkFile({ name: 'g.html' }, 'a'.repeat(DLX.tabelle.LIMITS.textChars + 1), {}, far)).unscannable, true);
+});
+
+// Stored (method 0): das Verhaeltnis zaehlt nicht, so greift genau die Groessengrenze. Leerzeichen sind schnell gelesen.
+const leeresBlatt = (i, mb) => ({ name: 'xl/worksheets/sheet' + i + '.xml', method: 0, data: Buffer.concat([Buffer.from('<worksheet>'), Buffer.alloc(mb * 1024 * 1024, 32), Buffer.from('</worksheet>')]) });
+const artikelXlsx = (n) => {
+  const rows = [[0, 1, 2]].concat(Array.from({ length: n }, () => [3, 4, 5]));
+  return zip([{ name: 'xl/sharedStrings.xml', data: shared(['Artikel', 'Menge', 'Lager', 'Schraube', '12', 'Halle']) }, { name: 'xl/worksheets/sheet1.xml', data: sheet(rows) }]);
+};
+
+test('Lange Dateien: Tabelle ueber der Abschnittsgrenze wird erkannt, Kopf gilt weiter', async () => {
+  const far = Date.now() + 60000;
+  const SEGMENT = 500000;
+  const person = (i) => 'Muster' + i + ';Eva;' + (i % 20 + 10) + '.03.1980';
+  const KOPF = 'Name;Vorname;Geburtsdatum\n';
+  const fuellung = (bis) => { const z = 'Absatz ohne jedes Trennzeichen\n'; return z.repeat(Math.ceil(bis / z.length)).slice(0, bis - (bis % z.length)); };
+  // Je 8 Zeilen beidseits der Grenze: fuer sich zu wenig, zusammen ein Leck.
+  const acht = KOPF + Array.from({ length: 8 }, (_, i) => person(i)).join('\n');
+  assert.equal((await DLX.tabelle.checkFile({ name: 'k.txt' }, acht, {}, far)).leak, false, '8 Zeilen allein sind kein Leck');
+  const vorne = fuellung(SEGMENT - acht.length - 20);
+  const grenze = vorne + acht + '\n' + Array.from({ length: 8 }, (_, i) => person(i + 8)).join('\n') + '\n';
+  assert.ok(vorne.length + acht.length < SEGMENT && grenze.length > SEGMENT, 'Tabelle liegt ueber der Grenze');
+  const g = await DLX.tabelle.checkFile({ name: 'g.txt' }, grenze, {}, far);
+  assert.deepEqual([g.leak, g.unscannable], [true, false]);
+  // Tabelle beginnt mitten in der Datei und reicht ueber mehrere Abschnitte: nur der Kopf macht sie zum Leck.
+  const n = 80000;
+  const mitte = fuellung(300000) + KOPF + Array.from({ length: n }, (_, i) => person(i)).join('\n');
+  assert.ok(mitte.length > 2 * SEGMENT);
+  const m = await DLX.tabelle.checkFile({ name: 'm.txt' }, mitte, {}, far);
+  assert.equal(m.leak, true);
+  assert.ok(Math.abs(m.rows - n) < 100, 'Zeilen in der Ueberlappung zaehlen einmal: ' + m.rows);
+});
+
+test('Lange Dateien: Frist und Zeichenzahl ergeben nicht pruefbar, ohne gueltige Frist gilt die eigene', async () => {
+  const artikel = (n) => 'Artikel;Menge;Lager\n' + Array.from({ length: n }, (_, i) => 'Schraube ' + (i % 7) + ';' + (i % 90 + 1) + ';Halle ' + (i % 4)).join('\n');
+  const zuLang = await DLX.tabelle.checkFile({ name: 'z.txt' }, 'x'.repeat(20 * 1024 * 1024 + 1), {}, Date.now() + 60000);
+  assert.deepEqual([zuLang.leak, zuLang.unscannable], [false, true], 'Textdatei ueber der Dateigrenze von 20 MB');
+  const gross = await DLX.tabelle.checkFile({ name: 'g.txt' }, artikel(800000), {}, Date.now() + 60000);
+  assert.deepEqual([gross.leak, gross.unscannable], [false, false], 'Textdatei ueber 5 Mio. Zeichen unter der Dateigrenze: ganz geprueft');
+  assert.equal((await DLX.tabelle.checkFile({ name: 'b.txt' }, 'x'.repeat(5000000), {}, Date.now() + 60000)).unscannable, false, 'genau 5 Mio. Zeichen, eine einzige Zeile');
+  // Lange Absaetze ohne Tabelle: der Uebertrag darf keinen falschen Alarm ausloesen.
+  const absaetze = ('y'.repeat(100000) + '\n').repeat(30);
+  assert.equal((await DLX.tabelle.checkFile({ name: 'p.txt' }, absaetze, {}, Date.now() + 60000)).unscannable, false, 'lange Absaetze');
+  // Offene Tabelle mit riesigen Zeilen: lieber nicht pruefbar als still ohne Kopf.
+  const riesig = 'Name;Vorname;Geburtsdatum\n' + ('Muster;' + 'z'.repeat(100000) + ';01.03.1980\n').repeat(30);
+  assert.equal((await DLX.tabelle.checkFile({ name: 'r.txt' }, riesig, {}, Date.now() + 60000)).unscannable, true, 'riesige Tabellenzeilen');
+  // Eigene Uhr in der Zeitbasis der Frist: jede Abfrage springt 31 s weiter.
+  const echt = globalThis.Date;
+  const uhr = { t: 1000 };
+  class Spring extends echt { static now() { uhr.t += 31000; return uhr.t; } }
+  const D = load(ENGINE_FILES, { TextDecoder, DecompressionStream, setTimeout, Date: Spring });
+  for (const ohne of [undefined, null, NaN, Infinity, 'bald', 0 / 0]) {
+    assert.equal((await D.tabelle.checkFile({ name: 'a.csv' }, artikel(50), {}, ohne)).unscannable, true, 'Frist ' + String(ohne));
+  }
+  assert.equal((await D.tabelle.checkFile({ name: 'a.csv' }, artikel(50), {}, Number.MAX_SAFE_INTEGER)).unscannable, false, 'gueltige Frist gilt');
+});
+
+test('Lange XLSX: Gesamtbudget und Eintragsgrenze ergeben nicht pruefbar, nie sauber', async () => {
+  const pruefe = (e) => DLX.tabelle.xlsx(zip(e), {}, true);
+  assert.equal((await pruefe([leeresBlatt(1, 60)])).unscannable, false, 'ein Blatt unter dem Budget');
+  const budget = await pruefe([leeresBlatt(1, 60), leeresBlatt(2, 60)]);
+  assert.deepEqual([budget.unscannable, budget.leak, budget.text], [true, false, ''], 'zwei Blaetter zusammen ueber 96 MB');
+  assert.equal((await pruefe([leeresBlatt(1, 97)])).unscannable, true, 'ein Eintrag ueber 96 MB');
+});
+
+test('Lange XLSX: abgelaufene Frist ergibt nicht pruefbar, auch waehrend der Zeilenbewertung', async () => {
+  const uhr = { t: 0 };
+  const D = load(ENGINE_FILES, { TextDecoder, DecompressionStream, setTimeout, performance: { now: () => uhr.t } });
+  const file = artikelXlsx(5000);
+  assert.equal((await D.tabelle.xlsx(file, {}, true)).unscannable, false, 'ohne Zeitablauf pruefbar');
+  // Der erste Abschnitt ist bewertet, dann ist die Frist von 30 s vorbei: die restlichen Zeilen fehlen.
+  const spaet = { get minRows() { uhr.t += 31000; return undefined; } };
+  assert.deepEqual((({ unscannable, leak }) => [unscannable, leak])(await D.tabelle.xlsx(file, spaet, true)), [true, false]);
+  // Beim Lesen vorbei: jede Zeitabfrage springt ueber die Frist.
+  const D2 = load(ENGINE_FILES, { TextDecoder, DecompressionStream, setTimeout, performance: { now: () => (uhr.t += 31000) } });
+  assert.equal((await D2.tabelle.xlsx(file, {}, true)).unscannable, true);
+});
+
+test('XLSX: formatierte Leerzeilen zaehlen nicht als ungelesene Zeilen, abgeschnittene Zeilen weiter schon', async () => {
+  const strs = ['Artikel', 'Menge', 'Lager', 'Schraube', '12', 'Halle'];
+  // Excel schreibt formatierte, aber leere Zeilen als <row> mit Zellen ohne Wert.
+  const leer = (von, n) => Array.from({ length: n }, (_, i) => '<row r="' + (von + i) + '"><c r="A' + (von + i) + '" s="1"/><c r="B' + (von + i) + '" s="1"/></row>').join('');
+  const blatt = (daten, leere) => '<?xml version="1.0"?><worksheet><sheetData>' +
+    Array.from({ length: daten }, (_, i) => '<row r="' + (i + 1) + '">' + (i ? [3, 4, 5] : [0, 1, 2]).map((v, j) => '<c r="' + 'ABC'[j] + (i + 1) + '" t="s"><v>' + v + '</v></c>').join('') + '</row>').join('') +
+    leer(daten + 1, leere) + '</sheetData></worksheet>';
+  const datei = (daten, leere) => zip([{ name: 'xl/sharedStrings.xml', data: shared(strs) }, { name: 'xl/worksheets/sheet1.xml', data: blatt(daten, leere) }]);
+  for (const long of [false, true]) {
+    const r = await DLX.tabelle.xlsx(datei(20, 5000), {}, long);
+    assert.deepEqual([r.unscannable, r.leak], [false, false], 'Leerzeilen, long=' + long);
+  }
+  // Personendaten mit Leerzeilen dahinter: das Leck bleibt erkannt, die Zahl nennt nur echte Zeilen.
+  const personen = zip([{ name: 'xl/sharedStrings.xml', data: shared(['Vorname', 'E-Mail', 'Geburtsdatum'].concat(Array.from({ length: 12 }, (_, i) => ['Anna' + i, 'anna' + i + '@example.com', '01.02.1980']).flat())) },
+    { name: 'xl/worksheets/sheet1.xml', data: sheet([[0, 1, 2]].concat(Array.from({ length: 12 }, (_, i) => [3 + i * 3, 4 + i * 3, 5 + i * 3]))).replace('</sheetData>', leer(14, 3000) + '</sheetData>') }]);
+  const p = await DLX.tabelle.xlsx(personen, {});
+  assert.deepEqual([p.leak, p.rows, p.unscannable], [true, 12, false]);
+  // Mehr echte Zeilen als gelesen werden: weiter nicht pruefbar.
+  assert.equal((await DLX.tabelle.xlsx(datei(DLX.tabelle.LIMITS.rows + 5, 0), {})).unscannable, true, 'ueber der Zeilengrenze');
+  // Zeilen ohne schliessendes Tag (manipuliert oder abgeschnitten): nie still sauber.
+  const offen = (daten) => zip([{ name: 'xl/sharedStrings.xml', data: shared(strs) },
+    { name: 'xl/worksheets/sheet1.xml', data: blatt(daten, 0).split('</row>').join('') }]);
+  assert.equal((await DLX.tabelle.xlsx(offen(DLX.tabelle.LIMITS.rows + 5), {})).unscannable, true, 'ohne long: ueber der Zeilengrenze');
+  // Mit long werden alle offenen Zeilen gelesen (Grenze LONG.rows), harmlos bleibt pruefbar.
+  const lang = await DLX.tabelle.xlsx(offen(DLX.tabelle.LIMITS.rows + 5), {}, true);
+  assert.deepEqual([lang.unscannable, lang.text.split(String.fromCharCode(10)).length], [false, DLX.tabelle.LIMITS.rows + 5]);
+  const offenPersonen = zip([{ name: 'xl/sharedStrings.xml', data: shared(['Vorname', 'E-Mail', 'Geburtsdatum'].concat(Array.from({ length: 12 }, (_, i) => ['Anna' + i, 'anna' + i + '@example.com', '01.02.1980']).flat())) },
+    { name: 'xl/worksheets/sheet1.xml', data: sheet([[0, 1, 2]].concat(Array.from({ length: 12 }, (_, i) => [3 + i * 3, 4 + i * 3, 5 + i * 3]))).split('</row>').join('') }]);
+  const op = await DLX.tabelle.xlsx(offenPersonen, {}, true);
+  assert.deepEqual([op.leak, op.rows], [true, 12], 'Personendaten ohne schliessende Tags');
+});
+
+test('Lange XLSX: leeres Blatt stoert nicht, Text an der Grenze bleibt nie still ungeprueft', async () => {
+  const mitLeer = zip([{ name: 'xl/sharedStrings.xml', data: shared(['Artikel', 'Menge', 'Lager', 'Schraube', '12', 'Halle']) },
+    { name: 'xl/worksheets/sheet1.xml', data: sheet(Array.from({ length: 20 }, (_, i) => (i ? [3, 4, 5] : [0, 1, 2]))) },
+    { name: 'xl/worksheets/sheet2.xml', data: '<worksheet><sheetData/></worksheet>' }]);
+  assert.equal((await DLX.tabelle.xlsx(mitLeer, {}, true)).unscannable, false);
+  const blatt = (...strs) => zip([{ name: 'xl/sharedStrings.xml', data: shared(strs) }, { name: 'xl/worksheets/sheet1.xml', data: sheet(strs.map((_, i) => [i])) }]);
+  assert.equal((await DLX.tabelle.xlsx(blatt('x'.repeat(6000000)), {}, true)).unscannable, true, 'ueber 5 Mio. Zeichen');
+  // Die erste Zeile fuellt die Grenze genau, die zweite wird nicht mehr gelesen.
+  assert.equal((await DLX.tabelle.xlsx(blatt('x'.repeat(4999999), 'spaeter'), {}, true)).unscannable, true, 'genau an der Grenze');
+});
+
+test('Lange XLSX: mit long ganze Datei gelesen und bewertet, ohne long die bisherigen Grenzen', async () => {
+  const strs = ['Artikel', 'Menge', 'Lager'];
+  const rows = [[0, 1, 2]];
+  for (let i = 0; i < 5000; i++) { strs.push('Schraube ' + (i % 7), String(i % 90), 'Halle ' + (i % 4)); rows.push([3 + i * 3, 4 + i * 3, 5 + i * 3]); }
+  const file = zip([{ name: '[Content_Types].xml', data: '<Types/>' }, { name: 'xl/sharedStrings.xml', data: shared(strs) }, { name: 'xl/worksheets/sheet1.xml', data: sheet(rows) }]);
+  assert.equal((await DLX.tabelle.xlsx(file, {})).unscannable, true, 'ohne long: ueber der Zeilengrenze');
+  const x = await DLX.tabelle.xlsx(file, {}, true);
+  assert.deepEqual([x.unscannable, x.leak], [false, false]);
+  assert.ok(x.text.includes('Schraube 6') && x.text.split('\n').length > 5000);
 });

@@ -61,3 +61,22 @@ test('eigene Platzhalter loesen keinen Fund aus', () => {
   const text = '[IBAN_1] [EMAIL_2] [CH_AHV_3] [PHONE_E164_12] [CC_VISA_1] [CFG_PASSWORD_1] [IPV4_1] [BIRTHDATE_1]';
   assert.deepEqual(Array.from(DLX.engine.scan(text, eng).findings), []);
 });
+
+test('ersetzter Code haelt nicht erneut an (Platzhalter und Schwaerzung)', () => {
+  const eng = DLX.policy.engineConfig(DLX.policy.defaults({ timeZone: 'Europe/Zurich', languages: ['de-CH'] }));
+  const code = 'const db = connect({ host: "db.example.com", password: "Example!2026" });';
+  const found = Array.from(DLX.engine.scan(code, eng).findings);
+  assert.deepEqual(found.map((f) => f.id), ['cfg_password']);
+  const ph = P.create().pseudonymize(code, found, red);
+  assert.equal(ph, 'const db = connect({ host: "db.example.com", password: "[CFG_PASSWORD_1]" });');
+  const redacted = ['Credentials', 'Zugangsdaten', 'Identifiants', 'Credenziali', 'Credenciais', 'Credenciales']
+    .map((l) => DLX.engine.redact(code, found, () => l));
+  for (const t of [ph, ...redacted, 'DB_PASSWORD=[ENV_SECRET_1]\napi_key: [CFG_PASSWORD_2]\ntoken = "[GITHUB_PAT_1]"']) {
+    assert.deepEqual(Array.from(DLX.engine.scan(t, eng).findings), [], t);
+  }
+  // Nur der GANZE Wert stellt frei: ein echter Wert mit Klammern bleibt ein Fund.
+  for (const v of ['[CFG_PASSWORD_1]x9Q', 'Ab[IBAN_1]', '[Sommer2026!]']) {
+    const t = 'password: "' + v + '"';
+    assert.deepEqual(Array.from(DLX.engine.scan(t, eng).findings).map((f) => t.slice(f.start, f.end)), [v], v);
+  }
+});

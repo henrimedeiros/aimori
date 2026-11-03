@@ -76,5 +76,22 @@
     return { n: hits.size, hit: !timeout && hits.size >= fp.min, timeout };
   }
 
-  DLX.fingerprint = Object.freeze({ LIMITS, DEFAULTS, usable, values, compile, scan });
+  // Lange Dokumente: in Stuecken mit Pausen, das Zeitbudget gilt je Stueck, deadline (Date.now()) fuer alle.
+  // Die Ueberlappung ist laenger als jede Wortfolge (shingle bis 16 Woerter, je bis wordLen Zeichen).
+  const LONG_CHUNK = 50000, LONG_OVERLAP = 1000, SLICE_MS = 40;
+  async function scanLong(text, fp, deadline) {
+    if (!fp) return { n: 0, hit: false, timeout: false };
+    const t = () => performance.now();
+    const hits = new Set();
+    let since = t();
+    for (let i = 0; ; i += LONG_CHUNK - LONG_OVERLAP) {
+      const late = each(text.slice(i, i + LONG_CHUNK), fp.mid, fp.k, fp.sample, (h) => { if (fp.set.has(h)) hits.add(h); }, t() + LIMITS.ms, t);
+      if (late || Date.now() > deadline) return { n: hits.size, hit: false, timeout: true };
+      if (i + LONG_CHUNK >= text.length) break;
+      if (t() - since >= SLICE_MS) { await new Promise((r) => setTimeout(r, 0)); since = t(); }
+    }
+    return { n: hits.size, hit: hits.size >= fp.min, timeout: false };
+  }
+
+  DLX.fingerprint = Object.freeze({ LIMITS, DEFAULTS, usable, values, compile, scan, scanLong });
 })(globalThis);

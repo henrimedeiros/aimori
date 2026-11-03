@@ -268,14 +268,18 @@
     const lines = [];
     for (let raw of text.replace(/\r\n?/g, '\n').split('\n')) {
       raw = raw.replace(/\t/g, '    ');
-      while (Array.from(raw).length > COLS) {
-        const chars = Array.from(raw);
-        const head = chars.slice(0, COLS).join('');
+      // Linear auch bei sehr langen Zeilen (lange Dokumente).
+      const chars = Array.from(raw);
+      let at = 0;
+      while (chars.length - at > COLS) {
+        const head = chars.slice(at, at + COLS).join('');
         const cut = head.lastIndexOf(' ') > 20 ? head.lastIndexOf(' ') : head.length;
-        lines.push(raw.slice(0, cut));
-        raw = raw.slice(cut).replace(/^ /, '');
+        const line = head.slice(0, cut);
+        lines.push(line);
+        at += Array.from(line).length;
+        if (chars[at] === ' ') at++;
       }
-      lines.push(raw);
+      lines.push(chars.slice(at).join(''));
     }
     return lines;
   }

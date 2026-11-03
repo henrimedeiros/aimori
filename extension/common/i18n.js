@@ -20,9 +20,9 @@
 
   // Englischer Mindestsatz fuer Content Scripts (Auflage 6): Schwaerzen und Kopier-Hinweis
   // warten nie auf Texte. Gleich wie _locales/en (Test sprachen.test.mjs).
-  const MIN = {"cat_voice":"Voice mode","rowsRemoved":"{n} rows removed","cat_person":"Personal data","cat_finanz":"Financial data","cat_sozial":"Social security","cat_gesundheit":"Health","cat_firma":"Company data","cat_kontakt":"Contact data","cat_steuer":"Tax ID","cat_technik":"Credentials","cat_reise":"ID document","cat_id_national":"National ID","cat_unscannable":"Not checkable","close":"Close","cat_injection":"Hidden instructions","copyToastTitle":"Sensitive data copied: {types}","copyToastText":"{product} does not check AI side panels and AI extensions. If you paste it there, check it yourself.","cat_source":"Confidential source"};
+  const MIN = {"cat_voice":"Voice mode","rowsRemoved":"{n} rows removed","cat_person":"Personal data","cat_finanz":"Financial data","cat_sozial":"Social security","cat_gesundheit":"Health","cat_firma":"Company data","cat_kontakt":"Contact data","cat_steuer":"Tax ID","cat_technik":"Credentials","cat_reise":"ID document","cat_id_national":"National ID","cat_unscannable":"Not checkable","close":"Close","cat_injection":"Hidden instructions","copyToastTitle":"Sensitive data copied: {types}","copyToastText":"{product} does not check AI side panels and AI extensions. If you paste it there, check it yourself.","cat_source":"Confidential source","noticeFailed":"{product}: the notice could not be shown – action stopped, please try again."};
   // Schluessel, die Content Scripts brauchen (SW schickt nur diese, Auflage 7); share* = Hinweis beim Bildschirmteilen.
-  const CONTENT = /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$)/;
+  const CONTENT = /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$|noticeFailed$|noticeChecking$)/;
 
   // Chrome erlaubt in Schluesseln nur [A-Za-z0-9_]: id-national -> id_national.
   const norm = (key) => String(key).replace(/-/g, '_');

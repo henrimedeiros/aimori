@@ -4,7 +4,7 @@
  "policies": {
   "branding": [
    "Identidade visual",
-   "Aparência white-label exibida no pop-up, na página de configurações e na caixa de diálogo de aviso."
+   "Aparência white-label exibida no pop-up, na página de configurações e na caixa de diálogo de aviso. Campos vazios mantêm o padrão."
   ],
   "branding.productName": [
    "Nome do produto"

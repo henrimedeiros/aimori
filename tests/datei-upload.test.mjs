@@ -177,7 +177,9 @@ test('SW: Tab verlassen oder geschlossen bricht ab und schliesst das Offscreen-D
 
 test('Quelltext: Leser byte-gleich dem geprueften Stand, keine neuen Rechte, kein Netz (Auflagen 1, 10, 16, 19)', () => {
   const sha = crypto.createHash('sha1').update('blob ' + fs.statSync(path.join(EXT, 'engine/datei.js')).size + '\0').update(fs.readFileSync(path.join(EXT, 'engine/datei.js'))).digest('hex');
-  assert.equal(sha, 'cc713456ccaed75ef7e2df1ac8995783fa4f7733', 'engine/datei.js = Stand des Zweigs vom 16.10.2026 (git-Blob)');
+  // Stand vom 16.10.2026 (cc713456) mit genau einer Aenderung vom 30.10.2026: Grenzen chars 5000000 und ms 30000 fuer lange Dokumente.
+  assert.equal(sha, '3fd3b874e88268c3854e76b5f4fddb162e9bc766', 'engine/datei.js = geprueften Stand (git-Blob)');
+  assert.deepEqual([DLX.datei.LIMITS.chars, DLX.datei.LIMITS.ms, DLX.datei.LIMITS.bytes], [5000000, 30000, 20 * 1024 * 1024]);
   const m = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
   const js = m.content_scripts.flatMap((c) => c.js);
   assert.ok(js.includes('engine/datei.js') && js.includes('engine/stuecke.js'));

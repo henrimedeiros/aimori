@@ -17,7 +17,7 @@ const IBAN = 'CH9300762011623852957';      // SWIFT-Beispiel
 const AHV = '756.1234.5678.97';            // Beispiel der ZAS
 const tick = async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); };
 
-function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, noNonce = false, cfg = null, ignore = null, cover = null, aiBlocked = false, pausedUntil = 0 } = {}) {
+function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, noNonce = false, cfg = null, ignore = null, cover = null, aiBlocked = false, pausedUntil = 0, ki = null } = {}) {
   const f = fakeDom();
   const { doc, el } = f;
   let composer, dictate, box, send = null, other = null;
@@ -61,6 +61,7 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
   }
   doc.body.append(box);
   const messages = [];
+  const kiMsgs = [];
   let onMsg = null;
   const intervals = [];
   const chrome = {
@@ -68,9 +69,13 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
       id: 'x',
       getURL: (p) => 'chrome-extension://x/' + p,
       sendMessage: (m) => {
+        // Einzige Ausnahme vom "nie ein Wert": die lokale KI-Pruefung bekommt den Text (Design-Review KI
+        // 16.10.2026, Auflage 12), getrennt mitgeschrieben; alles andere prueft messages.
+        if (m.t === 'ki') { kiMsgs.push(m); return ki ? Promise.resolve().then(() => ki(m.text)) : Promise.resolve({}); }
         messages.push(m);
         if (breakLive && m.t === 'found' && m.mode === 'live') throw new Error('kaputt');
         if (m.t === 'cfg' && (cfg || ignore || aiBlocked || pausedUntil)) return Promise.resolve().then(() => ({ cfg: Object.assign(DLX.policy.defaults('de-CH'), cfg || {}), ignore, aiBlocked, pausedUntil }));
+        if (m.t === 'full') return Promise.resolve(m.nonce === 'n' ? { nonce: 'n2' } : null);
         return Promise.resolve(m.t === 'found' && !noNonce ? { nonce: 'n' } : {});
       },
       onMessage: { addListener: (fn) => { onMsg = fn; } },
@@ -110,7 +115,7 @@ function setup({ host = 'chatgpt.com', layout = 'chatgpt', breakLive = false, no
   // Entscheidung vom Service Worker (Absender ohne Tab).
   const decide = (choice, nonce = 'n', sender = { id: 'x' }) => onMsg({ t: 'decision', nonce, choice }, sender, () => {});
   const tickStatus = () => intervals.forEach((fn) => fn());
-  return { ...f, DLX, onMsg: (m, respond = () => {}) => onMsg(m, { id: 'x' }, respond), onMsgFrom: (m, sender) => onMsg(m, sender, () => {}), composer, dictate, send, other, box, messages, found, type, enter, hint, dialogHost, host: msgHost, decide, tickStatus, scans: () => scans };
+  return { ...f, DLX, onMsg: (m, respond = () => {}) => onMsg(m, { id: 'x' }, respond), onMsgFrom: (m, sender) => onMsg(m, sender, () => {}), composer, dictate, send, other, box, messages, kiMsgs, found, type, enter, hint, dialogHost, host: msgHost, decide, tickStatus, scans: () => scans };
 }
 
 test('Tippen + Enter mit Fund (ChatGPT-ProseMirror, ohne Senden-Knopf): gestoppt, Dialog', async () => {
@@ -188,9 +193,8 @@ test('Live-Hinweis: entprellt, nur Typ-IDs an den Service Worker, Leiste ueber d
   assert.equal(f.layout, 'bar');
   assert.deepEqual(JSON.parse(JSON.stringify(f.items)), [{ id: 'iban', cat: 'finanz', n: 1 }]);
   // Einzige Ausnahme: die lokale KI-Pruefung (t 'ki') bekommt den Text, sonst nichts (Design-Review KI 16.10.2026, Auflage 12).
-  const kiMsgs = s.messages.filter((m) => m.t === 'ki');
-  assert.ok(kiMsgs.every((m) => JSON.stringify(Object.keys(m).sort()) === '["seq","t","text"]' && m.text.length <= 4000));
-  assert.ok(!JSON.stringify(s.messages.filter((m) => m.t !== 'ki')).includes('9300'), 'kein Wert an den Service Worker');
+  assert.ok(s.kiMsgs.length > 0 && s.kiMsgs.every((m) => JSON.stringify(Object.keys(m).sort()) === '["seq","t","text"]' && m.text.length <= 4000));
+  assert.ok(!JSON.stringify(s.messages).includes('9300'), 'kein Wert an den Service Worker');
   const h = s.hint();
   assert.ok(h, 'Hinweis sichtbar');
   assert.equal(h.parentNode, s.doc.documentElement, 'Host direkt an documentElement (Auflage 8)');
@@ -522,7 +526,7 @@ test('Leiste verdeckt beim Live-Hinweis: nur ausblenden, kein Abbruch', async ()
   assert.equal(cancelled(s), false);
 });
 
-test('Rueckfall-Kette: Feld zu schmal oder kein Platz -> Vollbild; ohne Bereitmeldung -> Popupfenster (Auflage 14)', async () => {
+test('Rueckfall-Kette: Feld zu schmal oder kein Platz -> Vollbild; ohne Bereitmeldung -> Abbrechen, nie ein Fenster (Auflage 14)', async () => {
   const narrow = setup({ host: 'claude.ai', layout: 'claude-de' });
   narrow.box.rect = { left: 0, top: 300, width: 280, height: 40, right: 280, bottom: 340 };
   narrow.type('Test-IBAN ' + IBAN);
@@ -531,8 +535,10 @@ test('Rueckfall-Kette: Feld zu schmal oder kein Platz -> Vollbild; ohne Bereitme
   assert.equal(narrow.dialogHost().style.inset, '0');
   narrow.dialogHost().getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 800 });
   narrow.advance(1500); await tick();
-  assert.equal(cancelled(narrow), false);
-  assert.ok(narrow.messages.some((m) => m.t === 'fallback'), 'Popupfenster als letzte Stufe');
+  assert.equal(cancelled(narrow), false, 'Vollbild wartet 3 s auf die Bereitmeldung');
+  narrow.advance(1500); await tick();
+  assert.equal(cancelled(narrow), true, 'Vollbild nicht bereit = Abbrechen (fail-closed)');
+  assert.equal(narrow.messages.some((m) => m.t === 'fallback' || m.t === 'full'), false, 'kein Fenster, kein zweites Vollbild');
 
   const tall = setup({ host: 'claude.ai', layout: 'claude-de' });
   tall.box.rect = { left: 0, top: 20, width: 700, height: 770, right: 700, bottom: 790 };
@@ -850,15 +856,16 @@ test('Hoehe vom Frame: nur mit der Nonce der angezeigten Meldung, Wache sofort, 
   await tick();
   assert.equal(cancelled(c), true, 'verdeckte Knopfzeile = Abbrechen');
 
-  // Passt nicht ueber oder unter das Feld: Sende-Meldung ins Popupfenster, nicht abbrechen.
+  // Passt nicht ueber oder unter das Feld: Sende-Meldung ins Vollbild im Seiten-Overlay, nie ein Fenster.
   const t = setup({ host: 'claude.ai', layout: 'claude-de' });
   t.box.rect = { left: 0, top: 200, width: 1200, height: 500, right: 1200, bottom: 700 };
   t.type('Test-IBAN ' + IBAN);
   t.enter(); await tick();
   t.onMsg({ t: 'dlgSize', nonce: 'n', h: 240 });
   await tick();
-  assert.equal(t.dialogHost(), null);
-  assert.ok(t.messages.some((m) => m.t === 'fallback'));
+  assert.deepEqual(t.messages.filter((m) => m.t === 'full').map((m) => m.nonce), ['n'], 'Vollbild mit der Nonce der Leiste');
+  assert.equal(t.dialogHost().style.inset, '0', 'Vollbild-Overlay in der Seite');
+  assert.equal(t.messages.some((m) => m.t === 'fallback'), false);
   assert.equal(cancelled(t), false);
   assert.equal(t.enter().defaultPrevented, true, 'Senden bleibt angehalten');
 
@@ -871,6 +878,62 @@ test('Hoehe vom Frame: nur mit der Nonce der angezeigten Meldung, Wache sofort, 
   l.onMsg({ t: 'dlgSize', nonce: 'n', h: 240 });
   assert.equal(l.host(), null);
   assert.equal(l.messages.some((m) => m.t === 'fallback'), false);
+});
+
+// Edge zeigte das Rueckfall-Popupfenster (ui/dialog.html) als ERR_BLOCKED_BY_CLIENT und blockierte
+// alles (23.10.2026). Seither: Leiste -> Vollbild im Seiten-Overlay -> Abbrechen mit kurzer Rueckmeldung.
+test('Kein Fenster: Leiste ohne Bereitmeldung -> Vollbild mit neuer Nonce, alte Nonce ungueltig, Einfuegen in ChatGPT und Claude', async () => {
+  for (const [host, layout] of [['chatgpt.com', 'chatgpt'], ['claude.ai', 'claude-de']]) {
+    const s = setup({ host, layout });
+    const e = s.fire('paste', s.composer, { clipboardData: { files: [], items: [], getData: () => 'Konto ' + IBAN } });
+    assert.equal(e.defaultPrevented, true, host + ': Einfuegen angehalten');
+    await tick();
+    assert.equal(s.found()[0].mode, 'paste');
+    assert.equal(s.found()[0].layout, 'bar');
+    const b = s.dialogHost();
+    b.getBoundingClientRect = () => barRectOf(b);
+    s.advance(1500); await tick();
+    assert.deepEqual(s.messages.filter((m) => m.t === 'full').map((m) => m.nonce), ['n'], host);
+    assert.equal(s.messages.some((m) => m.t === 'fallback'), false, host + ': kein Popupfenster');
+    assert.equal(s.dialogHost().style.inset, '0', host + ': Vollbild in der Seite');
+    s.dialogHost().getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 800 });
+    let r = null;
+    s.onMsg({ t: 'decision', nonce: 'n', choice: 'cancel' }, (x) => { r = x; });
+    assert.equal(r, null, host + ': Nonce der Leiste gilt nicht mehr');
+    s.onMsg({ t: 'dlgReady', nonce: 'n2' });
+    s.advance(5000); await tick();
+    assert.equal(cancelled(s), false, host + ': bereites Vollbild bleibt offen');
+    s.onMsg({ t: 'decision', nonce: 'n2', choice: 'cancel' }, (x) => { r = x; });
+    assert.equal(r && r.ok, true, host + ': Entscheidung mit neuer Nonce');
+  }
+});
+
+test('Kein Fenster: auch das Vollbild nicht bereit -> Abbrechen, Seite frei, Rueckmeldung; spaete Bereitmeldung/Entscheidung wirkungslos', async () => {
+  const s = setup({ host: 'claude.ai', layout: 'claude-de' });
+  s.type('Test-IBAN ' + IBAN);
+  assert.equal(s.enter().defaultPrevented, true);
+  await tick();
+  const b = s.dialogHost();
+  b.getBoundingClientRect = () => barRectOf(b);
+  s.advance(1500); await tick();
+  s.dialogHost().getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 800 });
+  assert.equal(cancelled(s), false);
+  s.advance(3000); await tick();
+  assert.equal(cancelled(s), true, 'fail-closed: Senden findet nicht statt');
+  assert.equal(s.host(), null, 'kein Overlay mehr, Seite bedienbar');
+  const note = s.doc.documentElement.children.find((n) => n.shadow && !n.shadow.querySelector('iframe'));
+  assert.ok(note, 'kurze Rueckmeldung in eigener Shadow Root');
+  assert.equal(s.messages.some((m) => m.t === 'fallback'), false);
+  const before = s.messages.length;
+  let r = null;
+  s.onMsg({ t: 'dlgReady', nonce: 'n2' });
+  s.onMsg({ t: 'decision', nonce: 'n2', choice: 'override' }, (x) => { r = x; });
+  s.onMsg({ t: 'decision', nonce: 'n', choice: 'override' }, (x) => { r = x; });
+  await tick();
+  assert.equal(r, null, 'spaete Entscheidung nach Abbruch wird verworfen');
+  assert.equal(s.messages.length, before, 'nichts gesendet oder neu gemeldet');
+  s.advance(6000); await tick();
+  assert.equal(s.doc.documentElement.children.some((n) => n === note), false, 'Rueckmeldung verschwindet von selbst');
 });
 
 // --- KI-Antworten pruefen und Zwischenablage-Schutz (Design-Review Antwort/Zwischenablage 16.10.2026) ---
@@ -1414,4 +1477,382 @@ test('Entscheidung zur offenen Meldung wird bestaetigt (fuer Kuerzel im Service 
   let none = null;
   s.onMsg({ t: 'decision', nonce: 'n', choice: 'redact' }, (r) => { none = r; });
   assert.equal(none, null, 'verbrauchte Nonce: keine Bestaetigung');
+});
+
+// --- Lange Texte: eine Meldung mit allen Funden, Teilpruefung kein Fund ---------
+const NAMEN = ['Thomas Brunnhuber', 'Laura Kessler', 'Reto Ambuehl', 'Eva Zeltner', 'Marco Imhof'];
+const FUELLUNG = 'Der Bericht beschreibt die Arbeiten der letzten Wochen. ';
+const settle = () => new Promise((r) => setImmediate(r));
+// Attrappe des Modells: findet die erfundenen Namen sicher, den einzelnen Vornamen nur dezent.
+function ents(text) {
+  const out = [];
+  for (const n of NAMEN) for (let i = text.indexOf(n); i !== -1; i = text.indexOf(n, i + 1)) out.push({ type: 'PERSON_NAME', start: i, end: i + n.length, score: 0.99 });
+  for (let i = text.indexOf('Sandra'); i !== -1; i = text.indexOf('Sandra', i + 1)) out.push({ type: 'PERSON_NAME', start: i, end: i + 6, score: 0.95 });
+  // Wie das echte Modell: nimmt die eigene Schwaerzung gelegentlich fuer eine Gesundheitsangabe.
+  for (let i = text.indexOf('[Gesundheit]'); i !== -1; i = text.indexOf('[Gesundheit]', i + 1)) out.push({ type: 'HEALTH_DATA', start: i + 1, end: i + 11, score: 0.95 });
+  return { ents: out };
+}
+function langerText(werte, bloecke = 40) {
+  const teile = [];
+  werte.forEach((w) => teile.push(FUELLUNG.repeat(bloecke), w + '. '));
+  return teile.join('');
+}
+const setzen = (s, text) => { s.composer.textContent = text; s.fire('input', s.composer, {}); };
+async function warten(s) { s.advance(400); await settle(); }
+// Die Wache der Meldung braucht echte Masse (in der Attrappe sonst sofort "manipuliert").
+const heil = (s) => { const h = s.host(); h.rect = { left: parseFloat(h.style.left), top: parseFloat(h.style.top), width: parseFloat(h.style.width), height: parseFloat(h.style.height) }; h.rect.right = h.rect.left + h.rect.width; h.rect.bottom = h.rect.top + h.rect.height; };
+const typen = (m) => JSON.parse(JSON.stringify(m.items)).map((i) => i.id);
+
+test('Langer Text, Live-Hinweis: genau eine Runde, ein Klick schwaerzt alles auch weit hinten', async () => {
+  const s = setup({ ki: ents });
+  const text = langerText([IBAN, ...NAMEN, AHV]);
+  assert.ok(text.length > 15000);
+  setzen(s, text);
+  let runden = 0;
+  for (let i = 0; i < 8; i++) {
+    await warten(s);
+    if (!s.hint()) break;
+    runden++;
+    s.decide('redact');
+    await settle();
+  }
+  assert.equal(runden, 1, 'genau eine Meldung');
+  const rest = s.composer.textContent;
+  for (const w of [IBAN, AHV, ...NAMEN]) assert.ok(!rest.includes(w), w);
+  assert.equal(s.host(), null);
+  assert.ok(s.kiMsgs.every((m) => m.text.length <= 4000), 'Laengengrenze je Anfrage bleibt');
+});
+
+test('Langer Text, Hinweis waechst in derselben Leiste: am Ende Regel- und KI-Funde zusammen', async () => {
+  const s = setup({ ki: ents });
+  setzen(s, langerText([IBAN, ...NAMEN]));
+  await warten(s);
+  assert.ok(s.hint());
+  const letzte = s.found()[s.found().length - 1];
+  assert.deepEqual(typen(letzte).sort(), ['iban', 'person']);
+  assert.equal(s.found().every((m) => m.mode === 'live'), true);
+});
+
+test('Senden waehrend die KI noch prueft: ein Klick wirkt sofort, der Rest folgt ohne zweite Meldung', async () => {
+  const offen = [];
+  const s = setup({ ki: (text) => new Promise((r) => offen.push(() => r(ents(text)))) });
+  const text = langerText([IBAN, ...NAMEN]);
+  s.composer.textContent = text;
+  assert.equal(s.enter().defaultPrevented, true);
+  await settle();
+  assert.equal(s.found().length, 1);
+  assert.deepEqual(typen(s.found()[0]), ['iban'], 'zuerst nur der Regel-Fund');
+  assert.ok(offen.length > 0, 'die Meldung stoesst die KI-Pruefung an');
+  s.decide('redact');
+  assert.ok(!s.composer.textContent.includes(IBAN), 'sofort ersetzt, kein Warten');
+  assert.equal(s.host(), null, 'Meldung sofort zu');
+  assert.ok(s.composer.textContent.includes(NAMEN[0]), 'Rest kommt noch');
+  await settle();
+  assert.equal(s.enter().defaultPrevented, true, 'Senden wartet auf den Rest');
+  assert.equal(s.found().length, 1, 'keine zweite Meldung dafuer');
+  while (offen.length) { offen.shift()(); await settle(); }
+  const rest = s.composer.textContent;
+  for (const w of [IBAN, ...NAMEN]) assert.ok(!rest.includes(w), w);
+  await warten(s);
+  assert.equal(s.host(), null, 'keine weitere Meldung');
+  assert.equal(s.found().length, 1, 'genau eine Meldung');
+});
+
+test('Senden: der Nachlauf hat eine Obergrenze, danach geht Senden wieder', async () => {
+  const offen = [];
+  const s = setup({ ki: (text) => new Promise((r) => offen.push(() => r(ents(text)))) });
+  s.composer.textContent = langerText([IBAN, ...NAMEN]);
+  s.enter();
+  await settle();
+  s.onMsg({ t: 'dlgReady', nonce: 'n' });
+  heil(s);
+  s.decide('redact');
+  await settle();
+  assert.ok(!s.composer.textContent.includes(IBAN));
+  assert.equal(s.enter().defaultPrevented, true);
+  s.advance(60000);
+  await settle();
+  assert.equal(s.enter().defaultPrevented, false, 'nach Ablauf nicht mehr gesperrt');
+});
+
+test('Senden: Eingabe waehrend des Nachlaufs bleibt erhalten, nur die Werte werden ersetzt', async () => {
+  const offen = [];
+  const s = setup({ ki: (text) => new Promise((r) => offen.push(() => r(ents(text)))) });
+  s.composer.textContent = langerText([IBAN, ...NAMEN]);
+  s.enter();
+  await settle();
+  s.decide('redact');
+  await settle();
+  s.composer.textContent = 'Ganz neuer Text mit ' + NAMEN[1] + ' und meinem Zusatz';
+  s.fire('input', s.composer, {});
+  while (offen.length) { offen.shift()(); await settle(); }
+  assert.ok(!s.composer.textContent.includes(NAMEN[1]), s.composer.textContent);
+  assert.ok(s.composer.textContent.includes('und meinem Zusatz'));
+});
+
+test('Senden: KI-Funde treffen ein, solange die Meldung offen ist: dieselbe Meldung wird ergaenzt', async () => {
+  const offen = [];
+  const s = setup({ ki: (text) => new Promise((r) => offen.push(() => r(ents(text)))) });
+  s.composer.textContent = langerText([IBAN, ...NAMEN]);
+  s.enter();
+  await settle();
+  while (offen.length) { offen.shift()(); await settle(); }
+  const mehr = s.messages.filter((m) => m.t === 'foundMore');
+  assert.equal(mehr.length, 1, 'genau eine Ergaenzung');
+  assert.equal(mehr[0].nonce, 'n', 'gleiche Nonce: keine zweite Meldung');
+  assert.deepEqual(typen(mehr[0]).sort(), ['iban', 'person']);
+  assert.ok(!JSON.stringify(mehr).includes(NAMEN[0]), 'kein Wert');
+  assert.equal(s.found().length, 1);
+  s.decide('redact');
+  await settle();
+  for (const w of [IBAN, ...NAMEN]) assert.ok(!s.composer.textContent.includes(w), w);
+});
+
+test('Senden: unsichere Funde stehen dezent in derselben Meldung und werden mitgeschwaerzt, statt danach als zweite Meldung zu kommen', async () => {
+  const s = setup({ ki: ents });
+  setzen(s, langerText([IBAN, 'Sandra meldet sich']));
+  await warten(s);
+  assert.equal(s.enter().defaultPrevented, true);
+  await settle();
+  const send = s.found().filter((m) => m.mode === 'send');
+  assert.equal(send.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(send[0].items)), [{ id: 'iban', cat: 'finanz', n: 1 }, { id: 'person', cat: 'person', n: 1, sure: false }]);
+  s.decide('redact');
+  await settle();
+  assert.ok(!s.composer.textContent.includes('Sandra') && !s.composer.textContent.includes(IBAN), s.composer.textContent.slice(-80));
+  await warten(s);
+  assert.equal(s.host(), null, 'kein Nachzuegler als zweite Meldung');
+});
+
+test('Unsichere Funde neben einem Ganztext-Fund: nicht in der Meldung, kein Schwaerzen-Angebot dafuer', async () => {
+  const s = setup({ ki: ents });
+  await tick();
+  const text = FUELLUNG.repeat(4) + 'Sandra meldet sich bei der Abteilung.';
+  setzen(s, text);
+  await warten(s);
+  assert.ok(typen(s.found().pop()).includes('person'), 'KI kennt den unsicheren Fund schon');
+  setzen(s, '');
+  await warten(s);
+  setzen(s, text);
+  await warten(s);
+  s.onMsg({ t: 'srcMarks', v: 3, salt: SALT, marks: [{ h: markOf(text), exp: Date.now() + 60000 }] });
+  assert.equal(pasteOf(s, text).defaultPrevented, true);
+  await settle();
+  const m = s.found().pop();
+  assert.deepEqual([m.mode, JSON.parse(JSON.stringify(m.items))], ['paste', [{ id: 'clipboard_source', cat: 'source', n: 1 }]]);
+});
+
+test('Nur unsichere Funde halten das Senden weiter nicht an', async () => {
+  const s = setup({ ki: ents });
+  setzen(s, langerText(['Sandra meldet sich']));
+  await warten(s);
+  assert.equal(s.enter().defaultPrevented, false);
+});
+
+test('Einfuegen mit Fund: KI-Funde landen in derselben Meldung, nach dem Schwaerzen keine weitere', async () => {
+  const s = setup({ ki: ents });
+  const text = langerText([IBAN, ...NAMEN]);
+  const e = s.fire('paste', s.composer, { clipboardData: { getData: (t) => (t === 'text/plain' ? text : ''), files: [], items: [] } });
+  assert.equal(e.defaultPrevented, true);
+  await settle();
+  assert.equal(s.found().length, 1);
+  assert.deepEqual(typen(s.messages.filter((m) => m.t === 'foundMore')[0]).sort(), ['iban', 'person']);
+  s.decide('redact');
+  await settle();
+  for (const w of [IBAN, ...NAMEN]) assert.ok(!s.composer.textContent.includes(w), w);
+  await warten(s);
+  assert.equal(s.host(), null, 'keine zweite Meldung');
+});
+
+test('Geschwaerzter Text geht nicht erneut an die KI: das Modell sah diese Stellen schon', async () => {
+  const s = setup({ ki: ents });
+  setzen(s, langerText([IBAN, ...NAMEN]));
+  await warten(s);
+  const vorher = s.kiMsgs.length;
+  s.decide('redact');
+  await warten(s);
+  assert.equal(s.kiMsgs.length, vorher);
+  // Wer danach weitertippt, bekommt wieder eine volle Pruefung.
+  setzen(s, s.composer.textContent + ' Eva Zeltner');
+  await warten(s);
+  assert.ok(s.kiMsgs.length > vorher);
+  assert.ok(s.hint(), 'neuer Name wird erkannt');
+});
+
+test('Live-Hinweis: Schwaerzen waehrend die KI noch prueft wirkt sofort, der Rest folgt ohne zweite Meldung', async () => {
+  const offen = [];
+  const s = setup({ ki: (text) => new Promise((r) => offen.push(() => r(ents(text)))) });
+  const text = langerText([IBAN, ...NAMEN]);
+  setzen(s, text);
+  s.advance(400);
+  await settle();
+  assert.ok(s.hint(), 'Regel-Fund sofort sichtbar');
+  const vorher = s.found().length;
+  s.decide('redact');
+  assert.ok(!s.composer.textContent.includes(IBAN), 'sofort, kein Warten');
+  await settle();
+  while (offen.length) { offen.shift()(); await settle(); }
+  for (const w of [IBAN, ...NAMEN]) assert.ok(!s.composer.textContent.includes(w), w);
+  await warten(s);
+  assert.equal(s.host(), null);
+  assert.equal(s.found().length, vorher, 'keine weitere Meldung');
+  assert.equal(offen.length, 0, 'Ergebnis geht nicht erneut an die KI');
+});
+
+test('Feld leer: keine Abschnitte mehr im Speicher, derselbe Text wird neu geprueft', async () => {
+  const s = setup({ ki: ents });
+  const text = FUELLUNG.repeat(10);
+  setzen(s, text);
+  await warten(s);
+  const n = s.kiMsgs.length;
+  assert.ok(n > 0);
+  setzen(s, '');
+  await warten(s);
+  setzen(s, text);
+  await warten(s);
+  assert.ok(s.kiMsgs.length > n);
+});
+
+test('Teilpruefung ist kein Fund: bis zur Grenze wird der ganze Text geprueft, ohne Hinweis', async () => {
+  const s = setup({ ki: ents });
+  setzen(s, FUELLUNG.repeat(120));
+  await warten(s);
+  assert.equal(s.host(), null, 'langer Text ohne Fund: keine Meldung');
+  assert.ok(s.kiMsgs.length > 1, 'in Abschnitten');
+});
+
+test('Teilpruefung: ueber der Gesamtgrenze ein klarer Hinweis, nur als ki_partial, und die Grenze haelt', async () => {
+  const s = setup({ ki: ents });
+  const text = FUELLUNG.repeat(Math.ceil((s.DLX.ki.MAX_TOTAL + 3000) / FUELLUNG.length));
+  setzen(s, text);
+  await warten(s);
+  const letzte = s.found()[s.found().length - 1];
+  assert.deepEqual(JSON.parse(JSON.stringify(letzte.items)), [{ id: 'ki_partial', cat: 'unscannable', n: 1, sure: false }]);
+  const summe = s.kiMsgs.reduce((a, m) => a + m.text.length, 0);
+  assert.ok(summe <= s.DLX.ki.MAX_TOTAL * 1.2, 'nichts ueber die Grenze hinaus: ' + summe);
+});
+
+test('Abschnitte: Tippen am Ende prueft nur den letzten neu; geaenderter Text bricht die laufende Pruefung ab', async () => {
+  const s = setup({ ki: ents });
+  const text = FUELLUNG.repeat(120);
+  setzen(s, text);
+  await warten(s);
+  const n = s.kiMsgs.length;
+  setzen(s, text + 'Noch ein Satz.');
+  await warten(s);
+  assert.equal(s.kiMsgs.length, n + 1);
+
+  const offen = [];
+  const t = setup({ ki: (x) => new Promise((r) => offen.push(() => r(ents(x)))) });
+  setzen(t, FUELLUNG.repeat(120));
+  t.advance(400);
+  await settle();
+  assert.equal(offen.length, 1, 'nacheinander, nie parallel');
+  setzen(t, 'Kurzer neuer Text mit Eva Zeltner');
+  t.advance(400);
+  await settle();
+  assert.equal(offen.length, 2, 'neuer Text startet sofort');
+  offen.shift()();
+  await settle();
+  assert.equal(offen.length, 1, 'alter Lauf stoppt, nur der neue Text bleibt');
+  offen.shift()();
+  await settle();
+  assert.equal(offen.length, 0);
+});
+
+test('KI faellt mitten im langen Text aus: gefundene Abschnitte bleiben, klarer Hinweis, Regeln gelten weiter', async () => {
+  let n = 0;
+  const s = setup({ ki: (text) => (++n >= 2 ? { error: 'fail' } : ents(text)) });
+  setzen(s, FUELLUNG.repeat(5) + NAMEN[0] + '. ' + FUELLUNG.repeat(120) + IBAN);
+  s.advance(400);
+  await settle();
+  const letzte = s.found()[s.found().length - 1];
+  const ids = typen(letzte);
+  assert.ok(ids.includes('iban') && ids.includes('person') && ids.includes('ki_partial'), ids.join());
+});
+
+// --- Lange Dokumente -------------------------------------------------------------
+const ablegen = (s, f) => s.fire('drop', s.composer, { dataTransfer: { files: [f], items: [{ kind: 'file' }], getData: () => '' } });
+// Pausen und Warte-Hinweis laufen ueber die Zeitgeber der Attrappe.
+async function pumpen(s, fertig) {
+  for (let i = 0; i < 400 && !fertig(); i++) { s.advance(1); await settle(); }
+}
+const textDatei = (name, text) => ({ name, type: 'text/plain', size: text.length, text: async () => text });
+const docMeldung = (s) => s.found().filter((m) => m.mode === 'doc').pop();
+
+test('Langes Textdokument: ganz geprueft, Fund ganz hinten, kein "nicht pruefbar", keine versteckten Anweisungen', async () => {
+  const s = setup();
+  await tick();
+  const text = FUELLUNG.repeat(60000) + 'Konto ' + IBAN + '\n';
+  assert.ok(text.length > 3000000);
+  assert.equal(ablegen(s, textDatei('lang.txt', text)).defaultPrevented, true);
+  await pumpen(s, () => docMeldung(s));
+  const m = docMeldung(s);
+  assert.deepEqual(typen(m), ['iban']);
+  assert.equal(m.reason, null);
+  assert.ok(!JSON.stringify(s.messages).includes('9300'), 'kein Wert an den Service Worker');
+});
+
+test('Lange CSV ohne Personendaten: keine Meldung wegen der Zeilenzahl', async () => {
+  const s = setup();
+  await tick();
+  const csv = 'Artikel;Menge;Lager\n' + Array.from({ length: 5000 }, (_, i) => 'Schraube;' + i + ';Halle') .join('\n');
+  const heikel = csv + '\nKonto ' + IBAN + ';1;Halle\n';
+  ablegen(s, textDatei('lang.csv', heikel));
+  await pumpen(s, () => docMeldung(s));
+  assert.deepEqual(typen(docMeldung(s)), ['iban'], 'nur der echte Fund, nicht "nicht pruefbar"');
+});
+
+test('Zu grosses Dokument: klare Begruendung statt falscher Fund; Aktion der Richtlinie bleibt', async () => {
+  const s = setup();
+  await tick();
+  ablegen(s, { name: 'riesig.txt', type: 'text/plain', size: 21 * 1024 * 1024, text: async () => '' });
+  await pumpen(s, () => docMeldung(s));
+  const m = docMeldung(s);
+  assert.deepEqual(JSON.parse(JSON.stringify(m.items)), [{ id: 'unscannable', cat: 'unscannable', n: 1 }], 'kein Hinweis auf versteckte Anweisungen');
+  assert.equal(m.reason, 'long');
+  assert.equal(m.action, 'warn');
+  const b = setup({ cfg: { hiddenInstructionAction: 'block' } });
+  await tick();
+  ablegen(b, { name: 'riesig.txt', type: 'text/plain', size: 21 * 1024 * 1024, text: async () => '' });
+  await pumpen(b, () => docMeldung(b));
+  assert.equal(docMeldung(b).action, 'block', 'Sperre bleibt Sperre');
+  // Mehr als 5 Dateien sind dieselbe Grenze.
+  const v = setup();
+  await tick();
+  const f = textDatei('a.txt', 'x');
+  v.fire('drop', v.composer, { dataTransfer: { files: [f, f, f, f, f, f], items: [{ kind: 'file' }], getData: () => '' } });
+  await pumpen(v, () => docMeldung(v));
+  assert.equal(docMeldung(v).reason, 'long');
+});
+
+test('Pruefung dauert: Hinweis mit Abbrechen statt Stille; Abbrechen beendet sie, nichts geht weiter', async () => {
+  const s = setup();
+  await tick();
+  let lesen;
+  ablegen(s, { name: 'lang.txt', type: 'text/plain', size: 1000, text: () => new Promise((r) => { lesen = r; }) });
+  await settle();
+  assert.equal(s.found().length, 0, 'kurz: noch kein Hinweis');
+  s.advance(600);
+  await settle();
+  const w = s.found().pop();
+  assert.deepEqual([w.mode, w.action, JSON.parse(JSON.stringify(w.items))], ['docwait', 'warn', []]);
+  s.composer.textContent = 'Frage zur Datei';
+  assert.equal(s.enter().defaultPrevented, true, 'Senden wartet auf die Pruefung');
+  s.decide('cancel');
+  await settle();
+  lesen('Konto ' + IBAN);
+  await pumpen(s, () => false);
+  assert.equal(docMeldung(s), undefined, 'abgebrochen: keine weitere Meldung');
+
+  const t = setup();
+  await tick();
+  let l2;
+  ablegen(t, { name: 'lang.txt', type: 'text/plain', size: 1000, text: () => new Promise((r) => { l2 = r; }) });
+  await settle();
+  t.advance(600);
+  await settle();
+  l2('Konto ' + IBAN);
+  await pumpen(t, () => docMeldung(t));
+  assert.deepEqual(typen(docMeldung(t)), ['iban'], 'der Fund ersetzt den Hinweis');
 });

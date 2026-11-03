@@ -17,7 +17,10 @@
     '[xX*]{2,}(?:[-_.:][xX*]{2,}){1,10})$', 'i');
   // Dokumentierte Beispielwerte (AWS-Dokumentation) - exakt, nie als Teilwort.
   const DOC_SAMPLES = new Set(['AKIA' + 'IOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/' + 'bPxRfiCYEXAMPLEKEY']);
-  const isPlaceholder = (v) => PLACEHOLDER.test(v) || DOC_SAMPLES.has(v);
+  // Eigene Ausgabe: Platzhalter [TYP_n] (engine/pseudonym.js) und Schwaerzung
+  // [Kategorie] (engine.redact). Sonst haelt der ersetzte Text erneut an.
+  const OWN_OUTPUT = /^\[(?:[A-Z0-9]+(?:_[A-Z0-9]+)*_\d{1,4}|\p{L}{3,40})\]$/u;
+  const isPlaceholder = (v) => PLACEHOLDER.test(v) || OWN_OUTPUT.test(v) || DOC_SAMPLES.has(v);
 
   // Shannon-Entropie in Bit je Zeichen.
   function entropy(s) {

@@ -38,7 +38,7 @@ test('KI-Funde: Typen, Satzzeichen am Rand, Ort ohne Nummer, KI-Dienste, klein g
     ent(t, '5610 Wohlenbach.', 'LOCATION'), ent(t, 'Diabetes.', 'HEALTH_DATA'), ent(t, 'Mail', 'EMAIL_ADDRESS')], CFG);
   assert.deepEqual(plain(f).map((x) => [x.id, x.cat, t.slice(x.start, x.end), x.sure, x.ki]), [
     ['person', 'person', 'Thomas Brunnhuber', true, true], ['company', 'firma', 'Zeltwerk Bau AG', true, true],
-    ['address', 'kontakt', 'Lindenweg 14', true, true], ['address', 'kontakt', '5610 Wohlenbach', true, true], ['health', 'gesundheit', 'Diabetes', true, true]]);
+    ['address', 'kontakt', 'Lindenweg 14', true, true], ['address', 'kontakt', '5610 Wohlenbach', false, true], ['health', 'gesundheit', 'Diabetes', true, true]]);
   const u = 'Wie nutze ich ChatGPT mit Excel in Zürich? Datei unter /home/thomas/berichte und `Thomas` im Code, dann ein test.';
   assert.deepEqual(plain(K.findings(u, [ent(u, 'ChatGPT', 'ORGANIZATION_NAME'), ent(u, 'Excel', 'ORGANIZATION_NAME'), ent(u, 'Zürich', 'LOCATION'),
     ent(u, '/home/thomas/berichte', 'PERSON_NAME'), ent(u, 'Thomas', 'PERSON_NAME'), ent(u, "test", "PERSON_NAME")], CFG)), []);
@@ -165,4 +165,92 @@ test('Quelltext: KI-Dateien ohne Netz, ohne import(), ohne Konsole; CSP unveraen
   const bg = fs.readFileSync(path.join(EXT, 'background.js'), 'utf8');
   assert.match(bg, /if \(\(msg\.t === 'ocr' \|\| msg\.t === 'ki' \|\| msg\.t === 'doc'\) && !fromContent\(sender\)\) return \{ error: 'fail' \};/);
   assert.ok(!/externally_connectable/.test(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')) && !/onMessageExternal/.test(bg));
+});
+
+test('Abschnitte: decken den Text bis zur Gesamtgrenze, je Anfrage unter der Grenze, schneiden nicht im Wort', () => {
+  const K = DLX.ki;
+  const wort = 'Abschnitt ';
+  const text = wort.repeat(1000);
+  const p = K.sections(text);
+  assert.ok(p.length > 1);
+  assert.equal(p[0].start, 0);
+  assert.equal(p[p.length - 1].end, text.length);
+  for (let i = 0; i < p.length; i++) {
+    assert.ok(p[i].text.length <= K.MAX_TEXT);
+    assert.equal(p[i].text, text.slice(p[i].start, p[i].end));
+    if (i) {
+      assert.ok(p[i].start < p[i - 1].end, 'Ueberlappung');
+      assert.equal(p[i].from, p[i - 1].to, 'jede Stelle gehoert genau einem Abschnitt');
+    }
+    if (i < p.length - 1) assert.equal(text[p[i].end - 1], ' ', 'Schnitt an Leerraum');
+  }
+  assert.equal(K.sections('kurz').length, 1);
+  assert.equal(K.sections('').length, 0);
+  // Gleicher Anfang: gleiche Abschnitte, nur der letzte aendert sich (Zwischenspeicher).
+  const q = K.sections(text + 'mehr');
+  assert.deepEqual(q.slice(0, -1).map((x) => x.text), p.slice(0, -1).map((x) => x.text));
+  // Ohne Leerraum trotzdem unter der Grenze, kein Schnitt mitten im Zeichen.
+  assert.ok(K.sections('x'.repeat(9000)).every((x) => x.text.length <= K.MAX_TEXT));
+  for (const x of K.sections('😀'.repeat(3000))) assert.ok(!/[\uD800-\uDBFF]$/.test(x.text), 'kein halbes Zeichen am Ende');
+  // Gesamtgrenze: nichts dahinter geht an das Modell.
+  const big = K.sections(wort.repeat(10000));
+  assert.ok(big[big.length - 1].end <= K.MAX_TOTAL);
+});
+
+test('Abschnitte: Fund in der Ueberlappung zaehlt einmal, Position bezieht sich auf den ganzen Text', () => {
+  const K = DLX.ki;
+  const name = 'Thomas Brunnhuber';
+  const raw = 'Wort '.repeat(1000);
+  const at = K.sections(raw)[0].end - 30;   // liegt in beiden Abschnitten
+  const text = raw.slice(0, at) + name + raw.slice(at + name.length);
+  const parts = K.sections(text);
+  const lookup = (p) => {
+    const i = p.text.indexOf(name);
+    return i === -1 ? [] : [{ type: 'PERSON_NAME', start: i, end: i + name.length, score: 0.99 }];
+  };
+  assert.ok(parts.filter((p) => p.text.includes(name)).length >= 2, 'liegt wirklich in zwei Abschnitten');
+  const got = K.combine(parts, lookup);
+  assert.equal(got.length, 1);
+  assert.equal(text.slice(got[0].start, got[0].end), name);
+  // Fehlender Abschnitt: was da ist, zaehlt.
+  assert.equal(K.combine(parts, () => undefined).length, 0);
+});
+
+test('Eigene Ausgabe ist kein KI-Fund: [Kategorie], [TYP_n] und Treffer ueber die Klammer hinweg fallen weg', () => {
+  const D = load(ENGINE_FILES.concat(['engine/ki.js', 'engine/pseudonym.js', 'common/policy.js', 'common/i18n.js']), { Intl });
+  for (const [l, ordner] of [['de', 'de'], ['fr', 'fr']]) D.i18n.add(l, JSON.parse(fs.readFileSync(path.join(EXT, '_locales', ordner, 'messages.json'), 'utf8')));
+  const K = D.ki;
+  const cfg = { packs: [], rules: {} };
+  const one = (text, v, type = 'HEALTH_DATA') => K.findings(text, [{ type, start: text.indexOf(v), end: text.indexOf(v) + v.length, score: 0.95 }], cfg);
+  assert.equal(one('Befund: [Gesundheit] und mehr', 'Gesundheit').length, 0);
+  // Reicht der Treffer ueber die Klammer hinaus, bleibt der Rest als dezenter Fund, die Bezeichnung nicht.
+  const wert = (text, f) => text.slice(f.start, f.end);
+  const typ = 'Befund: [Gesundheit] Typ 2 und mehr';
+  const [rest] = one(typ, 'Gesundheit] Typ 2');
+  assert.deepEqual([wert(typ, rest), rest.sure], ['Typ 2', false]);
+  const name = '[Personendaten] Vera Beispiel schreibt';
+  for (const v of ['Personendaten] Vera Beispiel', '[Personendaten] Vera Beispiel']) {
+    const f = one(name, v, 'PERSON_NAME');
+    assert.deepEqual(plain(f.map((x) => [wert(name, x), x.sure])), [['Vera Beispiel', true]], 'Name nach eigener Bezeichnung: ' + v);
+  }
+  const davor = 'Vera Beispiel [Personendaten] schreibt';
+  assert.deepEqual(plain(one(davor, 'Vera Beispiel [Personendaten]', 'PERSON_NAME').map((x) => wert(davor, x))), ['Vera Beispiel'], 'Name vor der Bezeichnung');
+  const mitte = 'Vera [Personendaten] Beispiel schreibt';
+  assert.deepEqual(plain(one(mitte, 'Vera [Personendaten] Beispiel', 'PERSON_NAME').map((x) => wert(mitte, x))), ['Vera [Personendaten] Beispiel'], 'beidseits: ganze Spanne');
+  assert.equal(one('[Personendaten] heute', '[Personendaten]', 'PERSON_NAME').length, 0, 'nur die Bezeichnung');
+  assert.equal(one('Mail an [PERSON_1] heute', 'PERSON_1', 'PERSON_NAME').length, 0);
+  assert.equal(one('Sie hat Diabetes Typ 2', 'Diabetes Typ 2').length, 1, 'ohne Klammer bleibt der Fund');
+  assert.equal(one('Mail an [Thomas Brunnhuber] heute', 'Thomas Brunnhuber', 'PERSON_NAME').length, 1, 'Name in Klammern bleibt ein Fund');
+  // Nur echte Bezeichnungen: ein einzelnes Wort in Klammern bleibt ein Fund, Bezeichnungen mit Leerzeichen fallen weg.
+  assert.equal(one('Mail an [Brunnhuber] heute', 'Brunnhuber', 'PERSON_NAME').length, 1, 'einzelner Name in Klammern');
+  assert.equal(one('Mail an [Nachname] heute', 'Nachname', 'PERSON_NAME').length, 1);
+  assert.equal(one('Mail an [Brunnhuber heute', 'Brunnhuber', 'PERSON_NAME').length, 1, 'offene Klammer');
+  assert.equal(one('Daten: [Nationale ID] heute', 'Nationale ID').length, 0, 'Kategorie mit Leerzeichen');
+  assert.equal(one('Daten: [Personal data] heute', 'Personal data').length, 0, 'Mindestsatz Englisch');
+  assert.equal(one('Daten: [Données d’entreprise] heute', 'entreprise').length, 0, 'Teil einer Bezeichnung, andere Sprache');
+  assert.equal(one('[Gesundheit] und Diabetes Typ 2', 'Diabetes Typ 2').length, 1, 'Fund hinter einer Schwaerzung bleibt');
+  // Ohne Sprachtabellen fuehrt nur das Platzhalter-Muster zum Verwerfen, sonst bleibt der Fund.
+  const ohne = (text, v, type = 'HEALTH_DATA') => DLX.ki.findings(text, [{ type, start: text.indexOf(v), end: text.indexOf(v) + v.length, score: 0.95 }], cfg);
+  assert.equal(ohne('Befund: [Gesundheit] heute', 'Gesundheit').length, 1);
+  assert.equal(ohne('Mail an [PERSON_1] heute', 'PERSON_1', 'PERSON_NAME').length, 0);
 });

@@ -43,7 +43,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 // Deutsche Texte je Schluessel (Titel, Beschreibung); Englisch kommt aus dem Schema.
 const DE = {
-  branding: ['Branding', 'Whitelabel-Darstellung im Popup, in den Einstellungen und im Warn-Dialog.'],
+  branding: ['Branding', 'Whitelabel-Darstellung im Popup, in den Einstellungen und im Warn-Dialog. Leere Felder behalten den Standard.'],
   'branding.productName': ['Produktname', 'Name anstelle des Standard-Produktnamens (1-40 Zeichen).'],
   'branding.companyName': ['Firmenname', 'Organisation, die als verwaltende Firma angezeigt wird (max. 80 Zeichen).'],
   'branding.logo': ['Logo', 'Logo als data:-URI (data:image/png;base64,... oder data:image/svg+xml;base64,...), max. 100 KB. URLs sind nicht moeglich, weil die Erweiterung keinen Netzwerkzugriff hat.'],

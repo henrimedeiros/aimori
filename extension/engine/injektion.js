@@ -8,7 +8,8 @@
   'use strict';
   const DLX = g.DLX = g.DLX || {};
 
-  const LIMITS = Object.freeze({ chars: 2000000, ms: 300, bytes: 2 * 1024 * 1024, hiddenMin: 80, charsMin: 3 });
+  const LIMITS = Object.freeze({ chars: 2000000, ms: 300, bytes: 20 * 1024 * 1024, hiddenMin: 80, charsMin: 3 });
+  const LONG_CHUNK = 100000, LONG_OVERLAP = 400, LONG_HTML_MS = 2000, SLICE_MS = 40;
   // Textdokumente, die als Text gelesen werden (Auflage 5): Endung ODER MIME genuegt (strengere Regel).
   const DOC_EXT = /\.(txt|md|markdown|csv|tsv|json|xml|html?|log)$/i;
   const DOC_MIME = /^(text\/[a-z0-9.+-]+|application\/(json|xml|xhtml\+xml|ld\+json))$/i;
@@ -208,5 +209,32 @@
     return { n, unscannable: false };
   }
 
-  DLX.injektion = Object.freeze({ LIMITS, isDoc, HTML_DOC, invisibleChars, phrases, hiddenHtml, check });
+  // Lange Dokumente: dieselben Merkmale wie check(), aber in Stuecken und mit Pausen, damit das Zeitbudget
+  // nicht schon an der Laenge scheitert. deadline = Zeitpunkt in ms (Date.now()); Ueberlappung fuer Saetze auf der Grenze.
+  async function checkLong(input, deadline) {
+    const text = String(input.text || '');
+    const html = input.html ? String(input.html) : '';
+    if (html.length > LIMITS.chars) return { n: 0, unscannable: true };
+    let inv = 0, tags = 0, said = false, since = performance.now();
+    for (const s of html ? [text, html] : [text]) {
+      for (let i = 0; i < s.length; i += LONG_CHUNK) {
+        const c = invisibleChars(s.slice(i, i + LONG_CHUNK));
+        inv += c.n;
+        tags += c.tags;
+        if (s === text && !said) said = phrases(s.slice(Math.max(0, i - LONG_OVERLAP), i + LONG_CHUNK)) > 0;
+        if (Date.now() > deadline) return { n: (inv >= LIMITS.charsMin || tags > 0 ? 1 : 0) + (said ? 1 : 0), unscannable: true };
+        if (performance.now() - since >= SLICE_MS) { await new Promise((r) => setTimeout(r, 0)); since = performance.now(); }
+      }
+    }
+    let n = inv >= LIMITS.charsMin || tags > 0 ? 1 : 0;
+    if (html) {
+      const h = hiddenHtml(html, Date.now() + LONG_HTML_MS);
+      if (!h) return { n, unscannable: true };
+      if (h.chars >= LIMITS.hiddenMin || (h.chars > 0 && phrases(h.text) > 0)) n++;
+      if (!said && h.text) said = phrases(h.text) > 0;
+    }
+    return { n: n + (said ? 1 : 0), unscannable: false };
+  }
+
+  DLX.injektion = Object.freeze({ LIMITS, isDoc, HTML_DOC, invisibleChars, phrases, hiddenHtml, check, checkLong });
 })(globalThis);

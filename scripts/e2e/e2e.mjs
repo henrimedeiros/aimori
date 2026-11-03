@@ -18,7 +18,7 @@ import { DRAW, rechnung } from '../lib/testbilder.mjs';
 import { ladeLogo } from '../mandanten.mjs';
 import { KORPUS, parse as parseKorpus } from '../../tests/helpers/ki-korpus.mjs';
 import { beispieldateien } from '../../tests/helpers/beispieldateien.mjs';
-import { pdf as testPdf } from '../../tests/helpers/dokumente.mjs';
+import { pdf as testPdf, docx as testDocx, xlsx as testXlsx } from '../../tests/helpers/dokumente.mjs';
 import { load as loadEngine, ENGINE_FILES } from '../../tests/helpers/load.mjs';
 import { DOKUMENT, AUSZUG, FREMD } from '../../tests/helpers/firmendokument.mjs';
 import { buildPolicy } from '../dokumente-fingerabdruck.mjs';
@@ -429,6 +429,22 @@ async function chatgpt() {
   check('Feld und Verlauf zeigen nur Platzhalter', await noLeak() && (await page.ev(`[...document.querySelectorAll('.att-ki')].pop().innerText.includes('[IBAN_1]')`)));
   check('storage.session ohne echten Wert', !(await swPending()).includes('CH93'));
   await closeDialogs();
+
+  // 13) Eigene Ausgabe haelt nicht erneut an: Passwort im Code -> Platzhalter
+  // bzw. Schwaerzung -> zweites Enter sendet.
+  const code = 'const db = connect({ host: "db.example.com", password: "Example!2026" });';
+  for (const [k, ph] of [['pseudonym', '[CFG_PASSWORD_1]'], ['redact', '[Zugangsdaten]']]) {
+    await clear();
+    await type(code); await enter(); await sleep(900);
+    d = await dialog();
+    check(`Code-Passwort (${k}): Leiste mit Knopf`, !!d && await d.has(k));
+    if (d) { await d.click(k); d.close(); await sleep(800); }
+    const sent = code.replace('Example!2026', ph);
+    check(`Code-Passwort (${k}): ersetzt im Feld`, (await val()) === sent, await val());
+    await enter(); await sleep(600);
+    check(`Code-Passwort (${k}): zweites Enter sendet`, (await log()).includes('SENT:' + sent + '|'), await log());
+    await closeDialogs();
+  }
   T.close();
 }
 
@@ -2234,10 +2250,10 @@ async function versteckt() {
   check('Versteckt Dokument: Trotzdem gibt genau dieses Dokument weiter', /PASTE:protokoll\.md/.test(await T.log()), await T.log());
   await setLocal({ hiddenInstructionAction: 'block' });
   await sleep(1000);
-  await pasteDoc(T, 'x'.repeat(2 * 1024 * 1024 + 10), 'gross.txt', 'text/plain');
+  await pasteDoc(T, 'x'.repeat(20 * 1024 * 1024 + 10), 'gross.txt', 'text/plain');
   const g = await dialog();
   const gt = g ? await g.text() : '';
-  check('Versteckt Dokument: ueber 2 MB mit block = gesperrt, nur Abbrechen', /Dokument gesperrt/.test(gt) && !!g && !(await g.has('override')), gt.slice(0, 160));
+  check('Versteckt Dokument: ueber 20 MB mit block = gesperrt, nur Abbrechen', /Dokument gesperrt/.test(gt) && !!g && !(await g.has('override')), gt.slice(0, 160));
   if (g) { await clickIn(g, 'cancel'); g.close(); }
   await sleep(800);
   check('Versteckt Dokument: gesperrtes Dokument erreicht die Seite nie', !/gross\.txt/.test(await T.log()), await T.log());
@@ -2847,6 +2863,174 @@ async function einstellungen() {
   O.close();
 }
 
+// --- Lange Texte: eine Meldung mit allen Funden, Teilpruefung ist kein Fund -----------------------
+// Echtes Modell, echter Weg ueber Service Worker und Offscreen. Nur erfundene Namen und die SWIFT-Beispiel-IBAN.
+const FUELLUNG = 'Der Bericht beschreibt die Arbeiten der letzten Wochen. ';
+async function langertext() {
+  const wache = await netzWache();
+  const WERTE = ['Thomas Brunnhuber', 'CH9300762011623852957', 'Reto Ambühl'];
+  const LANG = FUELLUNG.repeat(60) + 'Bitte antworte Thomas Brunnhuber von der Zeltwerk Bau AG bis Freitag. ' + FUELLUNG.repeat(100)
+    + 'Konto CH9300762011623852957. ' + FUELLUNG.repeat(60) + 'Mein Kunde Reto Ambühl wohnt an der Lindenstrasse 14 in 8004 Zürich. ' + FUELLUNG.repeat(40);
+  const warteAuf = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = await fn(); if (v) return v; await sleep(300); } return null; };
+  const nonce = async () => { const m = /"nonce":"([0-9a-f]+)"/.exec(await swPending()); return m ? m[1] : null; };
+  const ohneWerte = (v) => WERTE.every((w) => !v.includes(w));
+  const kiStatus = async () => JSON.parse(await swEval(`chrome.storage.session.get('kiStatus').then((x) => JSON.stringify(x.kiStatus || {}))`) || '{}');
+  for (const [name, url, ED] of KI_SEITEN.slice(0, 2)) {
+    await closeDialogs();
+    const T = await openTab(url, ED);
+    // Wie die echten Seiten: das Feld scrollt ab einer Hoehe, sonst passte die Leiste nicht mehr ins Fenster.
+    const leeren = async () => { await T.page.ev(`localStorage.removeItem('draft'); ${ED}.style.maxHeight = '160px'; ${ED}.style.overflow = 'auto'; ${ED}.replaceChildren(document.createElement('p')); ${ED}.focus()`); await sleep(300); };
+    const einfuegen = (text = LANG) => T.page.ev(`(() => { const ed = ${ED}; ed.focus(); const dt = new DataTransfer(); dt.setData('text/plain', ${JSON.stringify(text)}); return ed.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })) ? 'durch' : 'gestoppt'; })()`);
+    const setzen = (text) => T.page.ev(`(() => { const ed = ${ED}; ed.textContent = ${JSON.stringify(text)}; ed.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true })); return 'ok'; })()`);
+
+    // a) Einfuegen: Regel-Fund sofort, KI-Funde landen in derselben Meldung, ein Klick schwaerzt alles.
+    await leeren();
+    check(`Langer Text ${name}: Einfuegen mit Fund gestoppt`, (await einfuegen()) === 'gestoppt');
+    const d = await dialog();
+    const n0 = await nonce();
+    const t0 = d ? await warteAuf(async () => { const s = await d.text(); return /Name einer Person/.test(s) ? s : null; }, 120000) : null;
+    check(`Langer Text ${name}: alle Funde in derselben Meldung (gleiche Nonce), ohne Wert`, !!t0 && (await nonce()) === n0 && !!n0 && ohneWerte(t0) && /IBAN/.test(t0), (t0 || '').slice(0, 160));
+    await sleep(800);   // Neuzeichnen sperrt die Knoepfe 400 ms (Auflage 9)
+    if (d) { await d.click('redact'); d.close(); }
+    const v0 = await warteAuf(async () => { const v = await T.val(); return v.includes('Der Bericht') && ohneWerte(v) ? v : null; }, 5000);
+    check(`Langer Text ${name}: ein Klick schwaerzt alles`, !!v0 && ohneWerte(v0), (v0 || '').slice(0, 80));
+    await sleep(6000);
+    check(`Langer Text ${name}: danach keine weitere Meldung`, !(await T.shadows()).host && !(await sendPending()));
+
+    // b) Schwaerzen, solange die KI noch prueft: wirkt sofort, der Rest folgt ohne zweite Meldung.
+    await leeren();
+    await einfuegen('Andere Fassung. ' + LANG);   // noch nicht geprueft, die KI rechnet wirklich
+    const d2 = await dialog();
+    const t2 = Date.now();
+    if (d2) { await d2.click('redact'); d2.close(); }
+    const sofort = await warteAuf(async () => { const v = await T.val(); return v.includes('Der Bericht') && !v.includes(WERTE[1]) ? v : null; }, 3000);
+    console.log(`INFO Langer Text ${name}: Klick bis Regel-Funde weg ${Date.now() - t2} ms`);
+    check(`Langer Text ${name}: Klick wirkt sofort (unter 3 s, ohne auf die KI zu warten)`, !!sofort);
+    const v2 = await warteAuf(async () => { const v = await T.val(); return v.includes('Der Bericht') && ohneWerte(v) ? v : null; }, 40000);
+    console.log(`INFO Langer Text ${name}: Klick bis alles weg ${Date.now() - t2} ms`);
+    check(`Langer Text ${name}: Klick waehrend der KI-Pruefung schwaerzt trotzdem alles`, !!v2 && ohneWerte(v2), (v2 || '').slice(0, 80));
+    await sleep(6000);
+    check(`Langer Text ${name}: auch hier keine weitere Meldung`, !(await T.shadows()).host);
+
+    // c) Live-Hinweis waechst in derselben Leiste, ein Klick schwaerzt alles.
+    await leeren();
+    await setzen(LANG);
+    const d3 = await dialog(40);
+    const t3 = d3 ? await warteAuf(async () => { const s = await d3.text(); return /Name einer Person/.test(s) && /IBAN/.test(s) ? s : null; }, 60000) : null;
+    check(`Langer Text ${name}: Live-Hinweis nennt am Ende Regel- und KI-Funde`, !!t3 && ohneWerte(t3), (t3 || '').slice(0, 160));
+    await sleep(800);
+    if (d3) { await d3.click('redact'); d3.close(); }
+    const v3 = await warteAuf(async () => { const v = await T.val(); return ohneWerte(v) ? v : null; }, 5000);
+    check(`Langer Text ${name}: Live-Hinweis, ein Klick schwaerzt alles`, !!v3);
+    await sleep(6000);
+    check(`Langer Text ${name}: Live-Hinweis kommt nicht wieder`, !(await T.shadows()).host);
+
+    // d) Teilpruefung: bis zur Grenze gar keine Meldung, darueber ein Satz ohne Schwaerzen.
+    await leeren();
+    await setzen(FUELLUNG.repeat(120));
+    await sleep(12000);
+    check(`Langer Text ${name}: ${FUELLUNG.length * 120} Zeichen ohne Fund, keine Meldung`, !(await T.shadows()).host);
+    await leeren();
+    await setzen(FUELLUNG.repeat(800));
+    const d4 = await dialog(240);
+    const t4 = d4 ? await d4.text() : '';
+    check(`Langer Text ${name}: ueber der Grenze klarer Satz, kein Schwaerzen, kein "moeglicherweise"`, /Sehr langer Text/.test(t4) && !(await d4.has('redact')) && !/möglicherweise|erkannt/.test(t4), t4.slice(0, 160));
+    if (d4) d4.close();
+    const st = await kiStatus();
+    check(`Langer Text ${name}: KI hielt das Zeitlimit je Anfrage ein (Status bereit, kein Fehler)`, st.state === 'bereit' && !st.fails, JSON.stringify(st));
+    await closeDialogs();
+    T.close();
+  }
+  wache.close();
+  check(`Langer-Text-Netzwerk-Sperrtest: keine Anfrage ausser Erweiterung/Attrappen (${wache.urls.length} Anfragen)`, wache.fremd.length === 0 && wache.urls.length > 0, wache.fremd.slice(0, 5).join(' '));
+}
+
+// --- Lange Dokumente: werden ganz geprueft und lassen sich danach hochladen oder bereinigt hochladen -----
+// Nur erfundene Werte. Der gesuchte Wert liegt jeweils ganz hinten im Dokument.
+const ABSATZ = 'Der Bericht beschreibt die Arbeiten der letzten Wochen und die offenen Punkte fuer die naechste Sitzung im Herbst. ';
+function langeDateien() {
+  const IBAN_NR = 'CH93 0076 2011 6238 5295 7';
+  const seiten = (zeichen, ende) => {
+    const seite = Array.from({ length: 40 }, () => ABSATZ).join('\n');
+    const out = Array.from({ length: Math.ceil(zeichen / seite.length) }, () => seite);
+    if (ende) out.push('Bitte ueberweisen an ' + ende);
+    return out;
+  };
+  const txt = (zeichen, ende) => Buffer.from(ABSATZ.repeat(Math.ceil(zeichen / ABSATZ.length)) + (ende ? 'Bitte ueberweisen an ' + ende + '\n' : ''), 'utf8');
+  const artikel = (n) => [['Artikel', 'Menge', 'Lager']].concat(Array.from({ length: n }, (_, i) => ['Schraube ' + (i % 7), String(i % 90 + 1), 'Halle ' + (i % 4)]));
+  const personen = (n) => [['Name', 'Vorname', 'E-Mail']].concat(Array.from({ length: n }, (_, i) => ['Muster' + i, 'Eva', 'eva' + i + '@beispiel.example']));
+  const csv = (rows) => Buffer.from(rows.map((r) => r.join(';')).join('\n') + '\n', 'utf8');
+  return [
+    { name: 'lang-sauber.txt', bytes: txt(3000000), ziel: 'durch' },
+    { name: 'lang-fund.txt', bytes: txt(3000000, IBAN_NR), ziel: 'fund' },
+    { name: 'lang-sauber.csv', bytes: csv(artikel(20000)), ziel: 'durch' },
+    { name: 'lang-personen.csv', bytes: csv(personen(5000)), ziel: 'tabelle' },
+    { name: 'lang-sauber.docx', bytes: Buffer.from(testDocx(seiten(1500000))), ziel: 'durch' },
+    { name: 'lang-fund.docx', bytes: Buffer.from(testDocx(seiten(1500000, IBAN_NR))), ziel: 'fund' },
+    { name: 'lang-sauber.pdf', bytes: Buffer.from(testPdf(seiten(1500000))), ziel: 'durch' },
+    { name: 'lang-fund.pdf', bytes: Buffer.from(testPdf(seiten(1500000, IBAN_NR))), ziel: 'fund' },
+    { name: 'lang-sauber.xlsx', bytes: Buffer.from(testXlsx(artikel(20000))), ziel: 'durch' },
+    { name: 'gross-sauber.txt', bytes: txt(15000000), ziel: 'durch' },
+    { name: 'gross-sauber.pdf', bytes: Buffer.from(testPdf(seiten(4500000))), ziel: 'durch' },
+    { name: 'zu-gross.txt', bytes: Buffer.alloc(21 * 1024 * 1024, 'Ein Satz ohne Wert. '), ziel: 'zugross' },
+  ];
+}
+async function langedokumente() {
+  for (const f of langeDateien()) {
+    await closeDialogs();
+    const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+    const file = path.join(tmp, f.name);
+    fs.writeFileSync(file, f.bytes);
+    const t0 = Date.now();
+    await T.page.call('DOM.setFileInputFiles', { files: [file], backendNodeId: await nodeOf(T, '#datei') });
+    let got = '', txt = '';
+    while (Date.now() - t0 < 120000) {
+      got = await T.log();
+      if (/INPUT:/.test(got)) break;
+      const b = (await list()).filter((x) => x.url.startsWith(`chrome-extension://${ID}/ui/dialog.html`)).pop();
+      if (b) {
+        const d = await connect(b.webSocketDebuggerUrl);
+        txt = await d.ev(`document.body.innerText.replace(/\\s+/g, ' ').trim()`) || '';
+        d.close();
+        if (txt && !/wird lokal geprüft/.test(txt)) break;
+      }
+      await sleep(200);
+    }
+    console.log(`INFO ${f.name}: ${Math.round(f.bytes.length / 1024)} KB, ${Date.now() - t0} ms, ${/INPUT:/.test(got) ? 'hochgeladen' : 'Leiste: ' + txt.slice(0, 120)}`);
+    const ohneFalsches = !/versteckte Anweisungen/.test(txt);
+    if (f.ziel === 'durch') check(`Langes Dokument ${f.name}: sauber, Original kommt ohne Meldung an`, got.endsWith(`INPUT:${f.name}:${shortHash(f.bytes)}|`), got + ' ' + txt.slice(0, 120));
+    if (f.ziel === 'tabelle') check(`Langes Dokument ${f.name}: Personendaten erkannt, ohne Wert`, /E-Mail/.test(txt) && !/@beispiel/.test(txt) && !/nicht vollständig|zu lang/.test(txt), txt.slice(0, 160));
+    if (f.ziel === 'fund') {
+      const b = await imageBar(/IBAN/, 5000);
+      check(`Langes Dokument ${f.name}: Fund ganz hinten gemeldet, kein "nicht pruefbar", kein falscher Hinweis`, /IBAN/.test(txt) && !/CH93|0076/.test(txt) && !/nicht vollständig|zu lang/.test(txt) && ohneFalsches, txt.slice(0, 160));
+      check(`Langes Dokument ${f.name}: Bereinigen angeboten`, !!b.d && await b.d.has('redact'));
+      if (b.d) { await b.d.click('redact'); b.d.close(); }
+      let nach = '';
+      const t1 = Date.now();
+      while (Date.now() - t1 < 60000 && !/INPUT:/.test(nach)) { nach = await T.log(); await sleep(200); }
+      console.log(`INFO ${f.name}: Bereinigen ${Date.now() - t1} ms`);
+      check(`Langes Dokument ${f.name}: bereinigte Fassung kommt an`, new RegExp('INPUT:' + f.name + ':').test(nach) && !nach.includes(shortHash(f.bytes)), nach);
+    }
+    if (f.ziel === 'zugross') {
+      const b = await imageBar(/zu lang/, 5000);
+      check(`Langes Dokument ${f.name}: klare Meldung, Trotzdem sichtbar, kein falscher Hinweis`, /zu lang für die vollständige Prüfung/.test(txt) && !/erkannt/.test(txt) && ohneFalsches && !!b.d && await b.d.has('override') && !(await b.d.ev(`!!document.querySelector('[data-k="override"]').closest('.dlx-optionen')`)), txt.slice(0, 160));
+      if (b.d) {
+        await b.d.click('override');
+        await sleep(800);
+        await b.d.click('override');
+        b.d.close();
+        let nach = '';
+        const t1 = Date.now();
+        while (Date.now() - t1 < 15000 && !/INPUT:/.test(nach)) { nach = await T.log(); await sleep(200); }
+        check(`Langes Dokument ${f.name}: Trotzdem (zwei Klicks) gibt das Original weiter`, nach.endsWith(`INPUT:${f.name}:${shortHash(f.bytes)}|`), nach);
+      }
+    }
+    await closeDialogs();
+    T.close();
+    fs.rmSync(file, { force: true });
+  }
+}
+
 // --- Lokale KI vorladen, Live-Status, KI-Seite automatisch erkennen (Design-Review KI vorladen 16.10.2026) ---
 // Status direkt nach dem Laden der Erweiterung (ohne Prompt), dann Neuladen des Modells:
 // Popup zeigt live "lädt … %" und danach "aktiv"; das echte Popup (chrome.action.openPopup,
@@ -3043,7 +3227,7 @@ async function run() {
   browserWs = (await (await fetch(base + '/json/version')).json()).webSocketDebuggerUrl;
   await sleep(1500);   // Service Worker der Erweiterung starten lassen
   const only = process.env.E2E_NUR ? process.env.E2E_NUR.split(',') : null;
-  const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, lernmodus, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite };
+  const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, lernmodus, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite, langertext, langedokumente };
   if (process.env.E2E_BILDER) Object.assign(steps, { bilder, store });
   if (process.env.E2E_BILDMESSUNG) steps.bildmessung = bildmessung;
   for (const [name, fn] of Object.entries(steps)) if (!only || only.includes(name)) await fn();

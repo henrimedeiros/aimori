@@ -134,8 +134,9 @@ test('Auflagen 5-8: Content Script schickt nur Zeilennummern, Bild-KI nur ergaen
   assert.match(c, /await kiAwait\(text, B\.LIMITS\.ms - \(Date\.now\(\) - t0\) - 500\);/);
   assert.match(c, /for \(const id of B\.docType\(text, r\.findings\)\)/);
   assert.match(c, /const withKi = \(text, list\) => DLX\.ki\.merge\(list, kiFindings\(text\)\);/);
-  // KI-Text gekuerzt (Auflage 6).
-  assert.match(c, /const part = text\.slice\(0, DLX\.ki\.MAX_TEXT\);/);
+  // KI-Text je Anfrage begrenzt (Auflage 6): nur Abschnitte aus DLX.ki.sections gehen hinaus.
+  assert.match(c, /const parts = DLX\.ki\.sections\(text\);/);
+  assert.match(c, /chrome\.runtime\.sendMessage\(\{ t: 'ki', text: p\.text, seq \}\)/);
   // Fehlende Wortrahmen -> keine Teil-Schwaerzung (Auflage 8).
   assert.match(c, /if \(!rects\) return fail\('fail'\);/);
   const d = src('ui/dialog.js');

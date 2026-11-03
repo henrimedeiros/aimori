@@ -37,6 +37,24 @@ test('Beispiel-JSON ist auch fuer die Erweiterung gueltig (keine verworfenen Fel
   assert.equal(r.value.rules.ch_ahv, 'block');
 });
 
+// GPO/Intune schreiben beim Aktivieren von "Branding" jedes Textfeld der ADMX, leere als "".
+// Chrome verwirft ein Objekt mit einem einzigen ungueltigen Feld ganz - leer muss gueltig sein.
+test('Branding aus der ADMX: leere Felder sind gueltig und behalten den Standard', () => {
+  const branding = Object.fromEntries(Object.keys(schema.properties.branding.properties).map((k) => [k, '']));
+  Object.assign(branding, { productName: 'Example KI-Schutz', companyName: 'Example AG' });
+  assert.deepEqual(schemaValidate(schema, { branding }), []);
+  const r = plain(P.validate({ branding }));
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.value.branding, { productName: 'Example KI-Schutz', companyName: 'Example AG' });
+  const cfg = plain(P.effective({ branding }, {}, 'de-CH').cfg);
+  assert.equal(cfg.branding.productName, 'Example KI-Schutz');
+  assert.equal(cfg.branding.logo, '');
+  // Gesetzte, aber falsche Werte verletzen das Schema weiterhin.
+  for (const [k, v] of [['logo', 'https://example.com/logo.png'], ['primaryColor', 'red'], ['accentColor', '#fff'], ['supportUrl', 'http://example.com'], ['aiNoticeUrl', 'ftp://example.com']]) {
+    assert.notDeepEqual(schemaValidate(schema, { branding: { [k]: v } }), [], k);
+  }
+});
+
 test('Schema und Richtlinien-Lader kennen dieselben Schluessel', () => {
   for (const key of Object.keys(schema.properties)) {
     const r = plain(P.validate({ [key]: 12345 }));
@@ -53,7 +71,7 @@ test('Regel-IDs im Schema-Beispiel sind bekannte Datentypen', () => {
 
 test('ungueltige Werte werden verworfen, nicht uebernommen', () => {
   const r = plain(P.validate({
-    branding: { productName: '', primaryColor: 'red', supportUrl: 'http://example.com', logo: 'https://example.com/logo.png', companyName: 'Example AG' },
+    branding: { productName: 'x'.repeat(41), primaryColor: 'red', supportUrl: 'http://example.com', logo: 'https://example.com/logo.png', companyName: 'Example AG' },
     language: 'xx', countryPacks: 'CH', globalPacks: ['finance', 'nope'], rules: { iban: 'delete', unknown_type: 'block', email: 'off' },
     allowUserOverride: 'false', allowedSites: ['chatgpt', 'example'], dictionary: { salt: 's', hashes: ['abc'] },
     reportingUrl: 'http://example.com/report',

@@ -13,6 +13,8 @@
   g.__dlxContentLoaded = true;
 
   const FALLBACK_MS = 1500;   // Auflage B4
+  const FULL_MS = 3000;       // Vollbild-Rueckfall: so lange auf die Bereitmeldung warten, dann Abbrechen
+  const FAIL_NOTE_MS = 6000;
   const BYPASS_MS = 30000;    // Auflage B12
   const GESTURE_MS = 1500;
   const FILE_INFO_GAP_MS = 60000;
@@ -295,20 +297,78 @@
     pending = p;
     const c = p.composer || site.findComposer();
     const r = barRect(c, p.kind);
-    const layout = r ? 'bar' : 'full';    // Rueckfall-Kette: Leiste -> Vollbild -> Popupfenster (Auflage 14)
+    const layout = r ? 'bar' : 'full';    // Rueckfall-Kette: Leiste -> Vollbild -> Abbrechen (Auflage 14, nie ein Fenster)
     createHost(p.kind, layout, r, c);
-    // Eingefuegter Code: je Typ hoechstens 5 Zeilennummern, nie Werte (Design-Review Code und Bilder, Auflage 5).
-    // Dokumente (Design-Review Bereinigen 19.10.2026, Auflage 9): Zeilennummern im gelesenen Text, nie Werte.
-    const lines = p.lines || (p.text && p.findings && DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, p.findings) : null);
-    const summary = p.findings ? Array.from(DLX.engine.summarize(p.findings), (s) => Object.assign({ id: s.id, cat: s.cat, n: s.n },
-      lines && !WHOLE(s) && lines.get(s.id) && lines.get(s.id).length ? { lines: lines.get(s.id).slice() } : null)) : [];
-    chrome.runtime.sendMessage({ t: 'found', mode: p.kind, action: p.action, items: summary, code: !!lines && !p.lines, fix: !!p.fix, loss: !!p.loss, layout, theme: pageTheme(c), account: p.account || null, reason: p.reason || null }).then((res) => {
+    const { items, lines } = dialogItems(p);
+    chrome.runtime.sendMessage({ t: 'found', mode: p.kind, action: p.action, items, code: !!lines && !p.lines, fix: !!p.fix, loss: !!p.loss, layout, theme: pageTheme(c), account: p.account || null, reason: p.reason || null }).then((res) => {
       if (!res || !res.nonce || pending !== p) { if (pending === p) failClosed(); return; }
       p.nonce = res.nonce;
-      readyTimer = setTimeout(() => {
-        if (pending === p && !p.ready) chrome.runtime.sendMessage({ t: 'fallback' }).catch(() => failClosed());
-      }, FALLBACK_MS);
+      readyTimer = setTimeout(() => { if (pending === p && !p.ready) toFull(p); }, layout === 'bar' ? FALLBACK_MS : FULL_MS);
+      kiToPending();
     }).catch(() => { if (pending === p) failClosed(); });
+    // Eine Meldung mit allen Funden: laeuft die KI fuer diesen Text noch nicht, jetzt anstossen;
+    // ihre Funde ergaenzen dieselbe Meldung (kiToPending).
+    if ((p.kind === 'send' || p.kind === 'paste') && p.text) kiRequest(p.text);
+  }
+
+  // Unsichere Funde nur neben schwaerzbaren: neben einem Ganztext-Fund (Firmendokument, vertrauliche Quelle)
+  // boete die Meldung sonst ein Schwaerzen an, das den eigentlichen Fund gar nicht loest.
+  const softOf = (p) => (p.findings.some((f) => !WHOLE(f)) ? p.maybe || [] : []);
+  // Nur Typ, Kategorie, Anzahl, Zeilennummern: nie Werte.
+  function dialogItems(p) {
+    if (!p.findings) return { items: [], lines: null };
+    const all = p.findings.concat(softOf(p));
+    // Eingefuegter Code: je Typ hoechstens 5 Zeilennummern, nie Werte (Design-Review Code und Bilder, Auflage 5).
+    // Dokumente (Design-Review Bereinigen 19.10.2026, Auflage 9): Zeilennummern im gelesenen Text, nie Werte.
+    const lines = p.lines || (p.text && DLX.code.isCode(p.text) ? DLX.code.linesOf(p.text, all) : null);
+    const items = Array.from(DLX.engine.summarize(all), (s) => Object.assign({ id: s.id, cat: s.cat, n: s.n },
+      lines && !WHOLE(s) && lines.get(s.id) && lines.get(s.id).length ? { lines: lines.get(s.id).slice() } : null,
+      p.findings.some((f) => f.id === s.id) ? null : { sure: false }));
+    return { items, lines };
+  }
+
+  // Rueckfall ohne eigenes Fenster (Design-Review kein Fenster 23.10.2026, Auflagen 1-4):
+  // Leiste -> Vollbild im selben Seiten-Overlay. Die Nonce der Leiste gilt ab sofort nicht
+  // mehr; Layout und neue Nonce setzt der Service Worker. Ist auch das Vollbild nicht
+  // bereit (oder schon Vollbild): Aktion abbrechen, Seite bleibt bedienbar, kurze Rueckmeldung.
+  function toFull(p) {
+    if (pending !== p) return;
+    clearTimeout(readyTimer);
+    if (!ui || ui.layout !== 'bar') { failNoted(); return; }
+    const old = p.nonce;
+    p.nonce = null;
+    p.ready = false;
+    const c = ui.composer;
+    removeHost();
+    chrome.runtime.sendMessage({ t: 'full', nonce: old }).then((res) => {
+      if (pending !== p) return;
+      if (!res || typeof res.nonce !== 'string') { failNoted(); return; }
+      p.nonce = res.nonce;
+      createHost(p.kind, 'full', null, c);
+      readyTimer = setTimeout(() => { if (pending === p && !p.ready) failNoted(); }, FULL_MS);
+    }).catch(() => { if (pending === p) failNoted(); });
+  }
+  function failNoted() {
+    failClosed();
+    failNote();
+  }
+  // Kurze Rueckmeldung in eigener closed Shadow Root, ohne Knopf, verschwindet von selbst.
+  let failHost = null;
+  function failNote(key = 'noticeFailed') {
+    if (failHost) failHost.remove();
+    const host = document.createElement('div');
+    const css = (el, rules) => { for (const [k, v] of Object.entries(rules)) el.style.setProperty(k, v, 'important'); };
+    css(host, { position: 'fixed', 'z-index': '2147483647', right: '16px', top: '16px', width: 'min(360px, calc(100vw - 32px))', display: 'block',
+      margin: '0', padding: '0', border: '0', background: 'transparent', 'pointer-events': 'none' });
+    const box = document.createElement('div');
+    box.setAttribute('role', 'status');
+    box.textContent = DLX.i18n.t(lang(), key, { product: (cfg.branding && cfg.branding.productName) || '' });
+    css(box, { 'box-sizing': 'border-box', padding: '10px 14px', 'border-radius': '12px', background: '#1c1c20', color: '#f5f3f0',
+      'border-left': '4px solid #ff7a3d', font: '13px/1.4 Geist, system-ui, -apple-system, "Segoe UI", sans-serif', 'text-align': 'left' });
+    host.attachShadow({ mode: 'closed' }).append(box);
+    document.documentElement.append(host);
+    failHost = host;
+    setTimeout(() => { host.remove(); if (failHost === host) failHost = null; }, FAIL_NOTE_MS);
   }
 
   // Leiste beim Scrollen/Groessenaendern nachfuehren, hoechstens alle 100 ms;
@@ -330,7 +390,7 @@
   }
   // Hoehe vom Frame (ueber den Service Worker, nur mit der Nonce der angezeigten
   // Meldung): Leiste neu legen, Wache sofort; passt sie nicht ins Fenster, Sende-
-  // Meldungen ins Rueckfall-Popupfenster, Live-Hinweis weg (Design-Review Leiste/Hoehe
+  // Meldungen ins Vollbild im Seiten-Overlay (nie ein Fenster), Live-Hinweis weg (Design-Review Leiste/Hoehe
   // 15.10.2026, Auflagen 3-6). 'moved' sperrt die Knoepfe im Frame erneut 400 ms.
   function resizeBar(msg) {
     if (!ui || ui.layout !== 'bar') return;
@@ -341,8 +401,7 @@
     const r = barRect(ui.composer, ui.kind, h);
     if (!r) {
       if (ui.kind === 'live' || ui.kind === 'reveal' || ui.kind === 'answer' || ui.kind === 'rephrased') { onBroken(); return; }
-      removeHost();
-      chrome.runtime.sendMessage({ t: 'fallback' }).catch(() => failClosed());
+      toFull(pending);
       return;
     }
     ui.placedAt = Date.now();
@@ -410,10 +469,7 @@
     // allowPlaceholders), nur auf erlaubter, nicht gesperrter Seite.
     if (msg.t === 'cmd') {
       const ok = msg.choice === 'redact' || (msg.choice === 'pseudonym' && placeholdersOn());
-      if (ok && !aiBlocked && siteAllowed() && !pending) {
-        hideLive();
-        redactIn(site.findComposer(), msg.choice);
-      }
+      if (ok && !aiBlocked && siteAllowed() && !pending) { hideLive(); redactIn(site.findComposer(), msg.choice); }
       return;
     }
     // Text der Ansicht nur auf tabs.sendMessage mit der Nonce der offenen Ansicht (Auflage 4).
@@ -455,13 +511,19 @@
     removeHost();
     // Bestaetigung fuer Kuerzel im Service Worker (gezaehlt erst danach, Auflage 2).
     sendResponse({ ok: true });
+    if (p.findings && (replacing(msg.choice) || msg.choice === 'rephrase')) kiMerge(p);
     const usable = (p.findings || []).filter((f) => !WHOLE(f));
+    // Schwaerzen und Umformulieren erfassen auch die unsicheren Funde der Meldung.
+    const fixes = usable.concat(p.findings ? softOf(p) : []);
     if ((p.kind === 'send' || p.kind === 'paste') && msg.choice === 'rephrase') {
-      if (usable.length && cfg.allowRephrase === true) rephraseNow(p, usable);
+      if (usable.length && cfg.allowRephrase === true) rephraseNow(p, fixes);
     } else if (p.kind === 'send') {
       if (replacing(msg.choice) && usable.length) {
+        const out = replaced(p.text, fixes, msg.choice);
         selectAllIn(p.composer);
-        insertText(p.composer, replaced(p.text, usable, msg.choice));
+        insertText(p.composer, out);
+        kiFinished(p.text, out);
+        kiFollow(p.composer, p.text, out, msg.choice);
       }
       if (p.composer && p.composer.isConnected) p.composer.focus();
       if (msg.choice === 'override' || msg.choice === 'notsensitive') {
@@ -470,8 +532,12 @@
         clickRemembered(p);
       }
     } else if (p.kind === 'paste' && p.target && p.target.isConnected) {
-      if (replacing(msg.choice) && usable.length) insertText(p.target, replaced(p.text, usable, msg.choice));
-      else if (msg.choice === 'override' || msg.choice === 'notsensitive') {
+      if (replacing(msg.choice) && usable.length) {
+        const out = replaced(p.text, fixes, msg.choice);
+        insertText(p.target, out);
+        kiFinished(p.text, out);
+        kiFollow(p.composer || p.target, p.text, out, msg.choice);
+      } else if (msg.choice === 'override' || msg.choice === 'notsensitive') {
         if (msg.choice === 'notsensitive') ignoreValues(p, usable);
         insertText(p.target, p.text);
       } else p.target.focus();
@@ -498,11 +564,12 @@
     if (send && site.readText(p.composer) !== p.text) { p.composer.focus(); return; }
     hideRephrased();
     const out = DLX.umformen.rephrase(p.text, usable, lang()).text;
+    kiFinished(p.text, out);
     const r = check(out);
     if (send) { selectAllIn(p.composer); insertText(p.composer, out); }
     if (r.findings.length) {
-      showDialog(send ? { kind: 'send', composer: p.composer, text: out, findings: r.findings, action: r.action, sendBtn: null, account: r.account }
-        : { kind: 'paste', target: p.target, composer: p.composer, text: out, findings: r.findings, action: r.action, account: r.account });
+      showDialog(send ? { kind: 'send', composer: p.composer, text: out, findings: r.findings, maybe: r.maybe, action: r.action, sendBtn: null, account: r.account }
+        : { kind: 'paste', target: p.target, composer: p.composer, text: out, findings: r.findings, maybe: r.maybe, action: r.action, account: r.account });
       return;
     }
     if (!send) insertText(p.target, out);
@@ -559,8 +626,9 @@
   }
 
   // --- Pruefung ---------------------------------------------------------------
-  // Unsichere Funde nach Richtlinie uncertainFindings (Auflage 1): hint = nur
-  // Live-Hinweis, nie Dialog; warn = hoechstens Warnen; enforce = wie sichere.
+  // Unsichere Funde nach Richtlinie uncertainFindings (Auflage 1): hint = halten nie
+  // an (Live-Hinweis, in einer Meldung nur dezent neben sicheren Funden, maybeOf);
+  // warn = hoechstens Warnen; enforce = wie sichere.
   const loud = (f) => f.sure || cfg.uncertainFindings === 'warn' || cfg.uncertainFindings === 'enforce';
   function counted(list) {
     if (cfg.uncertainFindings === 'enforce') return list;
@@ -576,38 +644,110 @@
   }
 
   // --- Lokale KI-Erkennung (Design-Review KI 16.10.2026) --------------------
-  // Text (hoechstens die ersten 4000 Zeichen) geht nur an den eigenen Service
-  // Worker; zurueck kommen nur Positionen, geprueft (Auflage 16) und nur fuer
-  // genau diesen Text im Speicher gehalten (nie storage). Regeln laufen immer,
-  // die KI ergaenzt nur (Auflage 18); ohne Antwort oder bei Fehlern gelten
-  // allein die Regeln. Je Anfrage eine Sequenznummer, aeltere Antworten verfallen.
-  const ki = { text: null, ents: null, seq: 0, busy: null };
+  // Text geht in Abschnitten (DLX.ki.sections, je Anfrage unter der Grenze, nacheinander) nur an
+  // den eigenen Service Worker; zurueck kommen nur Positionen, geprueft (Auflage 16) und nur fuer
+  // die Abschnitte des aktuellen Texts im Speicher gehalten (nie storage). Regeln laufen immer,
+  // die KI ergaenzt nur (Auflage 18); ohne Antwort oder bei Fehlern gelten allein die Regeln.
+  // Je Lauf eine Sequenznummer, ein neuer Text beendet den alten Lauf.
+  // done: Abschnitt -> Spannen, cut: Text, dessen Lauf mittendrin abbrach,
+  // quiet: Pruefsumme des eigenen Ergebnisses (siehe kiFinished), waiting: wartet auf das Laufende.
+  const KI_FOLLOW_MS = 30000;   // so lange ersetzt ein Klick noch nachtraeglich, was die laufende Pruefung findet
+  const ki = { seq: 0, busy: null, done: new Map(), cut: null, quiet: null, waiting: [], follow: null };
   const kiOn = () => cfg.detection !== 'regeln';
+  const kiKey = (text) => text.slice(0, DLX.ki.MAX_TOTAL);
+  const kiIsQuiet = (text) => ki.quiet !== null && textHash('ki', text) === ki.quiet;
+  const kiBusyFor = (text) => ki.busy !== null && ki.busy === kiKey(text);
   function kiFindings(text) {
-    if (!kiOn() || !ki.ents || ki.text !== text.slice(0, DLX.ki.MAX_TEXT)) return [];
-    return DLX.ki.findings(text, ki.ents, eng);
+    if (!kiOn() || !ki.done.size) return [];
+    return DLX.ki.findings(text, DLX.ki.combine(DLX.ki.sections(text), (p) => ki.done.get(p.text)), eng);
   }
-  // always: wird in jedem Fall genau einmal aufgerufen (Antwort, Fehler, nichts zu tun).
+  // Ganzer Text geprueft? Nur dann ist ein Ersatz daraus fertig fuer die KI (kiFinished).
+  const kiComplete = (text) => kiIsQuiet(text) || (text.length <= DLX.ki.MAX_TOTAL && DLX.ki.sections(text).every((p) => ki.done.has(p.text)));
+  // Teilpruefung (Auflage 15): Rest ueber der Gesamtgrenze oder Lauf mittendrin abgebrochen.
+  const kiPartly = (text) => kiOn() && ki.done.size > 0 && (text.length > DLX.ki.MAX_TOTAL || ki.cut === kiKey(text));
+  // Das Ergebnis eines fertig geprueften Texts geht nicht erneut an die KI: das Modell sah jede
+  // verbleibende Stelle schon, ein neuer Lauf saehe nur den veraenderten Kontext und meldete
+  // Reste als neue Funde. Die Regeln pruefen auch diesen Text; jede weitere Aenderung prueft wieder voll.
+  function kiFinished(from, out) {
+    ki.quiet = kiOn() && kiComplete(from) ? textHash('ki', out) : null;
+  }
+  function kiSettle() {
+    for (const fn of ki.waiting.splice(0)) fn();
+  }
+  // always: wird in jedem Fall genau einmal aufgerufen (Lauf fertig, Fehler, nichts zu tun).
   function kiRequest(text, then, always) {
     const fin = () => { if (always) always(); };
-    if (!kiOn() || !text || !text.trim()) return fin();
-    const part = text.slice(0, DLX.ki.MAX_TEXT);
-    if ((ki.text === part && ki.ents) || ki.busy === part) return fin();
+    // Feld leer (z. B. nach dem Senden): keine Abschnitte mehr im Speicher halten.
+    if ((!text || !text.trim()) && !ki.busy) { ki.done.clear(); ki.quiet = null; ki.cut = null; }
+    if (!kiOn() || !text || !text.trim() || kiIsQuiet(text)) return fin();
+    const key = kiKey(text);
+    // Der Lauf zum geschwaerzten Original laeuft zu Ende (kiFollow), das Ergebnis ersetzt ohne weitere Meldung.
+    if (ki.follow && ki.busy !== key) return fin();
+    if (ki.busy === key) { if (always) ki.waiting.push(always); return; }
+    const parts = DLX.ki.sections(text);
+    const open = parts.filter((p) => !ki.done.has(p.text));
+    if (!open.length) return fin();
     const seq = ++ki.seq;
-    ki.busy = part;
-    chrome.runtime.sendMessage({ t: 'ki', text: part, seq }).then((r) => {
-      if (seq !== ki.seq) return fin();
-      ki.busy = null;
-      const ents = r && !r.error ? DLX.ki.valid(r, part.length) : null;
-      if (ents) {
-        ki.text = part;
-        ki.ents = ents;
-        if (then) then();
-      }
-      fin();
-    }).catch(() => { if (seq === ki.seq) ki.busy = null; fin(); });
+    const older = ki.waiting.splice(0);
+    ki.busy = key;
+    if (ki.cut !== key) ki.cut = null;
+    if (always) ki.waiting.push(always);
+    const keep = new Set(parts.map((p) => p.text));
+    for (const k of ki.done.keys()) if (!keep.has(k)) ki.done.delete(k);
+    kiWalk(open, key, seq, then);
+    for (const fn of older) fn();
   }
-  // Bildtext: auf die lokale KI warten, hoechstens ms; danach entscheiden die Regeln allein
+  async function kiWalk(open, key, seq, then) {
+    let failed = false, got = false;
+    for (const p of open) {
+      let r = null;
+      try { r = await chrome.runtime.sendMessage({ t: 'ki', text: p.text, seq }); } catch (err) { r = null; }
+      if (seq !== ki.seq) return;
+      const ents = r && !r.error ? DLX.ki.valid(r, p.text.length) : null;
+      if (!ents) { failed = true; break; }
+      ki.done.set(p.text, ents);
+      got = true;
+    }
+    ki.busy = null;
+    ki.cut = failed && ki.done.size > 0 ? key : null;
+    kiToPending();
+    kiSettle();
+    if (got && then) then();
+  }
+  // Ein Klick wirkt sofort und erfasst trotzdem alles: ersetzt ist schon, was bekannt war; was die noch laufende
+  // Pruefung des Originals findet, wird danach im Feld ersetzt, ohne zweite Meldung. Nach Wert statt nach
+  // Position, weil das Feld sich inzwischen geaendert hat. Senden stoppt so lange (onSend), hoechstens KI_FOLLOW_MS.
+  function kiFollow(c, from, out, choice) {
+    if (!kiBusyFor(from)) return;
+    const f = ki.follow = { c, from, out, choice, timer: setTimeout(() => { if (ki.follow === f) { ki.follow = null; scheduleLive(c); } }, KI_FOLLOW_MS) };
+    ki.waiting.push(() => kiFollowed(f));
+  }
+  function kiFollowed(f) {
+    if (ki.follow !== f) return;
+    ki.follow = null;
+    clearTimeout(f.timer);
+    if (!f.c.isConnected) return;
+    const cur = site.readText(f.c);
+    const k = kiFindings(f.from);
+    const acc = accountState();
+    const list = [];
+    for (const x of scoped(counted(k), acc).concat(maybeOf(k, acc))) {
+      const v = f.from.slice(x.start, x.end);
+      for (let i = cur.indexOf(v); i !== -1; i = cur.indexOf(v, i + 1)) list.push(Object.assign({}, x, { start: i, end: i + v.length }));
+    }
+    list.sort((a, b) => a.start - b.start);
+    const clean = list.filter((x, i) => !list.slice(0, i).some((y) => y.end > x.start));
+    const same = textHash('ki', cur) === textHash('ki', f.out);
+    let next = cur;
+    if (clean.length) {
+      next = replaced(cur, clean, f.choice);
+      selectAllIn(f.c);
+      insertText(f.c, next);
+    }
+    if (same) kiFinished(f.from, next);
+    scheduleLive(f.c);
+  }
+  // Auf die lokale KI warten, hoechstens ms; danach entscheiden die Regeln allein
   // (Design-Review Code und Bilder, Auflagen 6, 8). Die KI ergaenzt nur (merge, Auflage 7).
   const kiAwait = (text, ms) => new Promise((done) => {
     const timer = setTimeout(done, Math.max(0, ms));
@@ -615,14 +755,44 @@
   });
   const withKi = (text, list) => DLX.ki.merge(list, kiFindings(text));
 
+  // Nach dem Anhalten eintreffende KI-Funde gehoeren in dieselbe Meldung: nur Senden/Einfuegen,
+  // "nicht pruefbar" bleibt allein. Ergebnis: true, wenn etwas dazukam.
+  function kiMerge(p) {
+    if ((p.kind !== 'send' && p.kind !== 'paste') || !p.text || p.findings.some((f) => f.id === 'unscannable')) return false;
+    const known = p.findings.concat(p.maybe || []);
+    const fresh = DLX.ki.merge(known, kiFindings(p.text)).slice(known.length);
+    if (!fresh.length) return false;
+    const acc = accountState();
+    const hard = scoped(counted(fresh), acc), soft = maybeOf(fresh, acc);
+    p.findings = p.findings.concat(hard);
+    p.maybe = (p.maybe || []).concat(soft);
+    p.action = DLX.engine.strictest(p.findings);
+    return hard.length + soft.length > 0;
+  }
+  function kiToPending() {
+    const p = pending;
+    if (!p || !p.nonce || !kiMerge(p)) return;
+    chrome.runtime.sendMessage({ t: 'foundMore', nonce: p.nonce, action: p.action, items: dialogItems(p).items }).catch(() => {});
+  }
+
   // Dokument-Fingerabdruecke (Design-Review Diktat und Fingerabdruecke 16.10.2026, Teil B):
   // ein Ganztext-Fund mit Art und Anzahl 1, nie welcher Abschnitt oder Wert (Auflage 14).
   const docMatch = () => ({ id: 'document_match', cat: 'firma', start: 0, end: 0, action: eng.fp.action, sure: true });
 
+  // Konto-Regeln und Pause auf die Funde, die anhalten.
+  function scoped(findings, acc) {
+    const list = acc ? DLX.policy.accountFindings(findings, acc.level) : findings;
+    return paused() ? list.filter((f) => !(f.action === 'warn' && cfg.allowUserOverride === true)) : list;
+  }
+  // Unsichere Funde halten nie an, stehen aber dezent in der Meldung und werden mitgeschwaerzt,
+  // sonst kaemen sie danach als zweite Meldung. Bei Konto-Stufen und Pause zaehlen nur harte Funde.
+  const maybeOf = (list, acc) => ((!acc || acc.level === 'normal') && !paused() ? list.filter((f) => !loud(f) && f.action !== 'off') : []);
+
   function check(text) {
     const res = DLX.engine.scan(text, eng);
     const dm = DLX.fingerprint.scan(text, eng.fp);
-    let findings = counted(withKi(text, Array.from(res.findings)));
+    const all = withKi(text, Array.from(res.findings));
+    let findings = counted(all);
     if (dm.hit) findings.push(docMatch());
     // Zeitbudget der Fingerabdruecke ueberschritten = nicht pruefbar wie beim Scan (Auflage 13), mit der
     // strengeren Aktion aus warn und documentFingerprints.action; ein Fingerabdruck-Treffer bleibt neben
@@ -633,9 +803,9 @@
       if (dm.hit) findings.push(docMatch());
     }
     const acc = accountState();
-    if (acc) findings = DLX.policy.accountFindings(findings, acc.level);
-    if (paused()) findings = findings.filter((f) => !(f.action === 'warn' && cfg.allowUserOverride === true));
-    return { findings, action: DLX.engine.strictest(findings), account: acc ? acc.type : null };
+    findings = scoped(findings, acc);
+    const maybe = res.unscannable || dm.timeout ? [] : maybeOf(all, acc);
+    return { findings, maybe, action: DLX.engine.strictest(findings), account: acc ? acc.type : null };
   }
 
   // Gemeinsame Vorpruefung: Seite gesperrt / Schutz inaktiv / Meldung offen.
@@ -657,6 +827,8 @@
     if (!composer) return;
     const text = site.readText(composer);
     if (!text || !text.trim()) return;
+    // Geschwaerzt, aber die Pruefung des Originals laeuft noch: erst danach senden, sonst ginge ein Rest mit.
+    if (ki.follow && ki.follow.c === composer) { stop(e); failNote('noticeChecking'); return; }
     // Ausnahme gilt fuer genau eine Sende-Geste: Enter/Klick loesen oft noch
     // ein submit aus; danach ist sie verbraucht (B12).
     const now = Date.now();
@@ -678,7 +850,7 @@
     // Senden-Knopf als Referenz merken (Auflage 1): aus dem Ereignis, sonst der sichtbare der Seite.
     const btn = site.sendButtonIn(path) || site.findSendButton();
     const sendBtn = btn && btn.getClientRects().length && site.sameBox(btn, composer) ? btn : null;
-    showDialog({ kind: 'send', composer, text, findings: r.findings, action: r.action, sendBtn, account: r.account });
+    showDialog({ kind: 'send', composer, text, findings: r.findings, maybe: r.maybe, action: r.action, sendBtn, account: r.account });
   }
 
   function onFiles(e, files, deliver) {
@@ -729,13 +901,14 @@
   const D = DLX.datei;
   const docKind = (f) => INJ.isDoc(f) || D.kindOf(f.name, f.type) !== null;
   const docSet = (files) => !cfg.blockUncheckedFiles && files.length > 0 && files.every(docKind);
-  const DOC_TOTAL_MS = 20000;   // Gesamt-Zeitbudget je Ablage/Auswahl (Auflage 3)
+  const DOC_TOTAL_MS = 120000;  // Gesamt-Zeitbudget je Ablage/Auswahl (Auflage 3); der Hinweis nennt, dass die Pruefung laeuft
+  const DOC_WAIT_MS = 600;      // kurze Dateien ohne Hinweis
   let reading = false;
   // Normale Erkenner je Stueck wie check(), aber nur Regeln: Dokumenttext geht nie an die lokale KI
   // (keine neue Nachrichtenart, Auflage 5); Konto-Regeln danach auf alle Funde.
   // Massenlisten meldet bei Dateien die Tabellen-Pruefung einmal mit der Zeilenzahl (nicht doppelt).
   const MASS = ['mass_list', 'mass_table'];
-  const detect = (part) => {
+  const detectPart = (part) => {
     const res = DLX.engine.scan(part, eng);
     const list = Array.from(res.findings).filter((f) => !tableOn() || !MASS.includes(f.id));
     return { findings: counted(list), unscannable: res.unscannable };
@@ -753,85 +926,103 @@
   // again = Map bereinigte Datei -> erwarteter Text (Nachpruefung nach "Bereinigte Version hochladen").
   async function checkDocs(files, deliver, again) {
     reading = true;
+    // Pruefung dauert laenger: Hinweis mit Abbrechen wie bei Bildern; Abbrechen beendet die Pruefung, nichts geht weiter.
+    const wait = { kind: 'docwait', action: 'warn', composer: site.findComposer() };
+    const waitTimer = setTimeout(() => { if (reading && !pending) { wait.shown = true; showDialog(wait); } }, DOC_WAIT_MS);
+    const gone = () => wait.shown === true && pending !== wait;
+    const detect = (part) => (gone() ? { findings: [], unscannable: true } : detectPart(part));
     const per = [];
-    let n = 0, over = false, fpHit = false, fpOver = false, rows = 0, tabOver = false, unread = false;
+    // long: Grenze oder Zeit ueberschritten, die Meldung sagt dann "zu lang" statt nur "nicht pruefbar".
+    let n = 0, over = false, fpHit = false, fpOver = false, rows = 0, tabOver = false, unread = false, long = false;
     const found = [];
     const topts = { minRows: cfg.tableMinRows, minCols: cfg.tableMinColumns };
     const deadline = Date.now() + DOC_TOTAL_MS;
     let total = 0;
     try {
     // Mehr als 5 Dateien oder zusammen ueber 20 MB: alles gilt als nicht pruefbar (Auflage 3).
-    if (files.length > D.LIMITS.files) unread = true;
+    if (files.length > D.LIMITS.files) { unread = true; long = true; }
     for (const f of unread ? [] : files) {
+      if (gone()) break;
       total += f.size;
-      if (total > D.LIMITS.bytes || Date.now() > deadline) { unread = true; break; }
+      // Wie "zu gross" unten: eine Sperre aus Richtlinie bleibt eine Sperre.
+      if (total > D.LIMITS.bytes || Date.now() > deadline) { unread = true; long = true; if (hiddenOn()) over = true; fpOver = true; break; }
       if (!INJ.isDoc(f) && !(tableOn() && DLX.tabelle.XLSX_FILE(f)) && D.kindOf(f.name, f.type) !== 'text') {
         const kind = D.kindOf(f.name, f.type);
         if (kind === 'xlsx') { unread = true; continue; }   // Tabellen-Pruefung per Richtlinie aus: XLSX nicht lesbar
         const r = await docText(f, deadline - Date.now());
-        if (r.error) { unread = true; continue; }
+        if (r.error) { unread = true; if (r.error === 'size' || r.error === 'timeout') long = true; continue; }
         if (r.partial) unread = true;
         if (again && again.has(f) && tooShort(r.text, again.get(f))) unread = true;
         const d = await DLX.stuecke.scan(r.text, detect, deadline);
         found.push(...d.findings);
         per.push({ f, kind, text: r.text, findings: d.findings, partial: r.partial });
-        if (d.unscannable) unread = true;
-        if (hiddenOn()) { const res = INJ.check({ text: r.text }); if (res.unscannable) over = true; n = Math.max(n, res.n); }
-        if (eng.fp) { const x = DLX.fingerprint.scan(r.text, eng.fp); if (x.timeout) fpOver = true; else if (x.hit) fpHit = true; }
+        if (d.unscannable) { unread = true; long = long || Date.now() > deadline; }
+        if (hiddenOn()) { const res = await INJ.checkLong({ text: r.text }, deadline); if (res.unscannable) over = true; n = Math.max(n, res.n); }
+        if (eng.fp) { const x = await DLX.fingerprint.scanLong(r.text, eng.fp, deadline); if (x.timeout) fpOver = true; else if (x.hit) fpHit = true; }
         continue;
       }
       if (tableOn() && DLX.tabelle.XLSX_FILE(f)) {
         // XLSX: Tabellen aus den Blaettern; Zellen und Kommentare als Text fuer die bestehenden Pruefungen.
-        if (f.size > INJ.LIMITS.bytes) { tabOver = true; continue; }
         let x;
-        try { x = await DLX.tabelle.xlsx(await f.arrayBuffer(), topts); } catch (err) { x = { unscannable: true, text: '' }; }
-        if (x.unscannable) tabOver = true; else if (x.leak) rows = Math.max(rows, x.rows);
-        if (x.text) { const d = await DLX.stuecke.scan(x.text, detect, deadline); found.push(...d.findings); per.push({ f, kind: null, findings: d.findings }); if (d.unscannable) unread = true; }
-        if (x.text && hiddenOn()) { const res = INJ.check({ text: x.text }); if (res.unscannable) over = true; n = Math.max(n, res.n); }
-        if (x.text && eng.fp) { const d = DLX.fingerprint.scan(x.text, eng.fp); if (d.timeout) fpOver = true; else if (d.hit) fpHit = true; }
+        try { x = await DLX.tabelle.xlsx(await f.arrayBuffer(), topts, true); } catch (err) { x = { unscannable: true, text: '' }; }
+        if (x.unscannable) { tabOver = true; if (!x.text) long = true; } else if (x.leak) rows = Math.max(rows, x.rows);
+        if (x.text) { const d = await DLX.stuecke.scan(x.text, detect, deadline); found.push(...d.findings); per.push({ f, kind: null, findings: d.findings }); if (d.unscannable) { unread = true; long = long || Date.now() > deadline; } }
+        if (x.text && hiddenOn()) { const res = await INJ.checkLong({ text: x.text }, deadline); if (res.unscannable) over = true; n = Math.max(n, res.n); }
+        if (x.text && eng.fp) { const d = await DLX.fingerprint.scanLong(x.text, eng.fp, deadline); if (d.timeout) fpOver = true; else if (d.hit) fpHit = true; }
         x = null;
         continue;
       }
       // Zu gross oder unlesbar: beide Pruefungen melden es mit ihrer eigenen Aktion
       // (Fingerabdruck-Sperre greift auch hier; Auflage Pflicht-Pruefung 16.10.2026).
-      if (f.size > INJ.LIMITS.bytes) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; unread = true; continue; }
+      if (f.size > INJ.LIMITS.bytes) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; unread = true; long = true; continue; }
       let t;
       try { t = await f.text(); } catch (err) { if (hiddenOn()) over = true; if (tableOn()) tabOver = true; fpOver = true; unread = true; continue; }
       if (hiddenOn()) {
-        const res = INJ.check(INJ.HTML_DOC(f) ? { text: t, html: t } : { text: t });
+        const res = await INJ.checkLong(INJ.HTML_DOC(f) ? { text: t, html: t } : { text: t }, deadline);
         if (res.unscannable) over = true;
         n = Math.max(n, res.n);
       }
       if (eng.fp) {
-        const d = DLX.fingerprint.scan(t, eng.fp);
+        const d = await DLX.fingerprint.scanLong(t, eng.fp, deadline);
         if (d.timeout) fpOver = true; else if (d.hit) fpHit = true;
       }
-      if (tableOn()) { const x = DLX.tabelle.checkText(f, t, topts); if (x.unscannable) tabOver = true; else if (x.leak) rows = Math.max(rows, x.rows); }
+      if (tableOn()) { const x = await DLX.tabelle.checkFile(f, t, topts, deadline); if (x.unscannable) tabOver = true; else if (x.leak) rows = Math.max(rows, x.rows); }
       if (again && again.has(f) && tooShort(t, again.get(f))) unread = true;
       const d = await DLX.stuecke.scan(t, detect, deadline);
       found.push(...d.findings);
       per.push({ f, kind: D.kindOf(f.name, f.type) === 'text' && !INJ.HTML_DOC(f) ? 'text' : null, text: t, findings: d.findings });
-      if (d.unscannable) unread = true;
+      if (d.unscannable) { unread = true; long = long || Date.now() > deadline; }
       t = null;
     }
     } catch (err) {
       unread = true;   // jeder Fehler = nicht pruefbar, bisherige Funde bleiben (Auflage 6)
     } finally {
       reading = false;
+      clearTimeout(waitTimer);
     }
+    if (gone()) return;   // abgebrochen oder Eingabe im Feld: nichts geht weiter
+    const closeWait = () => {
+      if (pending !== wait) return;
+      pending = null;
+      removeHost();
+      chrome.runtime.sendMessage({ t: 'cancelPending' }).catch(() => {});
+    };
     const acc = accountState();
     const data = acc ? DLX.policy.accountFindings(found, acc.level) : found;
-    const findings = data.concat(unread && !tabOver ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : [], injFindings({ n, unscannable: over }))
+    // Ueber der Grenze: kein Hinweis auf versteckte Anweisungen, sondern "nicht pruefbar", mit derselben Aktion (Auflagen 3, 5).
+    const overFinding = over ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: cfg.hiddenInstructionAction === 'block' ? 'block' : 'warn', sure: true }] : [];
+    const findings = data.concat(unread && !tabOver && !over ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : [], injFindings({ n, unscannable: false }), overFinding)
       .concat(fpHit ? [docMatch()] : [], fpOver && eng.fp ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: eng.fp.action, sure: true }] : [])
       // Tabelle mit Personendaten: ein Ganztext-Fund mit der Zeilenzahl, nie Werte; Datei wird nie umgeschrieben (Auflage 8).
       .concat(rows && DLX.engine.actionFor('mass_list', eng) !== 'off' ? [{ id: 'mass_list', cat: 'person', start: 0, end: 0, n: rows, action: DLX.engine.actionFor('mass_list', eng), sure: true }] : [],
-        tabOver ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : []);
+        tabOver && !over ? [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true }] : []);
     if (!findings.length) {
+      closeWait();
       // Uebergabe der bereinigten Fassung scheitert: Meldung, nie das Original (Auflage 8).
       try { deliver(files); } catch (err) { if (!again) throw err; if (!pending) showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings: [UNREAD()], action: 'warn' }); }
       return;
     }
-    if (pending) return;
+    if (pending && pending !== wait) return;
     const action = DLX.engine.strictest(findings);
     // Bereinigen anbieten (Auflage 4 MVP-Review, Auflagen 3, 9): nie bei Sperre, nur positionsbezogene
     // Funde, jede Datei mit Fund ist TXT/CSV/MD/DOCX/PDF ohne eingebettete Teile; die Fassung wird
@@ -839,9 +1030,9 @@
     const hit = per.filter((x) => x.findings.length);
     const fixable = !again && action !== 'block' && !findings.some(WHOLE) && hit.length > 0 && hit.every((x) => FIXABLE.includes(x.kind) && !x.partial);
     const fix = fixable ? await cleanDocs(per) : null;
-    if (pending) return;
+    if (gone() || (pending && pending !== wait)) return;
     const lines = hit.length === 1 && hit[0].text ? DLX.code.linesOf(hit[0].text, hit[0].findings) : null;
-    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action, fix, loss: !!fix && hit.some((x) => x.kind === 'pdf'), lines });
+    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action, fix, loss: !!fix && hit.some((x) => x.kind === 'pdf'), lines, reason: long ? 'long' : null });
   }
   const UNREAD = () => ({ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true });
   const FIXABLE = ['text', 'docx', 'pdf'];
@@ -852,7 +1043,7 @@
   // Name und Typ bleiben. Jeder Fehler = kein Knopf.
   async function cleanDocs(per) {
     const deadline = Date.now() + DOC_TOTAL_MS;
-    const find = async (t) => { const d = await DLX.stuecke.scan(t, detect, deadline); if (d.unscannable) throw new Error('fail'); return d.findings; };
+    const find = async (t) => { const d = await DLX.stuecke.scan(t, detectPart, deadline); if (d.unscannable) throw new Error('fail'); return d.findings; };
     const files = [], expect = new Map();
     try {
       for (const x of per) {
@@ -889,7 +1080,7 @@
     stop(e);
     const path = e.composedPath();
     const target = path.find((n) => n && n.nodeType === 1 && (n.isContentEditable || n.tagName === 'TEXTAREA' || n.tagName === 'INPUT')) || site.findComposer();
-    showDialog({ kind: 'paste', target, composer: site.composerIn(path) || site.findComposer(), text, findings: r.findings, action: r.action, account: r.account });
+    showDialog({ kind: 'paste', target, composer: site.composerIn(path) || site.findComposer(), text, findings: r.findings, maybe: r.maybe, action: r.action, account: r.account });
   }
 
   // --- Bilder pruefen (Design-Review Bilder 14.10.2026) -----------------------
@@ -1070,8 +1261,8 @@
     if (res.unscannable || dm.timeout) return null;   // Budget/Laenge: Hinweis weglassen, nicht "sauber" (A6)
     let list = withKi(text, Array.from(res.findings));
     if (dm.hit) list.push(docMatch());
-    // Langer Text: KI hat nur den Anfang gesehen (Auflage 15), dezent anzeigen.
-    if (kiOn() && ki.ents && text.length > DLX.ki.MAX_TEXT) list.push({ id: 'ki_partial', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: false });
+    // Nicht alles ging durch die KI (Auflage 15): Hinweis, kein Fund, nie schwaerzbar (ui/dialog.js).
+    if (kiPartly(text)) list.push({ id: 'ki_partial', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: false });
     // Konto-Stufe: allow zeigt nur harte Sperren, hint zeigt den Rest grau.
     const level = acc ? acc.level : 'normal';
     if (level === 'allow') list = list.filter((f) => f.action === 'block');
@@ -1084,6 +1275,7 @@
   function liveCheck() {
     try {
       if (ui && ui.kind === 'view') return;   // Ansicht mit echten Werten bleibt offen
+      if (live.waiting) return;               // Schwaerzen wartet auf die KI (redactChecked)
       const c = liveComposer && liveComposer.isConnected ? liveComposer : site.findComposer();
       liveComposer = c;
       if (!c || pending || composing || !siteAllowed() || paused()) { hideLive(); return; }
@@ -1130,8 +1322,11 @@
     const res = DLX.engine.scan(text, eng);
     const findings = res.unscannable ? [] : withKi(text, Array.from(res.findings));
     if (findings.length) {
+      const out = replaced(text, findings, choice);
       selectAllIn(c);
-      insertText(c, replaced(text, findings, choice));
+      insertText(c, out);
+      kiFinished(text, out);
+      kiFollow(c, text, out, choice);
     }
     scheduleLive(c);
   }

@@ -311,6 +311,8 @@
           if (!isObj(v)) { errors.push(key); break; }
           const b = {};
           for (const [bk, bv] of Object.entries(v)) {
+            // Leeres Feld = nicht gesetzt: ADMX (GPO, Intune) schreibt leere Textfelder als "".
+            if (bv === '' && Object.hasOwn(BRANDING, bk)) continue;
             if (Object.hasOwn(BRANDING, bk) && BRANDING[bk](bv)) b[bk] = bv; else errors.push('branding.' + bk);
           }
           if (Object.keys(b).length) value.branding = b;

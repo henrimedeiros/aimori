@@ -80,7 +80,7 @@ test('Platzhalter nur per Funktion ersetzt: $& und $1 aus Werten wirken nicht (A
 
 test('Content Scripts: nur Content-Texte; ohne Tabelle gilt der englische Mindestsatz (Auflagen 6, 7)', () => {
   const t = I.contentTable('fr');
-  assert.ok(Object.keys(t).every((k) => /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$)/.test(k)));
+  assert.ok(Object.keys(t).every((k) => /^(cat_|type_|rowsRemoved$|close$|copyToast|share(Title|Text|TextPlain|MaskedText|Cover|Uncover)$|noticeFailed$|noticeChecking$)/.test(k)));
   assert.equal(t.cat_finanz, I.STRINGS.fr.cat_finanz);
   for (const [k, v] of Object.entries(I.MIN)) assert.equal(v, EN[k].message, 'MIN = en: ' + k);
   const bare = load(['common/i18n.js']);

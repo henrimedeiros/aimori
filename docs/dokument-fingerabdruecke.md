@@ -9,7 +9,7 @@ Ein Treffer erscheint als Datentyp **„Teile eines Firmendokuments“** (`docum
 2. Je 8 aufeinanderfolgende Wörter bilden eine Schindel (englisch *shingle*). Wert = erste 32 Bit von `SHA-256(salt + "\n" + Schindel)`.
 3. Behalten werden nur Werte, die durch `sample` (Standard 4) teilbar sind – unabhängig davon, wo sie im Text stehen. Das macht die Liste viermal kleiner und trifft trotzdem jeden längeren Auszug.
 4. Schindeln aus Zahlenkolonnen (mehr als die Hälfte Zahlen), mit weniger als 4 verschiedenen Wörtern oder mit sehr langen Zeichenfolgen (über 48 Zeichen, z. B. Schlüssel) werden verworfen.
-5. Die Erweiterung rechnet beim Einfügen, Senden und bei hochgeladenen Textdokumenten (`.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.html`, `.log`, bis 2 MB) dasselbe und zählt **verschiedene** Treffer. Ab `minMatches` (Standard 4) gilt der Text als Teil eines Firmendokuments – mit den Standardwerten etwa ab 30–40 Wörtern am Stück. Wiederholt jemand denselben kurzen Satz, zählt er nur einmal.
+5. Die Erweiterung rechnet beim Einfügen, Senden und bei hochgeladenen Textdokumenten (`.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.html`, `.log`, bis 20 MB) dasselbe und zählt **verschiedene** Treffer. Ab `minMatches` (Standard 4) gilt der Text als Teil eines Firmendokuments – mit den Standardwerten etwa ab 30–40 Wörtern am Stück. Wiederholt jemand denselben kurzen Satz, zählt er nur einmal.
 
 Werkzeug (`scripts/dokumente-fingerabdruck.mjs`) und Erweiterung nutzen denselben Code (`extension/engine/fingerabdruck.js`); ein Test mit festen Testvektoren stellt sicher, dass beide Bit für Bit gleich rechnen.
 
@@ -44,7 +44,7 @@ Die Erweiterung nimmt höchstens 100 000 Werte in höchstens 200 Stücken zu je 
 - **Kein DLP-Ersatz:** Umformulierte, übersetzte, zusammengefasste oder als Bild eingefügte Inhalte werden nicht erkannt. Die Funktion stoppt Versehen (ganze Absätze kopiert), nicht Absicht.
 - **Bestätigungsangriff:** Salz und Werte sind für lokale Benutzer lesbar (`edge://policy`, Registry). Wer einen Text vermutet, kann prüfen, ob er in den Dokumenten steht. Nicht aufnehmen: Dokumente, deren blosser Wortlaut geheim ist (z. B. Übernahmepläne, deren Existenz niemand wissen darf).
 - **Fehlalarme:** Standardsätze, die in vielen Dokumenten vorkommen, über `--ausschluss` entfernen; zufällige Übereinstimmungen sind dank 8-Wort-Schindeln und `minMatches` sehr selten (32-Bit-Werte: bei 100 000 Werten und einem langen Text rechnerisch unter 0,1 zufällige Einzeltreffer).
-- **Hochgeladene Dateien:** Geprüft werden nur Textdokumente bis 2 MB. Word-, PDF- oder Excel-Dateien, die direkt auf die KI-Seite hochgeladen werden, liest die Erweiterung nicht; sie lassen sich mit `blockUncheckedFiles` ganz sperren.
+- **Hochgeladene Dateien:** Geprüft werden Textdokumente bis 20 MB. Word-, PDF- oder Excel-Dateien, die direkt auf die KI-Seite hochgeladen werden, liest die Erweiterung nicht; sie lassen sich mit `blockUncheckedFiles` ganz sperren.
 - **Zeitbudget:** Sehr lange Texte, die auf langsamen Geräten nicht innerhalb des Zeitbudgets geprüft werden können, gelten als „nicht prüfbar“ und werden gemeldet, nie still durchgelassen.
 - Die Statistik zählt Treffer nur als Tageszahl der Kategorie „Firmendaten“.
 

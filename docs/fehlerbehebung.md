@@ -11,7 +11,7 @@
 | „Trotzdem senden“ fehlt | `allowUserOverride=false` oder Aktion `redact`/`block`. Nach der Bestätigung innerhalb von 30 Sekunden erneut senden. |
 | „Bereinigte Version hochladen“ fehlt | Aktion `block`, XLSX, Ganztext-Fund (Personentabelle, Fingerabdruck, versteckte Anweisung, nicht prüfbar), DOCX mit eingebetteten Objekten/Makros, oder ein Treffer steht ausserhalb des normalen Texts (nachverfolgte Änderungen, Feldcodes, Link-Ziele, Dokumenteigenschaften). Dann Datei selbst bereinigen (z. B. Änderungen annehmen) und neu hochladen. |
 | Bereinigte PDF sieht anders aus | Gewollt: aus einer PDF entsteht eine reine Textfassung, Layout und Bilder gehen verloren. Wer das Layout braucht, bereinigt die Quelldatei (z. B. DOCX) und erzeugt die PDF neu. |
-| PDF/DOCX „Text konnte nicht geprüft werden“ | Gescannte PDF ohne Textebene, verschlüsselte oder beschädigte Datei, über 20 MB, mehr als 5 Dateien oder Prüfung über 20 s. Die Datei wird nicht still durchgelassen; gescannte Seiten werden nicht per Texterkennung gelesen. |
+| Dokument „zu lang für die vollständige Prüfung“ oder „konnte nicht vollständig geprüft werden“ | Gescannte PDF ohne Textebene, verschlüsselte oder beschädigte Datei, über 20 MB, PDF, Word oder Excel über 5 Millionen Zeichen, mehr als 5 Dateien oder Prüfung über 120 s. Die Datei wird nicht still durchgelassen; gescannte Seiten werden nicht per Texterkennung gelesen. |
 | Bereinigte DOCX enthält noch Bilder/Schriften | Gewollt: nur Textstellen und Autor-Angaben werden geändert; Bilder (samt Bild-Metadaten) und eingebettete Schriften bleiben. Bilder vorher aus dem Dokument entfernen, wenn sie heikel sind. |
 
 ## Testen

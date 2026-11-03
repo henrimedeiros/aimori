@@ -18,7 +18,7 @@ Urteil Sicherheits-Review: **FREIGEGEBEN MIT AUFLAGEN** (vor dem Bauen, Prototyp
 | 12 | SW nimmt nur vom eigenen Content Script (Top-Frame, 4 KI-Seiten), `string` ≤ 4000 Zeichen; kein `externally_connectable` | `background.js` `handleKi` + `fromContent`; Tests `tests/background.test.mjs`, `tests/ki.test.mjs` |
 | 13 | Offscreen nur mit Zielmarke vom Service Worker | `ui/ki.js`: `target 'dlx-ki'`, `sender.url === background.js`, kein `sender.tab` |
 | 14 | Je Tab eine Anfrage, neuere ersetzt ältere; global ≤ 4; Zeitgrenze, danach Worker neu, Rückfall Regeln | `background.js` (`kiTab`, `KI_QUEUE_MAX`, `KI_RUN_MS` 3 s, beim ersten Laden `KI_LOAD_MS`), Content Script mit Sequenznummer |
-| 15 | Lange Texte in überlappenden Fenstern, Ungeprüftes als „KI nur teilweise“ | `ui/ki-lauf.mjs` (510 Token, 64 Überlappung); über 4000 Zeichen dezenter Eintrag `ki_partial` im Live-Hinweis |
+| 15 | Lange Texte in überlappenden Fenstern, Ungeprüftes als „KI nur teilweise“ | `ui/ki-lauf.mjs` (510 Token, 64 Überlappung); Text in Abschnitten bis 40 000 Zeichen (`DLX.ki.sections`); darüber oder bei Ausfall mittendrin ein Hinweissatz `ki_partial`, kein Fund, nicht schwärzbar |
 | 16 | Antwort im Content Script prüfen (Positivliste, Grenzen, Konfidenz) | `engine/ki.js` `valid()` in Content Script und Service Worker |
 | 17 | Leerlauf mit OCR abstimmen | `background.js` `docIdle()` (OCR 60 s, KI 10 min, schliesst nur, wenn beides ruht); Modell im Offscreen nach 10 min ohne Prüfung entladen |
 | 18 | Regeln laufen immer, KI entschärft nie | `engine/ki.js` `merge()`: KI-Funde, die Regel-Funde überlappen, fallen weg |

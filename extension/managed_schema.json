@@ -3,18 +3,18 @@
   "properties": {
     "branding": {
       "title": "Branding",
-      "description": "White-label appearance shown in the popup, options page and warning dialog.",
+      "description": "White-label appearance shown in the popup, options page and warning dialog. Empty fields keep the default.",
       "type": "object",
       "properties": {
         "productName": { "title": "Product name", "description": "Name shown instead of the default product name (1-40 characters).", "type": "string" },
         "companyName": { "title": "Company name", "description": "Organisation shown as the managing company (max. 80 characters).", "type": "string" },
-        "logo": { "title": "Logo", "description": "Logo as data URI (data:image/png;base64,... or data:image/svg+xml;base64,...), max. 100 KB. URLs are not supported because the extension has no network access.", "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/]+=*$" },
-        "primaryColor": { "title": "Primary colour", "description": "Hex colour #rrggbb for headers and buttons.", "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
-        "accentColor": { "title": "Accent colour", "description": "Hex colour #rrggbb for highlights.", "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
-        "supportUrl": { "title": "Support link", "description": "https link to the internal support page (opened only when the user clicks it).", "type": "string", "pattern": "^https://" },
+        "logo": { "title": "Logo", "description": "Logo as data URI (data:image/png;base64,... or data:image/svg+xml;base64,...), max. 100 KB. URLs are not supported because the extension has no network access.", "type": "string", "pattern": "^(data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/]+=*)?$" },
+        "primaryColor": { "title": "Primary colour", "description": "Hex colour #rrggbb for headers and buttons.", "type": "string", "pattern": "^(#[0-9a-fA-F]{6})?$" },
+        "accentColor": { "title": "Accent colour", "description": "Hex colour #rrggbb for highlights.", "type": "string", "pattern": "^(#[0-9a-fA-F]{6})?$" },
+        "supportUrl": { "title": "Support link", "description": "https link to the internal support page (opened only when the user clicks it).", "type": "string", "pattern": "^(https://|$)" },
         "supportText": { "title": "Support text", "description": "Short support note shown in the dialog (max. 200 characters).", "type": "string" },
         "aiNoticeText": { "title": "AI site notice text", "description": "Text on AI sites that are not approved (aiSiteMode), e.g. \"Please use our company Copilot.\" Max. 200 characters, shown as plain text.", "type": "string" },
-        "aiNoticeUrl": { "title": "AI site notice link", "description": "https link to the approved AI tool (no user name or password in the URL, max. 2000 characters). Opened only when the user clicks it.", "type": "string", "pattern": "^https://" },
+        "aiNoticeUrl": { "title": "AI site notice link", "description": "https link to the approved AI tool (no user name or password in the URL, max. 2000 characters). Opened only when the user clicks it.", "type": "string", "pattern": "^(https://|$)" },
         "aiNoticeLinkText": { "title": "AI site notice link text", "description": "Button text for the link (max. 60 characters). Default: Open approved AI tool.", "type": "string" }
       }
     },

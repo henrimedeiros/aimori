@@ -42,7 +42,7 @@ Beispiel einer vollständigen Richtlinie mit `customTerms`: `enterprise/example-
 
 ## Verteilen
 - **Gruppenrichtlinie (ADMX):** Richtlinie „Eigene Begriffe“: Salz als Text, Prüfsummen als Liste (ein Registry-Wert je Eintrag). Siehe [GPO](deployment/gpo.md).
-- **Intune:** ADMX-Import oder Skript wie unten, siehe [Intune](deployment/intune.md).
+- **Intune:** ADMX-Import (nur Chrome) oder Skript wie unten (Edge und Chrome), siehe [Intune](deployment/intune.md).
 - **PowerShell / RMM** (Registry, siehe [Registry-Skripte](deployment/registry-skripte.md)) – die erzeugte Datei ist selbst eine gültige Richtlinien-JSON und lässt sich direkt oder zusammen mit der übrigen Richtlinie schreiben:
   ```powershell
   # Teil-Richtlinie nur mit den eigenen Begriffen (als Administrator, Edge und Chrome)

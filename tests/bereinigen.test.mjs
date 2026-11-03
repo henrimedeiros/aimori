@@ -172,3 +172,13 @@ test('Quelltext: Knopf und Nachpruefung fail-closed (Auflagen 2, 8, 9)', () => {
   const src = fs.readFileSync(path.join(EXT, 'engine/bereinigen.js'), 'utf8');
   assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|console\.|chrome\.storage|https?:\/\//.test(src));
 });
+
+test('PDF-Fassung: sehr lange Zeile wird linear umbrochen, kein Zeichen geht verloren', () => {
+  const text = 'Wort '.repeat(80000).trim();
+  const t0 = Date.now();
+  const out = DLX.bereinigen.pdf(text);
+  assert.ok(Date.now() - t0 < 5000, 'nicht quadratisch');
+  const s = Buffer.from(out).toString('latin1');
+  const shown = Array.from(s.matchAll(/\((.*)\) Tj/g), (m) => m[1]).join(' ');
+  assert.equal(shown.split(/\s+/).filter(Boolean).length, 80000);
+});

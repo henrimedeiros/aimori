@@ -69,7 +69,7 @@ Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge\3rdparty\extensio
 Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Google\Chrome\3rdparty\extensions\<ID>\policy" -Name aiSiteMode, suggestedAiSite
 ```
 
-Danach im Browser `edge://policy` bzw. `chrome://policy` → „Richtlinien neu laden“. Intune (Einstellungskatalog oder ADMX-Import) und GPO setzen dieselben Werte: [Intune](deployment/intune.md), [GPO](deployment/gpo.md). In der Gruppenrichtlinie (ADMX) heissen die Einträge „KI-Seiten-Kontrolle“, „Freigegebene KI-Seiten“, „Gesperrte KI-Seiten“ und unter Branding „Hinweistext KI-Seiten“, „Link KI-Seiten-Hinweis“, „Knopftext KI-Seiten-Hinweis“.
+Danach im Browser `edge://policy` bzw. `chrome://policy` → „Richtlinien neu laden“. Intune (ADMX-Import nur für Chrome, für Edge per Skript) und GPO setzen dieselben Werte: [Intune](deployment/intune.md), [GPO](deployment/gpo.md). In der Gruppenrichtlinie (ADMX) heissen die Einträge „KI-Seiten-Kontrolle“, „Freigegebene KI-Seiten“, „Gesperrte KI-Seiten“ und unter Branding „Hinweistext KI-Seiten“, „Link KI-Seiten-Hinweis“, „Knopftext KI-Seiten-Hinweis“.
 
 ## Rechte: einmal erlauben
 
