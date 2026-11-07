@@ -1638,10 +1638,10 @@ async function bildpruefung() {
   const log4 = await T.log();
   check('Ablegen: Trotzdem (zwei Klicks) -> Original wird abgelegt', log4 === `DROP:rechnung.webp:${shortHash(fs.readFileSync(files.webp))}|`, log4);
 
-  // 5) Zu gross laut Dateikopf (30 Megapixel) -> klare Meldung, nicht still durchgelassen
+  // 5) Zu gross laut Dateikopf (56 Megapixel, Grenze 50) -> klare Meldung, nicht still durchgelassen
   await T.page.ev(`document.getElementById('log').textContent = ''`);
   const big = Buffer.from(ohnePng, 'base64');
-  big.writeUInt32BE(6000, 16); big.writeUInt32BE(5000, 20);
+  big.writeUInt32BE(8000, 16); big.writeUInt32BE(7000, 20);
   await pasteImage(T, big.toString('base64'), 'riesig.png', 'image/png');
   b = await imageBar(/zu gross/, 8000);
   check('Zu grosses Bild: Leiste "Bild zu gross zum Prüfen", nichts weitergegeben', /zu gross/.test(b.text) && (await T.log()) === '', b.text);
@@ -1698,6 +1698,48 @@ async function ocrMess(b64, langs = ['deu', 'eng']) {
   r.total = Date.now() - t0;
   return r;
 }
+// Grosse Fotos (Handy-Fotos bis 50 MP, 21 MB): Einfuegen auf der ChatGPT-Attrappe bis zum Urteil.
+// Das Bild zeichnet der Test-Edge selbst: koerniger Hintergrund (Rauschen = grosse Datei, wie
+// ein Foto), darauf eine Test-IBAN; font = Schriftgroesse im Original (kleine Schrift im Foto).
+// Vor 05.11.2026 lief ein koerniges 12-MP-Foto ueber 20 s und wurde nicht eingefuegt.
+const FOTO = `(async (s) => {
+  const c = document.createElement('canvas'); c.width = s.w; c.height = s.h;
+  const g = c.getContext('2d'); const img = g.createImageData(s.w, s.h); const d = img.data;
+  let x = 12345; for (let i = 0; i < d.length; i += 4) { x = (x * 1103515245 + 12345) & 0x7fffffff; const v = 200 + (x % s.noise); d[i] = v; d[i + 1] = v - 10; d[i + 2] = v - 20; d[i + 3] = 255; }
+  g.putImageData(img, 0, 0); g.fillStyle = '#111'; g.font = (s.font || Math.round(s.h / 40)) + 'px Arial';
+  ['Rechnung 2026-0147', 'IBAN: CH93 0076 2011 6238 5295 7', 'Zahlbar innert 30 Tagen'].forEach((t, i) => g.fillText(t, s.w / 10, s.h / 5 + i * (s.font ? s.font * 1.6 : s.h / 25)));
+  const b = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.95));
+  window.__foto = new Uint8Array(await b.arrayBuffer()); return window.__foto.length; })`;
+async function grossbild() {
+  const out = [];
+  for (const [w, h, noise, font] of [[1920, 1080, 40], [3024, 4032, 16], [3024, 4032, 40], [4032, 3024, 60], [4032, 3024, 120], [6000, 4000, 40], [8000, 6000, 30],
+    [4032, 3024, 40, 40], [4032, 3024, 40, 26], [4032, 3024, 40, 16], [8000, 6000, 30, 60]]) {
+    await closeDialogs();
+    const T = await openTab('https://chatgpt.com/', `document.querySelector('.ProseMirror')`);
+    // Zeichnen dauert bei 48 MP laenger als ein DevTools-Aufruf: im Hintergrund, dann abfragen.
+    await T.page.ev(`window.__foto = null; ${FOTO}(${JSON.stringify({ w, h, noise, font })}); 'ok'`);
+    let bytes = 0;
+    for (let i = 0; i < 120 && !bytes; i++) { await sleep(500); bytes = (await T.page.ev('window.__foto ? window.__foto.length : 0')) || 0; }
+    const t0 = Date.now();
+    await T.page.ev(`(() => { const dt = new DataTransfer(); dt.items.add(new File([window.__foto], 'foto.jpg', { type: 'image/jpeg' }));
+      const ed = document.querySelector('.ProseMirror'); ed.focus(); ed.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); return 'ok'; })()`);
+    const b = await imageBar(/IBAN|Bild zu gross|Bildformat|dauerte zu lange|konnte nicht|Zu viele|noch geprüft/i, 70000);
+    out.push({ px: `${w}x${h}` + (font ? ' Schrift ' + font + ' px' : ''), mb: +(bytes / 1048576).toFixed(1), ms: Date.now() - t0, leiste: b.text.slice(0, 60) || 'keine' });
+    // Groesstes Foto: geschwaerzte Kopie in voller Groesse kommt bei der Seite an.
+    if (b.d && w === 8000 && !font) {
+      await b.d.click('redact');
+      let got = '';
+      for (let i = 0; i < 60 && !got.includes('bild-geschwaerzt'); i++) { await sleep(250); got = (await T.page.ev(`document.getElementById('log').textContent`)) || ''; }
+      check('Grosse Fotos: geschwaerzte Kopie von 8000x6000 kommt an', got.includes('bild-geschwaerzt.png'), got.slice(0, 80));
+    }
+    if (b.d) b.d.close();
+    T.close();
+  }
+  await closeDialogs();
+  console.log('GROSSBILD ' + JSON.stringify(out));
+  check('Grosse Fotos: IBAN in jedem Foto erkannt, je unter 20 s', out.every((x) => /IBAN/.test(x.leiste) && x.ms < 20000), JSON.stringify(out));
+}
+
 async function bildmessung() {
   const { POSITIVE } = await import('../../tests/helpers/testwerte.mjs');
   // Basislinie: erkennt die Erkennung den Wert schon im Quelltext des Bildes? Sonst kein OCR-Fehler.
@@ -3229,7 +3271,7 @@ async function run() {
   const only = process.env.E2E_NUR ? process.env.E2E_NUR.split(',') : null;
   const steps = { chatgpt, kuerzel, claude: () => claude(), 'claude-keyup': () => claude('keyup'), 'claude-keypress': () => claude('keypress'), 'claude-pointerdown': () => claude('pointerdown'), m365, copilot, laender, begriffe, links, kompetenz, lernmodus, kiseiten, kilenkung, konten, bildpruefung, codebild, muster, bericht, logo, leiste, warnleiste, antwortquelle, versteckt, formwache, kopierwarnung, teilen, sprachedokument, diktatsenden, tabellen, training, einstellungen, sprachen, dateien, bereinigen, ki: kierkennung, kiseite, langertext, langedokumente };
   if (process.env.E2E_BILDER) Object.assign(steps, { bilder, store });
-  if (process.env.E2E_BILDMESSUNG) steps.bildmessung = bildmessung;
+  if (process.env.E2E_BILDMESSUNG) Object.assign(steps, { bildmessung, grossbild });
   for (const [name, fn] of Object.entries(steps)) if (!only || only.includes(name)) await fn();
 }
 

@@ -108,8 +108,9 @@
       <string id="documentFingerprints_action_warn">warn</string>
       <string id="documentFingerprints_action_block">block</string>
       <string id="accountRules">Regeln je Konto</string>
-      <string id="accountRules_help">Unterschiedliche Regeln fuer Firmen- und Privatkonten derselben KI-Seite, erkannt nur aus sichtbaren Seitensignalen (Workspace-Name oder Kennzeichen im Kontobereich, Host). Je Seite: Workspace-Namen, Kennzeichen, Stufe fuer Firmenkonto, Privatkonto und nicht erkanntes Konto (normal, allow, hint, block). Nicht erkannt = strengste Stufe. Ungueltige Seiteneintraege fallen auf normal zurueck. Seite oder Benutzer koennen den Kontobereich faelschen: hint statt allow, Workspace-Namen statt Kennzeichen bevorzugen. Ist irgendeine Richtlinie gesetzt, gelten lokale Konto-Regeln nicht. Siehe docs/konto-regeln.md.</string>
+      <string id="accountRules_help">Unterschiedliche Regeln fuer Firmen- und Privatkonten derselben KI-Seite, erkannt nur aus sichtbaren Seitensignalen (Workspace-Name oder Kennzeichen im Kontobereich, Host). Je Seite: Workspace-Namen, Kennzeichen, Stufe fuer Firmenkonto, Privatkonto und nicht erkanntes Konto (normal, off, allow, hint, block; off = auf der Seite wird fuer dieses Konto nichts geprueft). Nicht erkannt = strengste Stufe. Ungueltige Seiteneintraege fallen auf normal zurueck. Seite oder Benutzer koennen den Kontobereich faelschen: hint statt allow, Workspace-Namen statt Kennzeichen bevorzugen. Ist irgendeine Richtlinie gesetzt, gelten lokale Konto-Regeln nicht. Siehe docs/konto-regeln.md.</string>
       <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_off">off</string>
       <string id="accountRules_chatgpt_business_allow">allow</string>
       <string id="accountRules_chatgpt_business_hint">hint</string>
       <string id="accountRules_chatgpt_business_block">block</string>
@@ -120,6 +121,7 @@
       <string id="accountRules_chatgpt_unknown_hint">hint</string>
       <string id="accountRules_chatgpt_unknown_block">block</string>
       <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_off">off</string>
       <string id="accountRules_claude_business_allow">allow</string>
       <string id="accountRules_claude_business_hint">hint</string>
       <string id="accountRules_claude_business_block">block</string>
@@ -130,6 +132,7 @@
       <string id="accountRules_claude_unknown_hint">hint</string>
       <string id="accountRules_claude_unknown_block">block</string>
       <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_off">off</string>
       <string id="accountRules_copilot_business_allow">allow</string>
       <string id="accountRules_copilot_business_hint">hint</string>
       <string id="accountRules_copilot_business_block">block</string>
@@ -140,6 +143,7 @@
       <string id="accountRules_copilot_unknown_hint">hint</string>
       <string id="accountRules_copilot_unknown_block">block</string>
       <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_off">off</string>
       <string id="accountRules_m365copilot_business_allow">allow</string>
       <string id="accountRules_m365copilot_business_hint">hint</string>
       <string id="accountRules_m365copilot_business_block">block</string>

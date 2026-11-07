@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Bild zu gross zum Prüfen" },
   "barImageFail_type": { "message": "Bildformat nicht prüfbar" },
   "barImageFail_timeout": { "message": "Bildprüfung dauerte zu lange – nicht eingefügt" },
-  "barImageFail_count": { "message": "Zu viele Bilder auf einmal (höchstens 4)" },
+  "barImageFail_count": { "message": "Zu viele Bilder auf einmal (höchstens 10)" },
   "barImageFail_fail": { "message": "Bild konnte nicht geprüft werden – nicht eingefügt" },
   "barImageFail_busy": { "message": "Ein anderes Bild wird noch geprüft" },
   "redactImage": { "message": "Geschwärzte Kopie einfügen" },

@@ -18,10 +18,11 @@ Stand 14.10.2026. Eingefügte, abgelegte oder hochgeladene Bilder (PNG, JPEG, We
 
 | Grenze | Wert |
 |---|---|
-| Bilder je Einfügen/Ablegen/Auswahl | höchstens 4 (nacheinander geprüft) |
-| Dateigrösse je Bild | höchstens 10 MB |
-| Bildgrösse | höchstens 25 Megapixel, gelesen aus dem Dateikopf **vor** dem Dekodieren |
-| Zeit | höchstens 20 s für alle Bilder zusammen; danach wird die Texterkennung beendet |
+| Bilder je Einfügen/Ablegen/Auswahl | höchstens 10 (nacheinander geprüft) |
+| Dateigrösse je Bild | höchstens 30 MB |
+| Bildgrösse | höchstens 50 Megapixel, gelesen aus dem Dateikopf **vor** dem Dekodieren |
+| Zeit | höchstens 60 s für alle Bilder zusammen; danach wird die Texterkennung beendet |
+| Grosse Bilder | über 4K (3840 × 2160 Bildpunkte, z. B. Handy-Fotos) liest die Texterkennung eine geglättete, auf 4K-Fläche verkleinerte Fassung mit Schwelle je Bildumgebung (Sauvola); geschwärzt wird immer das Original in voller Grösse |
 | Formate | PNG, JPEG, WebP – erkannt an den ersten Bytes, nicht am Dateinamen |
 | Sprachen der Texterkennung | Deutsch + Englisch fest; Französisch, Italienisch oder Portugiesisch zusätzlich, wenn die Oberfläche in dieser Sprache läuft |
 
@@ -92,6 +93,17 @@ Grundlage: [Design-Review Code und Bilder](sicherheit/design-review-code-bilder.
 | 1920×1080 Kaltstart / mit Französisch | 0,96 s (1,21 s) / 1,12 s (1,36 s) |
 | E2E Einfügen bis Leiste inkl. lokaler KI und Dokumentart, alle 4 Attrappen | Ausweis 1,06–1,08 s, Rechnung 1,23–1,24 s (erstes Bild nach Start 2,9 s) |
 | Prüfzeit Text (Median, 200 Läufe) vorher → nachher | Code 300 Zeilen 2,26 → 2,32 ms; Fliesstext 9k Zeichen 1,72 → 1,69 ms |
+
+### Grosse Fotos (05.11.2026)
+
+Handy-Fotos über 3 MB blieben bei der Prüfung hängen: Auf körnigem Hintergrund setzte die Texterkennung ihre eine Schwelle für das ganze Bild mitten ins Rauschen und las tausende Störpunkte als Zeichen. Nach 20 s kam „Bildprüfung dauerte zu lange – nicht eingefügt“. Seitdem werden Bilder über 4K-Fläche geglättet auf 4K-Fläche verkleinert und mit einer Schwelle je Bildumgebung (Sauvola) gelesen. Bilder bis 4K laufen unverändert (Messung oben gleich). Gemessen mit `E2E_BILDMESSUNG=1 E2E_NUR=grossbild` (selbst gezeichnete körnige Fotos mit Test-IBAN, Einfügen bis zur Leiste):
+
+| Foto | vorher | nachher |
+|---|---|---|
+| 3024×4032, 1,5 / 5,8 MB | 1,3 / 1,4 s | 1,3 / 1,4 s |
+| 4032×3024 körnig, 6,7 / 7,4 MB | über 20 s, nicht eingefügt | 1,4 / 1,5 s |
+| 4032×3024, Schrift 16–40 px | über 20 s, Text unlesbar | 1,3–1,4 s, IBAN erkannt |
+| 6000×4000 (11 MB) / 8000×6000 (21 MB) | „Bild zu gross“ | 1,6 / 2,0 s, geschwärzte Kopie in voller Grösse |
 
 ## Bekannte Lücken
 

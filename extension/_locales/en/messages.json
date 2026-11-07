@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Image too large to check" },
   "barImageFail_type": { "message": "Image format cannot be checked" },
   "barImageFail_timeout": { "message": "Image check took too long – not inserted" },
-  "barImageFail_count": { "message": "Too many images at once (max. 4)" },
+  "barImageFail_count": { "message": "Too many images at once (max. 10)" },
   "barImageFail_fail": { "message": "Image could not be checked – not inserted" },
   "barImageFail_busy": { "message": "Another image is still being checked" },
   "redactImage": { "message": "Insert redacted copy" },

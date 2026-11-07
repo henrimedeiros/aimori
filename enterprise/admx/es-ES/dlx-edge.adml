@@ -108,8 +108,9 @@
       <string id="documentFingerprints_action_warn">warn</string>
       <string id="documentFingerprints_action_block">block</string>
       <string id="accountRules">Reglas por cuenta</string>
-      <string id="accountRules_help">Reglas distintas para cuentas de empresa y personales del mismo sitio de IA, detectadas solo a partir de señales visibles de la página (nombre del espacio de trabajo o marcador en la zona de la cuenta, host). Por sitio: workspaces, markers, business, personal, unknown (normal, allow, hint, block). Cuenta no detectada = nivel más estricto. Las entradas de sitio no válidas vuelven a normal. La página o el usuario pueden falsificar la zona de la cuenta: es preferible hint a allow, y nombres de espacio de trabajo a marcadores. Si se define cualquier directiva, se ignoran las reglas de cuenta locales. Consulte docs/konto-regeln.md. La extensión aplica los límites en cualquier caso (máx. 4 sitios, máx. 20 nombres de espacio de trabajo de 1-80 caracteres, allow solo para business con nombres de espacio de trabajo o el marcador de host; las entradas no válidas vuelven a normal); los esquemas de directivas de Chrome no admiten maxItems/maxLength, por lo que la longitud se comprueba mediante un patrón.</string>
+      <string id="accountRules_help">Reglas distintas para cuentas de empresa y personales del mismo sitio de IA, detectadas solo a partir de señales visibles de la página (nombre del espacio de trabajo o marcador en la zona de la cuenta, host). Por sitio: workspaces, markers, business, personal, unknown (normal, off, allow, hint, block). Cuenta no detectada = nivel más estricto. Las entradas de sitio no válidas vuelven a normal. La página o el usuario pueden falsificar la zona de la cuenta: es preferible hint a allow, y nombres de espacio de trabajo a marcadores. Si se define cualquier directiva, se ignoran las reglas de cuenta locales. Consulte docs/konto-regeln.md. La extensión aplica los límites en cualquier caso (máx. 4 sitios, máx. 20 nombres de espacio de trabajo de 1-80 caracteres, allow solo para business con nombres de espacio de trabajo o el marcador de host; las entradas no válidas vuelven a normal); los esquemas de directivas de Chrome no admiten maxItems/maxLength, por lo que la longitud se comprueba mediante un patrón.</string>
       <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_off">off</string>
       <string id="accountRules_chatgpt_business_allow">allow</string>
       <string id="accountRules_chatgpt_business_hint">hint</string>
       <string id="accountRules_chatgpt_business_block">block</string>
@@ -120,6 +121,7 @@
       <string id="accountRules_chatgpt_unknown_hint">hint</string>
       <string id="accountRules_chatgpt_unknown_block">block</string>
       <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_off">off</string>
       <string id="accountRules_claude_business_allow">allow</string>
       <string id="accountRules_claude_business_hint">hint</string>
       <string id="accountRules_claude_business_block">block</string>
@@ -130,6 +132,7 @@
       <string id="accountRules_claude_unknown_hint">hint</string>
       <string id="accountRules_claude_unknown_block">block</string>
       <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_off">off</string>
       <string id="accountRules_copilot_business_allow">allow</string>
       <string id="accountRules_copilot_business_hint">hint</string>
       <string id="accountRules_copilot_business_block">block</string>
@@ -140,6 +143,7 @@
       <string id="accountRules_copilot_unknown_hint">hint</string>
       <string id="accountRules_copilot_unknown_block">block</string>
       <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_off">off</string>
       <string id="accountRules_m365copilot_business_allow">allow</string>
       <string id="accountRules_m365copilot_business_hint">hint</string>
       <string id="accountRules_m365copilot_business_block">block</string>

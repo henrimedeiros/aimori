@@ -815,6 +815,26 @@ test('Konto-Regeln: Konto nicht erkannt -> strengste Stufe; harte Sperre bleibt 
   assert.equal(lastSend(b).action, 'block');
 });
 
+test('Konto-Stufe off: M365 Copilot (host) prueft weder Senden noch Einfuegen noch Bilder; ohne off weiter geprueft', async () => {
+  const rules = { m365copilot: { workspaces: [], markers: ['host'], business: 'off', personal: 'normal', unknown: 'normal' } };
+  const img = { name: 'bild.png', type: 'image/png', size: 100 };
+  const pasteText = (s) => s.fire('paste', s.composer, { clipboardData: { files: [], items: [], getData: () => 'Konto ' + IBAN } });
+  const pasteImg = (s) => s.fire('paste', s.composer, { clipboardData: { files: [img], items: [{ kind: 'file' }], getData: () => '' } });
+  const s = setup({ host: 'copilot.cloud.microsoft', layout: 'm365', cfg: { accountRules: rules, rules: { iban: 'block' } } });
+  await tick();
+  assert.equal(pasteText(s).defaultPrevented, false, 'Einfuegen nicht geprueft');
+  assert.equal(pasteImg(s).defaultPrevented, false, 'Bild geht direkt an die Seite');
+  s.type('IBAN ' + IBAN);
+  s.advance(400);
+  assert.equal(s.enter().defaultPrevented, false, 'Senden nicht angehalten, auch nicht bei harter Sperre');
+  await tick();
+  assert.equal(s.found().length, 0, 'keine Meldung, kein Live-Hinweis');
+  assert.ok(!s.messages.some((m) => m.t === 'ocr'), 'keine Texterkennung');
+  const n = setup({ host: 'copilot.cloud.microsoft', layout: 'm365', cfg: { accountRules: { m365copilot: Object.assign({}, rules.m365copilot, { business: 'allow' }) }, rules: { iban: 'block' } } });
+  await tick();
+  assert.equal(pasteText(n).defaultPrevented, true, 'allow: harte Sperre bleibt');
+});
+
 test('Konto-Regeln: ohne accountRules unveraendert, keine Kontoart in der Meldung', async () => {
   const s = setup();
   accountArea(s, 'Beispiel AG');

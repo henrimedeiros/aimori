@@ -863,7 +863,7 @@ async function ocrRun(data, langs, ms) {
   else { ocrLast = Date.now(); docIdle(); }
   if (!res || typeof res !== 'object') return { error: 'fail' };
   if (res.error) return { error: ['size', 'type', 'timeout'].includes(res.error) ? res.error : 'fail' };
-  if (!DLX.bild.validLines(res.lines) || ![1, 2].includes(res.scale) || !Number.isInteger(res.w) || !Number.isInteger(res.h)) return { error: 'fail' };
+  if (!DLX.bild.validLines(res.lines) || !(Number.isFinite(res.scale) && res.scale > 0 && res.scale <= 2) || !Number.isInteger(res.w) || !Number.isInteger(res.h)) return { error: 'fail' };
   return { lines: res.lines, scale: res.scale, w: res.w, h: res.h, ms: Number.isFinite(res.ms) ? res.ms : 0 };
 }
 async function handleOcr(msg) {

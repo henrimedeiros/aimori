@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Imagen demasiado grande para revisarla" },
   "barImageFail_type": { "message": "Formato de imagen no revisable" },
   "barImageFail_timeout": { "message": "La revisión de la imagen tardó demasiado: no se ha insertado" },
-  "barImageFail_count": { "message": "Demasiadas imágenes a la vez (máx. 4)" },
+  "barImageFail_count": { "message": "Demasiadas imágenes a la vez (máx. 10)" },
   "barImageFail_fail": { "message": "No se pudo revisar la imagen: no se ha insertado" },
   "barImageFail_busy": { "message": "Todavía se está revisando otra imagen" },
   "redactImage": { "message": "Insertar copia enmascarada" },

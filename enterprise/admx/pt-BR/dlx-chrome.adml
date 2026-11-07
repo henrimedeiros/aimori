@@ -110,6 +110,7 @@
       <string id="accountRules">Regras por conta</string>
       <string id="accountRules_help">Regras diferentes para contas corporativas e pessoais do mesmo site de IA, detectadas apenas por sinais visíveis na página (nome do workspace ou marcador na área da conta, host). Por site: workspaces, markers, business, personal, unknown. Conta não detectada = nível mais rigoroso. Entradas de site inválidas voltam para normal. A página ou o usuário podem falsificar a área da conta: prefira hint a allow e nomes de workspace a marcadores. Se qualquer política estiver definida, as regras de conta locais são ignoradas. Veja docs/konto-regeln.md. Os limites são impostos pela extensão em qualquer caso (máx. 4 sites, máx. 20 nomes de workspace de 1-80 caracteres, allow somente para business com nomes de workspace ou o marcador de host; entradas inválidas voltam para normal); os esquemas de política do Chrome não suportam maxItems/maxLength, por isso o comprimento é verificado via pattern.</string>
       <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_off">off</string>
       <string id="accountRules_chatgpt_business_allow">allow</string>
       <string id="accountRules_chatgpt_business_hint">hint</string>
       <string id="accountRules_chatgpt_business_block">block</string>
@@ -120,6 +121,7 @@
       <string id="accountRules_chatgpt_unknown_hint">hint</string>
       <string id="accountRules_chatgpt_unknown_block">block</string>
       <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_off">off</string>
       <string id="accountRules_claude_business_allow">allow</string>
       <string id="accountRules_claude_business_hint">hint</string>
       <string id="accountRules_claude_business_block">block</string>
@@ -130,6 +132,7 @@
       <string id="accountRules_claude_unknown_hint">hint</string>
       <string id="accountRules_claude_unknown_block">block</string>
       <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_off">off</string>
       <string id="accountRules_copilot_business_allow">allow</string>
       <string id="accountRules_copilot_business_hint">hint</string>
       <string id="accountRules_copilot_business_block">block</string>
@@ -140,6 +143,7 @@
       <string id="accountRules_copilot_unknown_hint">hint</string>
       <string id="accountRules_copilot_unknown_block">block</string>
       <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_off">off</string>
       <string id="accountRules_m365copilot_business_allow">allow</string>
       <string id="accountRules_m365copilot_business_hint">hint</string>
       <string id="accountRules_m365copilot_business_block">block</string>

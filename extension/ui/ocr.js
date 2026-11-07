@@ -95,8 +95,9 @@
     const bmp = await createImageBitmap(new Blob([bytes]));
     try {
       if (bmp.width * bmp.height > B.LIMITS.pixels) throw new Error('size');
-      const k = B.scaleFor(bmp.width, bmp.height);
-      const w = bmp.width * k, h = bmp.height * k;
+      const w = Math.max(1, Math.round(bmp.width * B.scaleFor(bmp.width, bmp.height)));
+      const h = Math.max(1, Math.round(bmp.height * w / bmp.width));
+      const k = w / bmp.width;
       const c = new OffscreenCanvas(w, h);
       const ctx = c.getContext('2d', { willReadFrequently: true });
       ctx.fillStyle = '#fff';
@@ -129,6 +130,9 @@
     try {
       const img = await prepare(bytesOf(msg.data));
       await start(msg.langs);
+      // Fotos (verkleinert): Schwelle je Umgebung (Sauvola). Eine Schwelle fuers ganze Bild faellt
+      // bei wenig Schrift auf koernigem Hintergrund mitten ins Rauschen und liest es als Zeichen.
+      await call('setParameters', { params: { thresholding_method: img.scale < 1 ? '2' : '0' } });
       const t0 = performance.now();
       const r = await call('recognize', { image: img.pgm, options: {}, output: { text: false, blocks: true, hocr: false, tsv: false } });
       return { lines: linesOf(r && r.blocks), scale: img.scale, w: img.w, h: img.h, ms: Math.round(performance.now() - t0) };

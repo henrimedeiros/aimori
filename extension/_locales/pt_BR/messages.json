@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Imagem grande demais para verificar" },
   "barImageFail_type": { "message": "Formato de imagem não verificável" },
   "barImageFail_timeout": { "message": "A verificação da imagem demorou demais – não inserida" },
-  "barImageFail_count": { "message": "Imagens demais de uma vez (máx. 4)" },
+  "barImageFail_count": { "message": "Imagens demais de uma vez (máx. 10)" },
   "barImageFail_fail": { "message": "Não foi possível verificar a imagem – não inserida" },
   "barImageFail_busy": { "message": "Outra imagem ainda está sendo verificada" },
   "redactImage": { "message": "Inserir cópia tarjada" },

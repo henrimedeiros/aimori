@@ -36,6 +36,30 @@ test('accountRules: allow nur fuer business und nur mit Workspace-Namen oder hos
   assert.deepEqual(P.validate({ accountRules: { m365copilot: { markers: ['host'], business: 'allow' } } }).errors, []);
 });
 
+test('accountRules: off nur fuer business mit host-Kennzeichen, Workspace-Namen reichen nicht (05.11.2026)', () => {
+  const bad = [
+    [{ m365copilot: { markers: ['host'], personal: 'off' } }, 'accountRules.m365copilot.personal'],
+    [{ m365copilot: { markers: ['host'], unknown: 'off' } }, 'accountRules.m365copilot.unknown'],
+    [{ m365copilot: { markers: ['shield'], business: 'off' } }, 'accountRules.m365copilot.business'],
+    [{ copilot: { markers: ['shield'], business: 'off' } }, 'accountRules.copilot.business'],
+    [{ chatgpt: { workspaces: [NAME], business: 'off' } }, 'accountRules.chatgpt.business'],
+    [{ m365copilot: { workspaces: [NAME], business: 'off' } }, 'accountRules.m365copilot.business'],
+  ];
+  for (const [v, err] of bad) {
+    const r = P.validate({ accountRules: v });
+    assert.deepEqual(plain(r.value.accountRules), {}, 'Eintrag verworfen = bisheriges Verhalten');
+    assert.ok(r.errors.includes(err), err + ' ' + r.errors);
+  }
+  const ok = P.validate({ accountRules: { m365copilot: { markers: ['host'], business: 'off' } } });
+  assert.deepEqual(ok.errors, []);
+  assert.equal(ok.value.accountRules.m365copilot.business, 'off');
+  const c = { accountRules: { m365copilot: { workspaces: ['beispiel ag'], markers: ['host', 'shield'], business: 'off', personal: 'normal', unknown: 'normal' } } };
+  assert.deepEqual(plain(P.accountLevel(c, 'm365copilot', { type: 'business', via: 'host' })), { type: 'business', level: 'off' });
+  assert.deepEqual(plain(P.accountLevel(c, 'm365copilot', { type: 'business', via: 'shield' })), { type: 'business', level: 'hint' }, 'Schild allein hoechstens hint');
+  assert.deepEqual(plain(P.accountLevel(c, 'm365copilot', { type: 'business', via: 'workspace' })), { type: 'business', level: 'hint' }, 'Workspace-Name nie off');
+  assert.deepEqual(plain(P.accountLevel(c, 'm365copilot', null)), { type: 'unknown', level: 'normal' }, 'nicht erkannt nie off');
+});
+
 test('accountRules: harte Grenzen, Kennzeichen je Seite, Fehler nennen nie Namen oder Werte (Auflage 9)', () => {
   const many = Array.from({ length: 21 }, (_, i) => 'Firma ' + i);
   const cases = [

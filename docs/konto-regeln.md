@@ -32,14 +32,16 @@ Gemini wird bewusst nicht unterstützt: Das einzige Kontosignal dort ist die Mai
 | Stufe | Wirkung | Erlaubt bei |
 |---|---|---|
 | `normal` | bisherige Regeln (`rules`) | allen |
+| `off` | auf der Seite wird für dieses Konto **nichts** geprüft: kein Prüfen beim Senden und Einfügen, keine Bild- und Dateiprüfung, kein Live-Hinweis, keine Antwortprüfung, keine Meldung zum Sprachmodus; auch harte Sperren aus `rules` gelten dort nicht | nur `business`, und nur mit Kennzeichen `host` (Microsoft 365 Copilot); Workspace-Namen reichen nicht, weil sie im Kontobereich gefälscht werden können |
 | `allow` | Funde werden nicht gemeldet | nur `business`, und nur mit Workspace-Namen oder Kennzeichen `host` |
 | `hint` | nur dezenter grauer Hinweis beim Tippen, Senden wird nie angehalten | allen |
 | `block` | jeder Fund sperrt das Senden/Einfügen (kein „Trotzdem senden“) | allen |
 
-- Datentypen, die per `rules` (oder Standard) auf `block` stehen, bleiben in **jeder** Stufe gesperrt.
+- Datentypen, die per `rules` (oder Standard) auf `block` stehen, bleiben in jeder Stufe ausser `off` gesperrt.
+- `off` ist für eine KI gedacht, die die Firma vertraglich wie ein eigenes System behandelt (z. B. Microsoft 365 Copilot im eigenen Tenant). Gesperrte KI-Seiten (`blockedAiSites`), die Seitenfreigabe (`allowedSites`) und die Training-Ampel gelten weiter. Wird das Konto nicht über `host` als Firmenkonto erkannt, gilt nie `off` (über `workspace`, `plan` oder `shield` höchstens `hint`), sondern die Stufe für `unknown` bzw. `personal`.
 - Wird ein Firmenkonto nur über `plan` oder `shield` erkannt, gilt höchstens `hint` („Team“ hat jede Firma, auch ein privat gekauftes Team-Abo).
 - Die Leiste zeigt die Kontoart: „Firmenkonto erkannt“, „Privatkonto“ oder „Konto nicht erkannt“ – nie den Workspace-Namen.
-- Ungültige Seiteneinträge (z. B. `allow` beim Privatkonto, unbekanntes Kennzeichen, Name über 80 Zeichen) werden ganz verworfen: für diese Seite gilt dann `normal`. Fehlermeldungen nennen nur Seite, Feld und Index.
+- Ungültige Seiteneinträge (z. B. `allow` oder `off` beim Privatkonto, unbekanntes Kennzeichen, Name über 80 Zeichen) werden ganz verworfen: für diese Seite gilt dann `normal`. Fehlermeldungen nennen nur Seite, Feld und Index.
 - Ist **irgendeine** Richtlinie gesetzt, werden lokale Konto-Regeln nicht gelesen.
 
 ## Richtlinienbeispiel

@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Immagine troppo grande per il controllo" },
   "barImageFail_type": { "message": "Formato immagine non controllabile" },
   "barImageFail_timeout": { "message": "Il controllo dell’immagine ha richiesto troppo tempo – non inserita" },
-  "barImageFail_count": { "message": "Troppe immagini insieme (al massimo 4)" },
+  "barImageFail_count": { "message": "Troppe immagini insieme (al massimo 10)" },
   "barImageFail_fail": { "message": "Impossibile controllare l’immagine – non inserita" },
   "barImageFail_busy": { "message": "È ancora in corso il controllo di un’altra immagine" },
   "redactImage": { "message": "Inserisci copia oscurata" },

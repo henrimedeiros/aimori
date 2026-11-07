@@ -58,9 +58,9 @@ test('Bildart nur aus den Magic Bytes; Abmessungen aus dem Dateikopf (PNG, JPEG,
   assert.equal(B.dims(png(0, 10)), null);
 });
 
-test('Vorpruefung vor dem Dekodieren: Groesse, Art, 25 Megapixel (Auflage 9)', () => {
-  same(B.precheck(png(5000, 5000)), { ok: true, w: 5000, h: 5000 });
-  same(B.precheck(png(6000, 5000)), { ok: false, reason: 'size' }, 'Dekomprimierungsbombe laut Kopf');
+test('Vorpruefung vor dem Dekodieren: Groesse, Art, 50 Megapixel (Auflage 9)', () => {
+  same(B.precheck(png(8000, 6000)), { ok: true, w: 8000, h: 6000 });
+  same(B.precheck(png(8000, 7000)), { ok: false, reason: 'size' }, 'Dekomprimierungsbombe laut Kopf');
   same(B.precheck(new TextEncoder().encode('GIF89a..........')), { ok: false, reason: 'type' });
   const noDims = png(10, 10); noDims[12] = 0;   // IHDR fehlt
   same(B.precheck(noDims), { ok: false, reason: 'size' });
@@ -68,7 +68,13 @@ test('Vorpruefung vor dem Dekodieren: Groesse, Art, 25 Megapixel (Auflage 9)', (
   assert.equal(B.scaleFor(1920, 1080), 2);
   assert.equal(B.scaleFor(2560, 1440), 1, 'gross: nicht vergroessern');
   assert.equal(B.scaleFor(2001, 100), 1, 'ab 2001 px Kante nicht vergroessern (2x bleibt so unter 25 MP)');
-  assert.deepEqual([B.LIMITS.images, B.LIMITS.bytes, B.LIMITS.pixels, B.LIMITS.ms], [4, 10485760, 25000000, 20000]);
+  assert.equal(B.scaleFor(3840, 2160), 1, '4K-Bildschirm unveraendert');
+  // Fotos ueber 4K: verkleinert auf hoechstens OCR_PIXELS (Rauschen hielt die Erkennung sonst ueber 20 s auf).
+  for (const [w, h] of [[4032, 3024], [3024, 4032], [8000, 6000], [5120, 2880]]) {
+    const k = B.scaleFor(w, h);
+    assert.ok(k < 1 && Math.round(w * k) * Math.round(h * k) <= B.OCR_PIXELS * 1.001, `${w}x${h} -> ${k}`);
+  }
+  assert.deepEqual([B.LIMITS.images, B.LIMITS.bytes, B.LIMITS.pixels, B.LIMITS.ms, B.OCR_PIXELS], [10, 30 * 1024 * 1024, 50000000, 60000, 3840 * 2160]);
 });
 
 test('Sprachdaten: deu+eng fest, fra/ita/por nur nach Oberflaechensprache (Auflage 10)', () => {

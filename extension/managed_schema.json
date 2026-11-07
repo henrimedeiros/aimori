@@ -215,7 +215,7 @@
     },
     "accountRules": {
       "title": "Account rules",
-      "description": "Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.",
+      "description": "Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker, off only for business with the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.",
       "type": "object",
       "properties": {
         "chatgpt": {
@@ -245,10 +245,11 @@
             },
             "business": {
               "title": "ChatGPT: business account",
-              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "description": "Level for a detected business account: normal = rules apply; off = nothing is checked on this site for this account (no checks when sending, pasting or uploading images and files, no hints; only with the host marker, i.e. Microsoft 365 Copilot); allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
               "type": "string",
               "enum": [
                 "normal",
+                "off",
                 "allow",
                 "hint",
                 "block"
@@ -256,7 +257,7 @@
             },
             "personal": {
               "title": "ChatGPT: personal account",
-              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -266,7 +267,7 @@
             },
             "unknown": {
               "title": "ChatGPT: account not detected",
-              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -303,10 +304,11 @@
             },
             "business": {
               "title": "Claude: business account",
-              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "description": "Level for a detected business account: normal = rules apply; off = nothing is checked on this site for this account (no checks when sending, pasting or uploading images and files, no hints; only with the host marker, i.e. Microsoft 365 Copilot); allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
               "type": "string",
               "enum": [
                 "normal",
+                "off",
                 "allow",
                 "hint",
                 "block"
@@ -314,7 +316,7 @@
             },
             "personal": {
               "title": "Claude: personal account",
-              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -324,7 +326,7 @@
             },
             "unknown": {
               "title": "Claude: account not detected",
-              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -361,10 +363,11 @@
             },
             "business": {
               "title": "Microsoft Copilot (copilot.com): business account",
-              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "description": "Level for a detected business account: normal = rules apply; off = nothing is checked on this site for this account (no checks when sending, pasting or uploading images and files, no hints; only with the host marker, i.e. Microsoft 365 Copilot); allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
               "type": "string",
               "enum": [
                 "normal",
+                "off",
                 "allow",
                 "hint",
                 "block"
@@ -372,7 +375,7 @@
             },
             "personal": {
               "title": "Microsoft Copilot (copilot.com): personal account",
-              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -382,7 +385,7 @@
             },
             "unknown": {
               "title": "Microsoft Copilot (copilot.com): account not detected",
-              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -420,10 +423,11 @@
             },
             "business": {
               "title": "Microsoft 365 Copilot: business account",
-              "description": "Level for a detected business account: normal = rules apply; allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
+              "description": "Level for a detected business account: normal = rules apply; off = nothing is checked on this site for this account (no checks when sending, pasting or uploading images and files, no hints; only with the host marker, i.e. Microsoft 365 Copilot); allow = findings are not reported (only with workspace names or host marker); hint = grey hint only, never stops sending; block = every finding blocks. Data types set to block in rules always stay blocked.",
               "type": "string",
               "enum": [
                 "normal",
+                "off",
                 "allow",
                 "hint",
                 "block"
@@ -431,7 +435,7 @@
             },
             "personal": {
               "title": "Microsoft 365 Copilot: personal account",
-              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow is not valid).",
+              "description": "Level for a personal account (account area visible, no business signal): normal, hint or block (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",
@@ -441,7 +445,7 @@
             },
             "unknown": {
               "title": "Microsoft 365 Copilot: account not detected",
-              "description": "Level when no account area is visible. The strictest of the three levels applies (allow is not valid).",
+              "description": "Level when no account area is visible. The strictest of the three levels applies (allow and off are not valid).",
               "type": "string",
               "enum": [
                 "normal",

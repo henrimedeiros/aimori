@@ -108,8 +108,9 @@
       <string id="documentFingerprints_action_warn">warn</string>
       <string id="documentFingerprints_action_block">block</string>
       <string id="accountRules">Account rules</string>
-      <string id="accountRules_help">Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.</string>
+      <string id="accountRules_help">Different rules for business and personal accounts of the same AI site, detected only from visible page signals (workspace name or marker in the account area, host). Per site: workspaces, markers, business, personal, unknown. Account not detected = strictest level. Invalid site entries fall back to normal. The page or the user can fake the account area: prefer hint over allow, workspace names over markers. If any policy is set, local account rules are ignored. See docs/konto-regeln.md. Limits are enforced by the extension in any case (max. 4 sites, max. 20 workspace names of 1-80 characters, allow only for business with workspace names or the host marker, off only for business with the host marker; invalid entries fall back to normal); Chrome policy schemas support no maxItems/maxLength, so the length is checked via pattern.</string>
       <string id="accountRules_chatgpt_business_normal">normal</string>
+      <string id="accountRules_chatgpt_business_off">off</string>
       <string id="accountRules_chatgpt_business_allow">allow</string>
       <string id="accountRules_chatgpt_business_hint">hint</string>
       <string id="accountRules_chatgpt_business_block">block</string>
@@ -120,6 +121,7 @@
       <string id="accountRules_chatgpt_unknown_hint">hint</string>
       <string id="accountRules_chatgpt_unknown_block">block</string>
       <string id="accountRules_claude_business_normal">normal</string>
+      <string id="accountRules_claude_business_off">off</string>
       <string id="accountRules_claude_business_allow">allow</string>
       <string id="accountRules_claude_business_hint">hint</string>
       <string id="accountRules_claude_business_block">block</string>
@@ -130,6 +132,7 @@
       <string id="accountRules_claude_unknown_hint">hint</string>
       <string id="accountRules_claude_unknown_block">block</string>
       <string id="accountRules_copilot_business_normal">normal</string>
+      <string id="accountRules_copilot_business_off">off</string>
       <string id="accountRules_copilot_business_allow">allow</string>
       <string id="accountRules_copilot_business_hint">hint</string>
       <string id="accountRules_copilot_business_block">block</string>
@@ -140,6 +143,7 @@
       <string id="accountRules_copilot_unknown_hint">hint</string>
       <string id="accountRules_copilot_unknown_block">block</string>
       <string id="accountRules_m365copilot_business_normal">normal</string>
+      <string id="accountRules_m365copilot_business_off">off</string>
       <string id="accountRules_m365copilot_business_allow">allow</string>
       <string id="accountRules_m365copilot_business_hint">hint</string>
       <string id="accountRules_m365copilot_business_block">block</string>

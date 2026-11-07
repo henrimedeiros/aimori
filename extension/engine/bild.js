@@ -6,8 +6,13 @@
   'use strict';
   const DLX = g.DLX || (g.DLX = {});
 
-  // Grenzen (Auflagen 3, 9, 10): je Ereignis, je Bild, Gesamtzeit.
-  const LIMITS = Object.freeze({ images: 4, bytes: 10 * 1024 * 1024, pixels: 25000000, ms: 20000, words: 20000 });
+  // Grenzen (Auflagen 3, 9, 10): je Ereignis, je Bild, Gesamtzeit. Seit 05.11.2026 hoeher
+  // (Handy-Fotos bis 50 MP); grosse Bilder liest die Texterkennung verkleinert (OCR_PIXELS).
+  const LIMITS = Object.freeze({ images: 10, bytes: 30 * 1024 * 1024, pixels: 50000000, ms: 60000, words: 20000 });
+  // Bis 4K-Bildschirmgroesse liest die Texterkennung das Bild wie es ist. Groessere Bilder
+  // (Handy-Fotos) werden dafuer geglaettet auf diese Groesse verkleinert und mit Schwelle je
+  // Umgebung gelesen (ui/ocr.js): ihr Rauschen hielt die Erkennung sonst ueber 20 s auf.
+  const OCR_PIXELS = 3840 * 2160;
   // Sprachdaten: deu+eng fest, weitere nur nach Oberflaechensprache (Auflage 10).
   const LANGS = Object.freeze(['deu', 'eng', 'fra', 'ita', 'por']);
   const EXTRA = Object.freeze({ fr: 'fra', it: 'ita', pt: 'por' });
@@ -78,9 +83,10 @@
   }
 
   // Kleine Bilder doppelt so gross erkennen (Bildschirmschrift ist oft nur 12-16 px
-  // hoch), die Megapixel-Grenze gilt auch danach (Auflage 9).
+  // hoch), die Megapixel-Grenze gilt auch danach (Auflage 9). Ueber OCR_PIXELS verkleinern.
   function scaleFor(w, h) {
-    return Math.max(w, h) <= 2000 && w * h * 4 <= LIMITS.pixels ? 2 : 1;
+    if (w * h > OCR_PIXELS) return Math.sqrt(OCR_PIXELS / (w * h));
+    return Math.max(w, h) <= 2000 && w * h * 4 <= 25000000 ? 2 : 1;
   }
 
   // Woerter der Texterkennung -> Text mit Lage je Wort. lines: [[[text, x0, y0, x1, y1], ...], ...]
@@ -199,5 +205,5 @@
     ],
   });
 
-  DLX.bild = Object.freeze({ LIMITS, LANGS, PAD, langsFor, sniff, dims, precheck, scaleFor, repair, textOf, validLines, rectsFor, docType });
+  DLX.bild = Object.freeze({ LIMITS, OCR_PIXELS, LANGS, PAD, langsFor, sniff, dims, precheck, scaleFor, repair, textOf, validLines, rectsFor, docType });
 })(globalThis);

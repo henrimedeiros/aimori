@@ -642,6 +642,13 @@
     if (!DLX.policy.accountLevel(cfg, site.id, null)) return null;
     return DLX.policy.accountLevel(cfg, site.id, DLX.account.detect(site.id, cfg.accountRules[site.id], site.composerSelector));
   }
+  // Konto-Stufe off: fuer dieses Konto wird nichts geprueft (Senden, Einfuegen, Bilder, Dateien,
+  // Live-Hinweis, Antworten, Sprachmodus). Gesperrte Seiten und Seitenfreigabe gelten weiter
+  // (seit 05.11.2026).
+  function unchecked() {
+    const acc = accountState();
+    return !!acc && acc.level === 'off';
+  }
 
   // --- Lokale KI-Erkennung (Design-Review KI 16.10.2026) --------------------
   // Text geht in Abschnitten (DLX.ki.sections, je Anfrage unter der Grenze, nacheinander) nur an
@@ -814,6 +821,7 @@
     if (aiBlocked) { stop(e); return false; }
     if (pending) { stop(e); return false; }
     if (!siteAllowed()) { stop(e); showDialog({ kind: 'site', action: 'block' }); return false; }
+    if (unchecked()) return false;
     if (!site.findComposer() && cfg.blockWhenInactive) { stop(e); showDialog({ kind: 'inactive', action: 'block' }); return false; }
     return true;
   }
@@ -856,7 +864,7 @@
   function onFiles(e, files, deliver) {
     const kind = blockKind();
     if (kind) { stop(e); if (!pending) showDialog({ kind, action: 'block' }); return true; }
-    if (passiveFiles()) return false;
+    if (passiveFiles() || unchecked()) return false;
     // Bilder lokal per Texterkennung pruefen statt durchlassen (Design-Review Bilder 14.10.2026).
     if (deliver && imageSet(files)) { stop(e); if (!pending) checkImages(files, deliver); return true; }
     if (deliver && docSet(files)) { stop(e); if (!pending && !reading) checkDocs(files, deliver); return true; }
@@ -1122,7 +1130,7 @@
     if (!n || n.tagName !== 'INPUT' || n.type !== 'file' || !n.files || !n.files.length) return false;
     const files = Array.from(n.files);
     const img = imageSet(files);
-    if ((!img && !docSet(files)) || blockKind() || passiveFiles()) return false;
+    if ((!img && !docSet(files)) || blockKind() || passiveFiles() || unchecked()) return false;
     // Auch bei schon offener Meldung leeren und stoppen (fail-closed wie gate(), Auflage 13
     // MVP): die Seite darf die Auswahl nie ungeprueft lesen; neu waehlen nach der Meldung.
     stop(e);
@@ -1278,7 +1286,7 @@
       if (live.waiting) return;               // Schwaerzen wartet auf die KI (redactChecked)
       const c = liveComposer && liveComposer.isConnected ? liveComposer : site.findComposer();
       liveComposer = c;
-      if (!c || pending || composing || !siteAllowed() || paused()) { hideLive(); return; }
+      if (!c || pending || composing || !siteAllowed() || paused() || unchecked()) { hideLive(); return; }
       const text = site.readText(c);
       // KI-Pruefung anstossen; ihr Ergebnis zeigt die naechste Runde dieses Hinweises.
       kiRequest(text, () => { if (!pending && liveComposer === c) liveCheck(); });
@@ -1428,7 +1436,7 @@
   const ANSWER_COPY_MS = 8000;
   const BLOCKS = 'p,div,li,pre,td,th,tr,h1,h2,h3,h4,h5,h6,blockquote,dd,dt,section,article';
   const ans = { nonce: null, el: null, sig: null, items: null, copyItems: null, copyUntil: 0, barSig: null, dismissed: null, hl: null, sheet: null, name: null };
-  const answerOn = () => cfg.answerCheck !== 'off' && !aiBlocked;
+  const answerOn = () => cfg.answerCheck !== 'off' && !aiBlocked && !unchecked();
 
   function lastAnswer() {
     const list = document.querySelectorAll(ANSWER_SEL);
@@ -1617,6 +1625,7 @@
   function onVoice(e) {
     if (cfg.voiceMode === 'allow' || !site.isVoiceButton(e.composedPath())) return;
     if (aiBlocked || pending) { stop(e); return; }
+    if (unchecked()) return;
     const action = cfg.voiceMode === 'warn' && cfg.allowUserOverride === true ? 'warn' : 'block';
     if (action === 'warn' && voiceOk) return;
     stop(e);
@@ -1679,7 +1688,7 @@
     const path = e.composedPath();
     const fileInput = path.find((n) => n && n.tagName === 'INPUT' && n.type === 'file');
     if (fileInput) {
-      const kind = blockKind() || (cfg.blockUncheckedFiles && !passiveFiles() ? 'fileblock' : null);
+      const kind = blockKind() || (cfg.blockUncheckedFiles && !passiveFiles() && !unchecked() ? 'fileblock' : null);
       if (kind) { stop(e); if (!pending) showDialog({ kind, action: 'block' }); }
       return;
     }

@@ -775,9 +775,16 @@ test('Bilder: OCR nur vom eigenen Content Script, Offscreen-Dokument mit Zielmar
 
 test('Bilder: Groesse vor dem Weiterreichen, ungueltige Antwort = fail, eine Pruefung gleichzeitig ueber alle Tabs (Auflage 3)', async () => {
   const s = setup();
-  assert.deepEqual(await s.send({ t: 'ocr', data: 'A'.repeat(14 * 1024 * 1024), lang: 'de' }, content), { error: 'size' });
+  assert.deepEqual(await s.send({ t: 'ocr', data: 'A'.repeat(41 * 1024 * 1024), lang: 'de' }, content), { error: 'size' }, 'ueber 30 MB Rohbytes');
   s.replies.ocr = async () => ({ lines: [[['x', 1, 2, 3]]], scale: 1, w: 1, h: 1 });
   assert.deepEqual(await s.send({ t: 'ocr', data: B64, lang: 'de' }, content), { error: 'fail' });
+  // Verkleinerte Fotos melden einen Faktor unter 1; 0, negativ, ueber 2 oder kein Zahlwert = fail.
+  for (const scale of [0, -1, 2.5, '1', NaN]) {
+    s.replies.ocr = async () => ({ lines: [], scale, w: 1, h: 1 });
+    assert.deepEqual(await s.send({ t: 'ocr', data: B64, lang: 'de' }, content), { error: 'fail' }, String(scale));
+  }
+  s.replies.ocr = async () => ({ lines: [], scale: 0.4157, w: 8000, h: 6000 });
+  assert.deepEqual(await s.send({ t: 'ocr', data: B64, lang: 'de' }, content), { lines: [], scale: 0.4157, w: 8000, h: 6000, ms: 0 });
   s.replies.ocr = async () => ({ error: 'size' });
   assert.deepEqual(await s.send({ t: 'ocr', data: B64, lang: 'de' }, content), { error: 'size' });
   let release;

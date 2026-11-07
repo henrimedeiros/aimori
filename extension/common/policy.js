@@ -26,7 +26,9 @@
   const aiIds = () => (DLX.aisites && DLX.aisites.IDS) || [];
   // Regeln je Konto (Design-Review Konto-Regeln 14.10.2026): Stufe je Seite und
   // Kontotyp; Kennzeichen je Seite aus fester Liste (Auflage 9).
-  const ACCOUNT_LEVELS = ['allow', 'hint', 'normal', 'block'];
+  // off = Seite wird fuer dieses Konto gar nicht geprueft; nur fuer business und nur ueber das
+  // host-Kennzeichen (kommt nicht aus dem Seiteninhalt, Workspace-Namen sind faelschbar; seit 05.11.2026).
+  const ACCOUNT_LEVELS = ['off', 'allow', 'hint', 'normal', 'block'];
   const ACCOUNT_TYPES = ['business', 'personal', 'unknown'];
   const ACCOUNT_MARKERS = { chatgpt: ['plan'], claude: ['plan'], copilot: ['shield'], m365copilot: ['host', 'shield'] };
   const MAX_WORKSPACES = 20;
@@ -271,7 +273,7 @@
   // Ein Seiteneintrag von accountRules; ungueltig -> null, dann gilt fuer die
   // Seite das bisherige Verhalten (normal). Fehler nennen nur Seite, Feld und
   // Index, nie Namen oder Werte (Auflage 9). allow nur bei business und nur mit
-  // Workspace-Namen oder host-Kennzeichen (Auflagen 1-2).
+  // Workspace-Namen oder host-Kennzeichen (Auflagen 1-2), off nur bei business mit host.
   function accountRule(site, v, errors) {
     const at = 'accountRules.' + site + '.';
     if (!isObj(v)) { errors.push(at.slice(0, -1)); return null; }
@@ -294,8 +296,10 @@
         if (ACCOUNT_LEVELS.indexOf(x) !== -1) out[k] = x; else { errors.push(at + k); ok = false; }
       } else { errors.push(at + k); ok = false; }
     }
-    if (out.personal === 'allow' || out.unknown === 'allow') { errors.push(at + (out.personal === 'allow' ? 'personal' : 'unknown')); ok = false; }
-    if (out.business === 'allow' && !out.workspaces.length && out.markers.indexOf('host') === -1) { errors.push(at + 'business'); ok = false; }
+    const open = (x) => x === 'allow' || x === 'off';
+    if (open(out.personal) || open(out.unknown)) { errors.push(at + (open(out.personal) ? 'personal' : 'unknown')); ok = false; }
+    if (open(out.business) && !out.workspaces.length && out.markers.indexOf('host') === -1) { errors.push(at + 'business'); ok = false; }
+    else if (out.business === 'off' && out.markers.indexOf('host') === -1) { errors.push(at + 'business'); ok = false; }
     return ok ? out : null;
   }
 
@@ -765,8 +769,8 @@
   // Stufe fuer die erkannte Kontoart einer Seite: null = keine Konto-Regel
   // (oder alle Stufen normal), sonst { type, level }. det = { type, via } aus
   // dem Seitenadapter. unknown nimmt die strengste der drei Stufen; allow nur
-  // ueber Workspace-Namen oder Host, sonst hoechstens hint (Auflage 2).
-  const LEVEL_RANK = { allow: 0, hint: 1, normal: 2, block: 3 };
+  // ueber Workspace-Namen oder Host, off nur ueber Host, sonst hoechstens hint (Auflage 2).
+  const LEVEL_RANK = { off: -1, allow: 0, hint: 1, normal: 2, block: 3 };
   function accountLevel(cfg, siteId, det) {
     const rules = cfg && isObj(cfg.accountRules) ? cfg.accountRules : {};
     const rule = Object.hasOwn(rules, siteId) ? rules[siteId] : null;
@@ -774,16 +778,18 @@
     const type = det && ACCOUNT_TYPES.indexOf(det.type) !== -1 ? det.type : 'unknown';
     let level = rule[type];
     if (type === 'unknown') for (const t of ACCOUNT_TYPES) if (LEVEL_RANK[rule[t]] > LEVEL_RANK[level]) level = rule[t];
+    if (type === 'business' && level === 'off' && det.via !== 'host') level = 'hint';
     if (type === 'business' && level === 'allow' && !(det.via === 'workspace' || det.via === 'host')) level = 'hint';
     return { type, level };
   }
 
   // Funde nach Konto-Stufe: block = jeder Fund blockiert; allow/hint = nur Funde,
   // die ohnehin block sind (harte Sperren, Auflage 3), halten das Senden an.
-  // Unpruefbares bleibt in jeder Stufe wie es ist.
+  // Unpruefbares bleibt in jeder Stufe wie es ist. off prueft gar nicht (Content Script);
+  // kommt eine Liste trotzdem hierher, gilt off wie allow.
   function accountFindings(list, level) {
     if (level === 'block') return list.map((f) => (f.id === 'unscannable' ? f : Object.assign({}, f, { action: 'block' })));
-    if (level === 'allow' || level === 'hint') return list.filter((f) => f.action === 'block' || f.id === 'unscannable');
+    if (level === 'off' || level === 'allow' || level === 'hint') return list.filter((f) => f.action === 'block' || f.id === 'unscannable');
     return list;
   }
 

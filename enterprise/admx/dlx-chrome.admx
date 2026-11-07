@@ -490,6 +490,11 @@
               <string>normal</string>
             </value>
           </item>
+          <item displayName="$(string.accountRules_chatgpt_business_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
           <item displayName="$(string.accountRules_chatgpt_business_allow)">
             <value>
               <string>allow</string>
@@ -546,6 +551,11 @@
           <item displayName="$(string.accountRules_claude_business_normal)">
             <value>
               <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_claude_business_off)">
+            <value>
+              <string>off</string>
             </value>
           </item>
           <item displayName="$(string.accountRules_claude_business_allow)">
@@ -606,6 +616,11 @@
               <string>normal</string>
             </value>
           </item>
+          <item displayName="$(string.accountRules_copilot_business_off)">
+            <value>
+              <string>off</string>
+            </value>
+          </item>
           <item displayName="$(string.accountRules_copilot_business_allow)">
             <value>
               <string>allow</string>
@@ -662,6 +677,11 @@
           <item displayName="$(string.accountRules_m365copilot_business_normal)">
             <value>
               <string>normal</string>
+            </value>
+          </item>
+          <item displayName="$(string.accountRules_m365copilot_business_off)">
+            <value>
+              <string>off</string>
             </value>
           </item>
           <item displayName="$(string.accountRules_m365copilot_business_allow)">

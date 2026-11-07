@@ -401,7 +401,7 @@
   "barImageFail_size": { "message": "Image trop grande pour être vérifiée" },
   "barImageFail_type": { "message": "Format d’image non vérifiable" },
   "barImageFail_timeout": { "message": "La vérification de l’image a pris trop de temps – non insérée" },
-  "barImageFail_count": { "message": "Trop d’images à la fois (4 au maximum)" },
+  "barImageFail_count": { "message": "Trop d’images à la fois (10 au maximum)" },
   "barImageFail_fail": { "message": "L’image n’a pas pu être vérifiée – non insérée" },
   "barImageFail_busy": { "message": "Une autre image est encore en cours de vérification" },
   "redactImage": { "message": "Insérer une copie caviardée" },
