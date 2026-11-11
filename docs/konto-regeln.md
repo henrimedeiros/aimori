@@ -63,7 +63,7 @@ Gemini wird bewusst nicht unterstützt: Das einzige Kontosignal dort ist die Mai
     },
     "m365copilot": {
       "markers": ["host"],
-      "business": "allow"
+      "business": "off"
     }
   }
 }
@@ -71,7 +71,7 @@ Gemini wird bewusst nicht unterstützt: Das einzige Kontosignal dort ist die Mai
 
 **Empfehlung und Restrisiko:** Für `business` `hint` statt `allow` verwenden – ausser beim Kennzeichen `host` (Microsoft 365 Copilot), das nicht aus dem Seiteninhalt kommt. Die Erkennung beruht nur auf sichtbaren, teils vom Benutzer beeinflussbaren Seitensignalen, und die Selektoren sind auf den echten Seiten noch nicht live geprüft (siehe Grenzen).
 
-Bedeutung: In ChatGPT im Arbeitsbereich „Beispiel AG“ nur Hinweis, im privaten Konto gesperrt, ohne erkennbares Konto ebenfalls gesperrt (strengste Stufe). Microsoft 365 Copilot ist immer Firmenkonto; dort werden nur harte Sperren gemeldet. Per GPO: ADMX-Richtlinie „Regeln je Konto“ (ein Unterschlüssel je Seite).
+Bedeutung: In ChatGPT im Arbeitsbereich „Beispiel AG“ nur Hinweis, im privaten Konto gesperrt, ohne erkennbares Konto ebenfalls gesperrt (strengste Stufe). Microsoft 365 Copilot im eigenen Tenant wird über das Kennzeichen `host` als Firmenkonto erkannt; dort prüft die Erweiterung mit `off` gar nichts. Soll dort weiterhin wenigstens vor harten Sperren gewarnt werden, `"business": "allow"` setzen. Andere KI-Seiten bleiben davon unberührt: ob sie einen Hinweis zeigen oder gesperrt sind, steuern `aiSiteMode`, `allowedAiSites` und `blockedAiSites` (siehe [Erlaubte KI-Tools](ki-seiten.md)). Per GPO: ADMX-Richtlinie „Regeln je Konto“ (ein Unterschlüssel je Seite).
 
 ## Grenzen (bitte beachten)
 

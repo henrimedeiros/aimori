@@ -21,7 +21,18 @@
 
   // --- Hilfen ---------------------------------------------------------------
   const A = {};
-  A.digits = (s) => String(s).replace(/\D/g, '');
+  // Nur Ziffern; Schleife statt Muster, ein reiner Ziffernwert kommt unveraendert zurueck.
+  A.digits = function (v) {
+    const s = String(v);
+    let out = null, from = 0;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      if (c >= 48 && c <= 57) continue;
+      out = (out === null ? '' : out) + s.slice(from, i);
+      from = i + 1;
+    }
+    return out === null ? s : out + s.slice(from);
+  };
   A.compact = (s) => String(s).replace(/[\s.\-/]/g, '').toUpperCase();
 
   // Luhn (ISO/IEC 7812-1 Anhang B): letzte Ziffer ist Pruefziffer.
@@ -123,12 +134,51 @@
   };
 
   // Kontextwort im Fenster +-50 Zeichen um den Treffer (ohne Gross/Klein).
+  // Die Wortlisten sind fest je Detektor: normalisierte Fassung einmal je Liste, nicht je Treffer.
+  const CTX_WORDS = new WeakMap();
+  const ctxWords = (words) => {
+    let l = CTX_WORDS.get(words);
+    if (!l || l.n !== words.length) {
+      l = words.map((w) => w.normalize('NFKC').toLowerCase());
+      l.n = words.length;
+      CTX_WORDS.set(words, l);
+    }
+    return l;
+  };
+  const NON_ASCII = /[^\x00-\x7f]/;
   A.hasContext = function (text, start, end, words) {
     if (!words || !words.length) return true;
-    // NFKC: Vollbreite/Ligaturen wie Normalform vergleichen (Design-Review Weltweit, Auflage 8).
-    const win = text.slice(Math.max(0, start - 50), Math.min(text.length, end + 50)).normalize('NFKC').toLowerCase();
-    for (const w of words) if (win.indexOf(w.normalize('NFKC').toLowerCase()) !== -1) return true;
+    // NFKC: Vollbreite/Ligaturen wie Normalform vergleichen (Design-Review Weltweit, Auflage 8);
+    // reines ASCII ist schon Normalform.
+    let win = text.slice(Math.max(0, start - 50), Math.min(text.length, end + 50));
+    if (NON_ASCII.test(win)) win = win.normalize('NFKC');
+    win = win.toLowerCase();
+    for (const w of ctxWords(words)) if (win.indexOf(w) !== -1) return true;
     return false;
+  };
+
+  // Kontextpruefung fuer genau einen Text (eine Pruefung lang, danach verworfen): bei reinem
+  // ASCII wird der Text einmal klein geschrieben, und eine Wortliste, die im ganzen Text nicht
+  // vorkommt, ist ohne Fenster entschieden. Gleiche Antwort wie hasContext.
+  A.contextIn = function (text) {
+    if (NON_ASCII.test(text)) return (start, end, words) => A.hasContext(text, start, end, words);
+    let low = null;
+    const seen = new Map();
+    return function (start, end, words) {
+      if (!words || !words.length) return true;
+      const list = ctxWords(words);
+      if (low === null) low = text.toLowerCase();
+      let any = seen.get(list);
+      if (any === undefined) {
+        any = false;
+        for (const w of list) if (low.indexOf(w) !== -1) { any = true; break; }
+        seen.set(list, any);
+      }
+      if (!any) return false;
+      const win = low.slice(Math.max(0, start - 50), Math.min(low.length, end + 50));
+      for (const w of list) if (win.indexOf(w) !== -1) return true;
+      return false;
+    };
   };
 
   DLX.algo = A;

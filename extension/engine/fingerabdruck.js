@@ -68,11 +68,13 @@
   }
 
   // { n: verschiedene Treffer, hit: n >= minMatches, timeout }
-  function scan(text, fp, now) {
+  // ms: Zeitbudget, nie unter LIMITS.ms; bei langen Texten beim Senden und Einfuegen waechst es
+  // mit der Laenge wie in engine.budgetFor.
+  function scan(text, fp, now, ms) {
     if (!fp) return { n: 0, hit: false, timeout: false };
     const t = now || (() => performance.now());
     const hits = new Set();
-    const timeout = each(text, fp.mid, fp.k, fp.sample, (h) => { if (fp.set.has(h)) hits.add(h); }, t() + LIMITS.ms, t);
+    const timeout = each(text, fp.mid, fp.k, fp.sample, (h) => { if (fp.set.has(h)) hits.add(h); }, t() + (ms > LIMITS.ms ? ms : LIMITS.ms), t);
     return { n: hits.size, hit: !timeout && hits.size >= fp.min, timeout };
   }
 

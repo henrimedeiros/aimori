@@ -45,6 +45,8 @@ const CHECK = {
   cc_jcb: 'IIN 3528–3589 + Luhn', cc_cup: 'IIN 62 + Luhn', cc_maestro: 'IIN 5018/5020/5038/5893/6304/6759/6761–6763 + Luhn', lei: 'ISO 7064 MOD 97-10',
   btc_legacy: 'Base58Check (doppeltes SHA-256)', btc_bech32: 'Bech32/Bech32m (BIP-173/350)', eth_addr: 'Format (EIP-55 ohne Keccak nicht geprüft)', ipv6: 'nur globale Unicast-Adressen',
   mac: 'EUI-48, einheitliches Trennzeichen',
+  bearer_token: 'Wert nach „Bearer“: kein Platzhalter, Ziffer und Buchstabe, Entropie ≥ 3 Bit', prose_password: '„Passwort ist …“: 3 von 4 Zeichenarten oder Ziffer + Buchstabe ab 8 Zeichen',
+  crypto_seed: '12/15/18/21/24 Wörter der englischen BIP-39-Liste in Folge + Prüfsumme (SHA-256)', crypto_privkey: 'Schlüsselwort + 64 Hex-Zeichen, kein Füllwert', rf_ref: 'ISO 11649 (ISO 7064 MOD 97-10)', vin: 'ISO 3779: 17 Zeichen ohne I/O/Q, Buchstaben und Ziffern',
   // Paket context (docs/kontext-risiken.md)
   postal_address: 'Strasse + Hausnummer + PLZ + Ort; allein nur unsicher, sicher als Teil einer Identitäts-Kombi',
   identity_combo: 'abgeleitet: Name + Geburtsdatum + Adresse/Telefon/Mail/Ausweis im Umkreis (Richtlinie identityMinParts)',
@@ -74,7 +76,7 @@ export function render() {
     const name = GLOBAL_NAME[p.id] || (dn ? dn.of(p.id) : p.id);
     L.push(`| ${p.id} | ${name} | ${p.detectors.length} |`);
   }
-  L.push('', 'Nicht als eigener Datentyp umgesetzt (Katalog weltweit, Stand 14.10.2026): `it_vat` (abgedeckt durch `it_iva`), Seed-Phrasen (`crypto_seed`, braucht die BIP-39-Wortliste als gepinnte Datei, Folgeschritt), ' +
+  L.push('', 'Nicht als eigener Datentyp umgesetzt (Katalog weltweit, Stand 14.10.2026): `it_vat` (abgedeckt durch `it_iva`), ' +
     'Namen werden nie allein gemeldet, nur als Teil von `identity_combo` bzw. als Personenbezug für `art9_health`, `hr_record`, `art9_belief` (Paket context, `docs/kontext-risiken.md`); Ethnie, Sexualleben, Biometrie, Strafdaten und Sozialhilfe sind noch nicht umgesetzt. ' +
     'Neue Kartenarten (Discover, Diners, JCB, UnionPay, Maestro) melden nur mit dem Markennamen in der Nähe, damit zufällige Zahlen nicht als Karte gelten.', '');
   return L.join('\n');

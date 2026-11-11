@@ -13,14 +13,15 @@ const MAIL = 'max.muster@example.com';
 const code = async (p) => { try { await p; return 'ok'; } catch (e) { return e.message; } };
 const scanIds = (text) => Array.from(DLX.engine.scan(text, { packs: ['CH', 'finance', 'contact', 'secrets'], rules: {} }).findings, (f) => f.id);
 
-test('Art: Endung vor MIME-Typ, nur die fuenf Formate', () => {
+test('Art: Endung vor MIME-Typ, nur bekannte Formate', () => {
   assert.equal(D.kindOf('Bericht.PDF', ''), 'pdf');
   assert.equal(D.kindOf('a.docx', 'application/octet-stream'), 'docx');
   assert.equal(D.kindOf('a.xlsx', ''), 'xlsx');
   assert.equal(D.kindOf('liste.csv', ''), 'text');
   assert.equal(D.kindOf('notiz', 'text/plain'), 'text');
   assert.equal(D.kindOf('bild.png', 'image/png'), null);
-  assert.equal(D.kindOf('alt.doc', 'application/msword'), null);
+  assert.equal(D.kindOf('alt.doc', 'application/msword'), 'doc');
+  assert.equal(D.kindOf('alt.wps', 'application/vnd.ms-works'), null);
 });
 
 test('TXT/CSV: UTF-8, UTF-16 mit BOM und Windows-1252', async () => {

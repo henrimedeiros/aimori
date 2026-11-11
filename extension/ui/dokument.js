@@ -8,7 +8,7 @@
   const D = g.DLX.datei;
   const TARGET = 'dlx-doc';
   const SW_URL = chrome.runtime.getURL('background.js');
-  const KINDS = ['pdf', 'docx', 'xlsx', 'text'];
+  const KINDS = ['pdf', 'docx', 'xlsx', 'pptx', 'odf', 'rtf', 'doc', 'xls', 'ppt', 'text'];
   let queue = Promise.resolve();
 
   function bytesOf(b64) {

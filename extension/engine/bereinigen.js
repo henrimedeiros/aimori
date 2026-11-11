@@ -148,7 +148,7 @@
   // Text wie der Leser (engine/datei.js docxText): w:t-Inhalte, Absatz/Umbruch = \n, Tab = \t.
   // segs: Lage jedes w:t-Inhalts im XML (a..b) und im Text (t). Trenner gehoeren zu keinem Stueck.
   function segments(xml) {
-    const re = /<(\/?)w:(t|p|tab|br|cr)(?:\s[^>]*)?>/g;
+    const re = /<(\/?)w:(t|p|tab|br|cr)(?:\s[^>]*)?\/?>/g;
     const segs = [];
     let text = '', inT = false, from = 0, m;
     while ((m = re.exec(xml))) {

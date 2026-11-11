@@ -95,7 +95,9 @@ const E2E_KEY = path.join('scripts', 'e2e', 'tmp', 'fake.key');
 test('kein privater Schluessel im Repo (B17)', () => {
   const all = allFiles(ROOT).filter((f) => path.relative(ROOT, f) !== E2E_KEY);
   const re = new RegExp('-----BEGIN [A-Z ]*' + 'PRI' + 'VATE KEY-----');
-  const hits = all.filter((f) => !/\.png$/.test(f) && re.test(fs.readFileSync(f, 'utf8')));
+  // Zwischen Auflisten und Lesen kann eine Wegwerf-Datei anderer Tests verschwinden: dann gibt es nichts zu pruefen.
+  const read = (f) => { try { return fs.readFileSync(f, 'utf8'); } catch (e) { if (e && e.code === 'ENOENT') return ''; throw e; } };
+  const hits = all.filter((f) => !/\.png$/.test(f) && re.test(read(f)));
   assert.deepEqual(hits.map((f) => path.relative(ROOT, f)), []);
   const keyFiles = all.filter((f) => /\.(pem|crx|key)$/i.test(f));
   assert.deepEqual(keyFiles.map((f) => path.relative(ROOT, f)), []);

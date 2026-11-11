@@ -229,7 +229,7 @@ document.getElementById('f').addEventListener('submit', (e) => { e.preventDefaul
 // Vertrauliche Quelle fuer den Zwischenablage-Schutz (nur Testhost bank.example, erfundene Daten).
 const bank = `<!doctype html><html><head><meta charset="utf-8"><title>bank</title></head><body>
 <h1>Konto (Attrappe)</h1>
-<p id="lohn">Lohnliste Oktober Muster AG – Anna Beispiel 6500 CHF</p>
+<p id="lohn">Lohnliste Oktober: Grundlohn 6500 CHF, Zulage 300 CHF, Abzug 120 CHF</p>
 <p id="kurz">Ja OK</p>
 <p id="anders">Kontoauszug Seite 2 Muster Bank</p>
 <!-- Formularwache: Testformular (erfundene Daten), Absenden nur ins eigene Protokoll -->

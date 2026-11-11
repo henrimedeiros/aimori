@@ -7,6 +7,11 @@
 
   const MAX_LEN = 200000;
   const BUDGET_MS = 150;
+  // Senden und Einfuegen (cfg.long): bis MAX_LONG Zeichen, das Zeitbudget waechst mit der Laenge
+  // (BUDGET_MS je angefangene MAX_LEN Zeichen). Alles andere (Live-Hinweis, Antworten,
+  // Zwischenablage) bleibt bei MAX_LEN und BUDGET_MS.
+  const MAX_LONG = 1000000;
+  const budgetFor = (len, long) => BUDGET_MS * (long ? Math.max(1, Math.ceil(len / MAX_LEN)) : 1);
   const ACTIONS = ['off', 'warn', 'redact', 'block'];
   const RANK = { off: 0, warn: 1, redact: 2, block: 3 };
   const now = () => (g.performance && g.performance.now ? g.performance.now() : Date.now());
@@ -23,6 +28,31 @@
     const m = new Map();
     for (const p of Object.values(DLX.packs)) for (const d of p.detectors) if (!m.has(d.id)) m.set(d.id, d);
     return m;
+  }
+
+  // Detektoren mit demselben Muster (z. B. alle Kartenarten): das Muster laeuft je Pruefung
+  // einmal, die Treffer gehen an jeden dieser Detektoren. Schluessel einmal je Detektor.
+  const reKey = (d) => d.rk || (d.rk = d.re.source + '/' + d.re.flags);
+  let sharedKeys = null, sharedFor = -1;
+  function sharedRe() {
+    const all = allDetectors();
+    if (sharedKeys && sharedFor === all.length) return sharedKeys;
+    const n = new Map();
+    for (const d of all) if (!d.derived && !d.maxLen && !d.code) n.set(reKey(d), (n.get(reKey(d)) || 0) + 1);
+    sharedKeys = new Set();
+    for (const [k, c] of n) if (c > 1) sharedKeys.add(k);
+    sharedFor = all.length;
+    return sharedKeys;
+  }
+  function matchesOf(d, src) {
+    const out = [];
+    d.re.lastIndex = 0;
+    let m;
+    while ((m = d.re.exec(src)) !== null) {
+      if (m[0].length === 0) { d.re.lastIndex++; continue; }
+      out.push(m);
+    }
+    return out;
   }
 
   function defaultAction(d) {
@@ -122,8 +152,11 @@
     const t = clock || now;
     const res = { findings: [], unscannable: false, reason: null };
     if (typeof text !== 'string' || !text) return res;
-    if (text.length > MAX_LEN) { res.unscannable = true; res.reason = 'too_long'; return res; }
-    const deadline = dl || t() + BUDGET_MS;
+    // Varianten (engine/entschleiern.js) sind schon dort begrenzt (LIMITS.total) und duerfen
+    // laenger sein als ihr Original: Trenner zwischen umgedrehten Nummern zaehlen mit.
+    const long = !!(cfg && cfg.long);
+    if (text.length > (long ? MAX_LONG : MAX_LEN) && !(cfg && cfg.variant)) { res.unscannable = true; res.reason = 'too_long'; return res; }
+    const deadline = dl || t() + budgetFor(text.length, long);
     const strongOnly = (cfg && cfg.strongOnly) || 0;
     const cand = [];
     const ign = cfg && cfg.ignore && cfg.ignore.hashes && cfg.ignore.hashes.size ? cfg.ignore : null;
@@ -137,6 +170,8 @@
     const lists = [];
     for (const pid of packs) if (DLX.packs[pid]) lists.push(DLX.packs[pid].detectors);
     const byId = detectorMap();
+    const shared = sharedRe(), memo = new Map();
+    const hasCtx = A.contextIn(text);
     if (cfg && cfg.org) lists.push(cfg.org);   // Richtlinie customPatterns, Aktion fest je Muster
     for (const detectors of lists) {
       for (const d of detectors) {
@@ -149,7 +184,14 @@
         const src = d.code ? text.slice(0, DLX.code.MAX) : text;
         if (d.pre && !d.pre.test(src)) continue;
         d.re.lastIndex = 0;
-        const next = d.maxLen ? windows(d, src, deadline, t) : () => d.re.exec(src);
+        let next;
+        if (d.maxLen) next = windows(d, src, deadline, t);
+        else if (!d.code && shared.has(reKey(d))) {
+          let list = memo.get(reKey(d));
+          if (!list) memo.set(reKey(d), list = matchesOf(d, src));
+          let k = 0;
+          next = () => (k < list.length ? list[k++] : null);
+        } else next = () => d.re.exec(src);
         let m;
         while ((m = next()) !== null) {
           if (m[0].length === 0) { d.re.lastIndex++; continue; }
@@ -168,8 +210,10 @@
             if (ok === false) continue;
             if (ok === 'ctx') needsCtx = true;
             else if (typeof ok === 'number') end = start + ok;
+            // { from, len }: der Wert ist ein Teil des Treffers (z. B. die Phrase in einer Wortfolge).
+            else if (ok && typeof ok === 'object') { start += ok.from; end = start + ok.len; }
           }
-          if (needsCtx && !A.hasContext(text, start, end, d.ctx)) continue;
+          if (needsCtx && !hasCtx(start, end, d.ctx)) continue;
           let sure = true;
           if (fmtOnly(d) || (d.pack !== 'secrets' && d.cat !== 'kontakt')) {
             const nc = around(text, start, end, text.slice(start, end));
@@ -178,7 +222,7 @@
           }
           // Ohne Normformat (d.fmt) bzw. bei reinen Format-Typen nur mit Kontextwort sicher.
           if (sure && !needsCtx && (fmtOnly(d) || (d.fmt && !d.fmt.test(text.slice(start, end)))) &&
-            !(d.ctx && A.hasContext(text, start, end, d.ctx))) sure = false;
+            !(d.ctx && hasCtx(start, end, d.ctx))) sure = false;
           if (d.alone === 'unsure') sure = false;   // z. B. Postadresse: sicher nur als Teil einer Kombi
           if (ign && !fmtOnly(d) && ign.hashes.has(ignoreHash(ign.key, d.id, text.slice(start, end)))) {
             if (ctxOn) hidden.push({ id: d.id, cat: d.cat, start, end, sure, ignored: true });
@@ -242,10 +286,17 @@
       else res.contextIncomplete = true;
     }
     // Ueberlappungen: Pruefziffer-Typ vor reinem Format (weak) vor generisch, laenger vor kuerzer.
+    // Die behaltenen Funde ueberlappen nie: nach Lage sortiert reicht je Kandidat eine binaere
+    // Suche statt des Vergleichs mit allen (gleiche Auswahl, gleiche Reihenfolge in kept).
     cand.sort((a, b) => b.prio - a.prio || (b.end - b.start) - (a.end - a.start) || a.start - b.start);
-    const kept = [];
+    const kept = [], order = [];
     for (const c of cand) {
-      if (kept.every((k) => c.end <= k.start || c.start >= k.end)) kept.push(c);
+      let lo = 0, hi = order.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (order[mid].end <= c.start) lo = mid + 1; else hi = mid; }
+      if (lo < order.length && order[lo].start < c.end) continue;
+      while (lo < order.length && (order[lo].start < c.start || (order[lo].start === c.start && order[lo].end <= c.end))) lo++;
+      order.splice(lo, 0, c);
+      kept.push(c);
     }
     // Abgeleitete Funde stufen keinen Grundfund herab: nur, wo sie nichts ueberdecken (Auflage 2).
     // Grundfunde sind hier ueberlappungsfrei und nach Lage sortiert: binaere Suche statt
@@ -323,7 +374,7 @@
     const tick = () => { if (t() > deadline) throw OVER; };
     let vs;
     // Zeitbudget oder jeder andere Fehler -> nicht pruefbar, kein Teilergebnis (Auflage 11).
-    try { vs = E.variants(text, tick); } catch (e) { return null; }
+    try { vs = E.variants(text, tick, !!cfg.long); } catch (e) { return null; }
     if (vs.truncated) return false;
     vs = vs.list;
     const sub = Object.assign({}, cfg, { variant: true, packs: packs.filter((p) => p !== 'context') });
@@ -377,5 +428,5 @@
     return allDetectors().find((d) => d.id === id) || null;
   }
 
-  DLX.engine = { MAX_LEN, BUDGET_MS, ACTIONS, scan, around, ignoreHash, ignorable, strictest, summarize, redact, actionFor, allDetectors, findDetector, defaultAction };
+  DLX.engine = { MAX_LEN, MAX_LONG, BUDGET_MS, budgetFor, ACTIONS, scan, around, ignoreHash, ignorable, strictest, summarize, redact, actionFor, allDetectors, findDetector, defaultAction };
 })(globalThis);

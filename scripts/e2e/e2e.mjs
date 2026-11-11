@@ -85,10 +85,21 @@ let browserWs = null;
 let base = '';
 const check = (name, ok, info) => { results.push(ok); console.log((ok ? 'OK   ' : 'FAIL ') + name + (info ? ' | ' + info : '')); };
 const list = async () => (await fetch(base + '/json/list')).json();
+// WebSocket zu DevTools oeffnen; ein Verbindungsfehler (Ziel gerade beendet, Browser kurz beschaeftigt) wird
+// bis zu fuenfmal wiederholt, danach lesbare Meldung statt eines Ereignisses ohne Text.
+async function oeffnen(wsUrl, wiederholen = 5) {
+  for (let i = 0; ; i++) {
+    const ws = new WebSocket(wsUrl);
+    const ok = await new Promise((r) => { ws.onopen = () => r(true); ws.onerror = () => r(false); });
+    if (ok) return ws;
+    try { ws.close(); } catch (e) { /* schon zu */ }
+    if (i >= wiederholen) throw new Error('DevTools-Verbindung fehlgeschlagen: ' + String(wsUrl).replace(/^ws:\/\/[^/]+/, ''));
+    await sleep(400);
+  }
+}
 
-async function connect(wsUrl) {
-  const ws = new WebSocket(wsUrl);
-  await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+async function connect(wsUrl, wiederholen) {
+  const ws = await oeffnen(wsUrl, wiederholen);
   let id = 0; const waiting = new Map();
   // Konsolenausgaben nur sammeln (Diktat-Senden prueft, dass kein Wert dort landet).
   const konsole = [];
@@ -111,7 +122,9 @@ async function dialog(tries = 20, page = 'ui/dialog.html') {
     const t = (await list()).find((x) => x.url.startsWith(`chrome-extension://${ID}/${page}`));
     if (t) {
       await sleep(700);   // Sichtbarkeit (IntersectionObserver v2) >= 400 ms abwarten
-      const d = await connect(t.webSocketDebuggerUrl);
+      // Der Frame einer gerade geschlossenen Meldung (oder die kurze Warte-Leiste) kann schon weg sein: weitersuchen.
+      let d;
+      try { d = await connect(t.webSocketDebuggerUrl, 0); } catch (e) { await sleep(250); continue; }
       await d.call('Runtime.enable');
       d.text = () => d.ev(`document.body.innerText.replace(/\\s+/g, ' ').trim()`);
       d.has = (k) => d.ev(`!!document.querySelector('[data-k="${k}"]')`);
@@ -586,8 +599,7 @@ async function copilot() {
 // Offscreen-Dokument, Worker) jede Anfrage auf: alles ausser chrome-extension:,
 // data:, blob: und den lokalen Attrappen laesst den Test fehlschlagen.
 async function netzWache() {
-  const ws = new WebSocket(browserWs);
-  await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+  const ws = await oeffnen(browserWs);
   let id = 0;
   const urls = [], fremd = [], typen = new Set();
   const send = (method, params = {}, sessionId) => ws.send(JSON.stringify(Object.assign({ id: ++id, method, params }, sessionId ? { sessionId } : {})));
@@ -834,12 +846,17 @@ async function links() {
 // Modus per lokaler Einstellung (gleicher Codepfad wie die Richtlinie, kein Testschalter);
 // erlaubt (chatgpt), Hinweis (claude), gesperrt (gemini) auf den Attrappen.
 async function swEval(expr) {
-  const t = (await list()).find((x) => x.type === 'service_worker' && x.url.includes(ID));
-  if (!t) return '';
-  const w = await connect(t.webSocketDebuggerUrl);
-  const r = await w.ev(expr);
-  w.close();
-  return r;
+  // Der Service Worker wird nach Leerlauf beendet und neu gestartet: das gelistete Ziel kann beim
+  // Verbinden schon weg sein (Verbindungsfehler). Dann die Ziele neu lesen und erneut versuchen.
+  for (let i = 0; ; i++) {
+    const t = (await list()).find((x) => x.type === 'service_worker' && x.url.includes(ID));
+    if (!t) return '';
+    let w;
+    try { w = await connect(t.webSocketDebuggerUrl); } catch (e) { if (i >= 5) throw new Error('Service Worker nicht erreichbar'); await sleep(300); continue; }
+    const r = await w.ev(expr);
+    w.close();
+    return r;
+  }
 }
 const bannerOpen = async () => (await list()).some((x) => x.url.includes('/ui/aibanner.html'));
 async function kiseiten() {
@@ -1521,7 +1538,8 @@ async function bereinigen() {
     const text = await textOf(f.name, f.type, buf);
     const ids = Array.from(L.engine.scan(text, eng).findings, (x) => x.id);
     check(label + ': Seite bekommt eine neue Datei gleichen Namens, nie das Original', new RegExp('(INPUT|DROP):' + f.name.replace(/\./g, '\\.') + ':[0-9a-f]{8}\\|$').test(got) && !got.includes(shortHash(Buffer.from(f.bytes))), got);
-    check(label + ': bereinigte Datei ohne IBAN/AHV, mit Platzhalter, Rest lesbar', !ids.includes('iban') && !ids.includes('ch_ahv') && /\[[^\]]+\]/.test(text) && /ueberweisen/.test(text), ids.join(',') + ' / ' + text.slice(0, 120));
+    const ersatz = f.ext === 'pdf' ? /[Xx*#._-]{4} [Xx*#._-]{4}/ : /\[[^\]]+\]/;   // PDF: Deckzeichen in der Originaldatei, sonst Platzhalter
+    check(label + ': bereinigte Datei ohne IBAN/AHV, mit ' + (f.ext === 'pdf' ? 'Deckzeichen' : 'Platzhalter') + ', Rest lesbar', !ids.includes('iban') && !ids.includes('ch_ahv') && ersatz.test(text) && /ueberweisen/.test(text), ids.join(',') + ' / ' + text.slice(0, 120));
   };
   for (const f of beispieldateien().filter((x) => x.heikel)) {
     const file = path.join(tmp, f.name);
@@ -1537,7 +1555,7 @@ async function bereinigen() {
       continue;
     }
     check(`Bereinigen ${f.ext}: Leiste mit Knopf "Bereinigte Version hochladen"`, !!b.d && await b.d.has('redact') && /Bereinigte Version hochladen/.test(b.text), b.text.slice(0, 200));
-    check(`Bereinigen ${f.ext}: Hinweis nach erkannten Datentypen` + (f.ext === 'pdf' ? ', Layout geht verloren' : ''), /erkannten Datentypen/.test(b.text) && (f.ext === 'pdf') === /Layout/.test(b.text), b.text.slice(0, 260));
+    check(`Bereinigen ${f.ext}: Hinweis nach erkannten Datentypen` + (f.ext === 'pdf' ? ', Layout bleibt (kein Hinweis auf Textfassung)' : ''), /erkannten Datentypen/.test(b.text) && !/Layout/.test(b.text), b.text.slice(0, 260));
     if (!b.d) continue;
     await b.d.click('redact');
     b.d.close();
@@ -2629,6 +2647,16 @@ async function sprachedokument() {
     await sleep(800);
     d = await dialog();
     t = d ? await d.text() : '';
+    // Im langen Gesamtlauf kommt die neue Richtlinie (warn statt block) manchmal spaeter im Tab an:
+    // steht noch die Sperr-Meldung da, schliessen, kurz warten und erneut klicken (hoechstens dreimal).
+    for (let i = 0; i < 3 && d && /Sprachmodus gesperrt/.test(t); i++) {
+      await clickIn(d, 'cancel'); d.close();
+      await sleep(1500);
+      await T.clickSel('#voice');
+      await sleep(800);
+      d = await dialog();
+      t = d ? await d.text() : '';
+    }
     check('Sprachmodus warn: Meldung "wird nicht geprüft" mit Trotzdem, Knopf noch gestoppt', /Sprachmodus wird nicht geprüft/.test(t) && !!d && (await d.has('override')) && !/VOICE/.test(await T.log()), t.slice(0, 160));
     if (d) { await sleep(500); await d.click('override'); await sleep(500); await d.click('override'); d.close(); }
     await sleep(1000);
@@ -3101,7 +3129,8 @@ async function kiseite() {
     await sleep(150);
   }
   console.log(`INFO KI-Status im Popup: ${gesehen.join(' -> ')} ("lädt" nach ${tLaedt} ms, "aktiv" nach ${tAktiv} ms ab Öffnen, inkl. 2,5 s Tab-Start)`);
-  check('KI-Status live im Popup: "lädt … %" innert Sekunden, danach "aktiv", nie "noch nicht geladen" am Ende', tLaedt > 0 && tLaedt < 6000 && tAktiv > tLaedt && !/noch nicht geladen/.test(gesehen[gesehen.length - 1]), gesehen.join(' | '));
+  // Auf schnellen Rechnern ist das Modell wieder geladen, bevor das Popup steht: dann steht sofort "aktiv" da.
+  check('KI-Status live im Popup: "aktiv" erreicht (davor höchstens "lädt … %" innert Sekunden), nie "noch nicht geladen" am Ende', tAktiv > 0 && (tLaedt === 0 ? tAktiv < 8000 : tLaedt < 6000 && tAktiv > tLaedt) && !/noch nicht geladen/.test(gesehen[gesehen.length - 1]), gesehen.join(' | '));
   // Popup als Tab: kein KI-Tab aktiv -> leiser Knopf, Enter oeffnet das eigene Auswahlfeld, Bedienung nur per Tastatur.
   const key = (k, vk, text) => P.page.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: k, code: k, windowsVirtualKeyCode: vk })
     .then(() => (text ? P.page.call('Input.dispatchKeyEvent', { type: 'char', key: k, text }) : null))
@@ -3278,7 +3307,8 @@ async function run() {
 try {
   await run();
 } catch (e) {
-  check('Ablauf', false, e.message);
+  // Fehlerort mit ausgeben: eine leere Meldung (z. B. geschlossene Verbindung) hilft sonst nicht weiter.
+  check('Ablauf', false, String((e && (e.stack || e.message)) || e).split('\n').slice(0, 6).join(' / '));
 } finally {
   // msedge.exe startet den Browser oft als eigenen Prozess und beendet sich:
   // Browser-PID per DevTools holen, sauber schliessen, sonst gezielt beenden.

@@ -91,3 +91,18 @@ test('Pflicht-Pruefung Runde 4: verschleierte AHV (block) in gekuerzter Zeile un
   // Ohne Tabelle: verschleierte AHV ueberlappt keinen Grundfund und kommt selbst als block.
   assert.equal(DLX.engine.strictest(scan('AHV ' + hidden, { packs: P, rules }).findings), 'block');
 });
+
+// Die Rueckwaerts-Variante ist laenger als ihr Original (Trenner zwischen den umgedrehten Nummern):
+// ein langer Zahlentext unter der Hoechstlaenge bleibt pruefbar, die Variante faellt nicht an MAX_LEN.
+test('Zahlentext nahe der Hoechstlaenge: Rueckwaerts-Variante laenger als MAX_LEN bleibt pruefbar', () => {
+  const cfg = { packs: ['CH', 'finance', 'contact', 'context'] };
+  let filler = '';
+  for (let i = 0; filler.length < DLX.engine.MAX_LEN - 200; i++) filler += (10000000 + i * 3) + '\n';
+  const t = filler + 'Nr. ' + Array.from(AHV).reverse().join('');
+  assert.ok(t.length <= DLX.engine.MAX_LEN);
+  const rev = DLX.entschleiern.variants(t, () => {}).list.find((v) => v.kind === 'rev');
+  assert.ok(rev && rev.s.length > DLX.engine.MAX_LEN, 'Variante laenger als die Hoechstlaenge');
+  const r = DLX.engine.scan(t, cfg, null, performance.now() + 60000);
+  assert.deepEqual([r.unscannable, r.reason], [false, null]);
+  assert.ok(r.findings.some((f) => f.id === 'ch_ahv' && f.obf === 'rev'), 'umgedrehte AHV-Nummer am Ende gefunden');
+});

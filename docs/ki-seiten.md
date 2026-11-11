@@ -44,13 +44,16 @@ Ergebnis: Microsoft 365 Copilot und Copilot ohne Hinweis, DeepSeek gesperrt, all
   "aiSiteMode": "hint",
   "allowedAiSites": ["m365copilot"],
   "blockedAiSites": ["deepseek"],
-  "suggestedAiSite": "m365copilot"
+  "suggestedAiSite": "m365copilot",
+  "accountRules": {
+    "m365copilot": { "markers": ["host"], "business": "off" }
+  }
 }
 ```
 
 Ergebnis: Auf ChatGPT, Claude, Gemini, Copilot und allen anderen bekannten KI-Seiten erscheint oben der Hinweis mit dem Knopf „Zu Microsoft 365 Copilot wechseln“; DeepSeek zeigt die Sperrseite mit demselben Knopf. Mit `"aiSiteMode": "block"` sperrt die Erweiterung alle nicht freigegebenen KI-Seiten und bietet nur noch den Knopf an. Der Knopf öffnet die Seite erst auf Klick in einem neuen Tab, ohne Referrer; es gibt keine automatische Weiterleitung.
 
-**Auch auf der freigegebenen KI läuft die Eingabeprüfung weiter.** „Freigegeben“ schaltet nur Hinweis und Sperrseite ab; sensible Daten werden dort genauso erkannt, geschwärzt oder gestoppt.
+**„Freigegeben“ schaltet nur Hinweis und Sperrseite ab, nicht die Eingabeprüfung.** Sensible Daten werden auf der freigegebenen KI genauso erkannt, geschwärzt oder gestoppt. Erst die Konto-Stufe `off` in `accountRules` schaltet die Prüfung dort ab: im Beispiel nur für Microsoft 365 Copilot im eigenen Tenant (Kennzeichen `host`), nicht für andere KI-Seiten und nicht für Privatkonten ([Regeln je Konto](konto-regeln.md)). Ohne den Eintrag `accountRules` läuft die Prüfung auch auf Microsoft 365 Copilot weiter.
 
 Ohne Richtlinie ist nichts davon aktiv (Standard: `aiSiteMode` = `off`, `suggestedAiSite` leer). In der Gruppenrichtlinie (ADMX) heisst der Eintrag „Vorgeschlagene freigegebene KI“; die Erklärung listet alle gültigen IDs. ADMX-Textfelder können kein Muster erzwingen: ungültige Werte ignoriert die Erweiterung still.
 

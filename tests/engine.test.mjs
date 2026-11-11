@@ -147,3 +147,62 @@ test('Firmen-Woerterbuch: Treffer ueber Pruefsumme (1-3 Woerter), Gross/Klein eg
   assert.deepEqual(vals('Muster allein', cfg), []);
   assert.deepEqual(vals('muster ag', { packs: [], dictionary: { salt: 'anderes', hashes } }), []);
 });
+
+// Tempo der Engine: gleiche Antworten wie die einfachen Fassungen.
+test('algo.digits: nur Ziffern, wie das Muster', () => {
+  for (const v of ['', '123', 'a1b2', '4242 4242-4242.4242', '+41 (0)79', 'ohne', '١٢٣4', 12.5]) {
+    assert.equal(DLX.algo.digits(v), String(v).replace(/\D/g, ''));
+  }
+});
+test('algo.contextIn: gleiche Antwort wie hasContext, mit und ohne Sonderzeichen', () => {
+  const words = ['Karte', 'CVV', 'cartão', 'Tel.'];
+  const texts = [
+    'x'.repeat(80) + ' KARTE 4242 ' + 'y'.repeat(120) + ' 5555 ' + 'z'.repeat(80) + ' tel. 079',
+    'Zahlen 1234 und 5678 ohne jedes Wort aus der Liste '.repeat(4),
+    'Cartão 4242 … ' + 'ä'.repeat(70) + ' 5555 ＣＶＶ 123',
+  ];
+  for (const t of texts) {
+    const inText = DLX.algo.contextIn(t);
+    for (let s = 0; s < t.length; s += 7) {
+      for (const list of [words, [], undefined]) assert.equal(inText(s, s + 4, list), DLX.algo.hasContext(t, s, s + 4, list), t.slice(0, 12) + ' @' + s);
+    }
+  }
+});
+test('Ueberlappungen: Auswahl wie beim Vergleich jedes Kandidaten mit allen behaltenen', () => {
+  // Viele sich ueberlappende Kandidaten: Karten (8 Arten, ein Muster), IBAN, Mail, Telefon dicht an dicht.
+  let t = '';
+  for (let i = 0; i < 300; i++) t += 'Karte 4242 4242 4242 4242 CVV 123 CH93 0076 2011 6238 5295 7 a' + i + '@example.com +41 79 123 45 67\n';
+  const r = DLX.engine.scan(t, ALL, null, performance.now() + 60000);
+  assert.equal(r.unscannable, false);
+  const f = r.findings.filter((x) => !x.meta);
+  for (let i = 1; i < f.length; i++) assert.ok(f[i].start >= f[i - 1].end, 'keine Ueberlappung bei ' + f[i].id);
+  for (const id of ['cc_visa', 'iban', 'email']) assert.equal(f.filter((x) => x.id === id).length, 300, id);
+  assert.ok(!f.some((x) => /^cc_/.test(x.id) && x.id !== 'cc_visa' && x.id !== 'cc_cvv'), 'gemeinsames Kartenmuster: nur die passende Kartenart');
+});
+
+// Senden und Einfuegen: lange Texte bis MAX_LONG mit wachsendem Zeitbudget (cfg.long).
+test('lange Texte: mit long bis MAX_LONG pruefbar, ohne long bleibt MAX_LEN', () => {
+  const E = DLX.engine;
+  assert.deepEqual([E.MAX_LEN, E.MAX_LONG, E.BUDGET_MS], [200000, 1000000, 150]);
+  assert.deepEqual([E.budgetFor(10, false), E.budgetFor(900000, false), E.budgetFor(10, true), E.budgetFor(200000, true), E.budgetFor(200001, true), E.budgetFor(1000000, true)], [150, 150, 150, 150, 300, 750]);
+  const cfg = { packs: ['finance', 'contact'] };
+  const t = 'Der Bericht zeigt die Zahlen im Verkauf. '.repeat(7500) + 'IBAN CH93 0076 2011 6238 5295 7';   // ~307 000 Zeichen
+  assert.ok(t.length > E.MAX_LEN && t.length < E.MAX_LONG);
+  assert.deepEqual([E.scan(t, cfg).unscannable, E.scan(t, cfg).reason], [true, 'too_long'], 'ohne long wie bisher');
+  const r = E.scan(t, Object.assign({ long: true }, cfg), null, performance.now() + 60000);
+  assert.equal(r.unscannable, false);
+  assert.deepEqual(Array.from(r.findings, (f) => [f.id, t.slice(f.start, f.end)]), [['iban', 'CH93 0076 2011 6238 5295 7']], 'Fund am Ende des langen Texts');
+  const over = E.scan('a'.repeat(E.MAX_LONG + 1), Object.assign({ long: true }, cfg));
+  assert.deepEqual([over.unscannable, over.reason], [true, 'too_long'], 'ueber MAX_LONG nicht pruefbar');
+});
+test('lange Texte: das Zeitbudget waechst mit der Laenge und gilt weiter (Ueberschreitung = nicht pruefbar)', () => {
+  const E = DLX.engine;
+  const cfg = { packs: ['finance'], long: true, deobfuscation: false };
+  const t = 'Zahl 1234 und Text. '.repeat(20000);   // 400 000 Zeichen -> Budget 300 ms
+  // Uhr laeuft je Abfrage 1 ms: wenige Abfragen bleiben unter 300 ms, bei 200 ms je Abfrage reicht es nicht.
+  let a = 0;
+  assert.equal(E.scan(t, cfg, () => (a += 1)).unscannable, false);
+  let b = 0;
+  const late = E.scan(t, cfg, () => (b += 200));
+  assert.deepEqual([late.unscannable, late.reason], [true, 'timeout']);
+});

@@ -795,9 +795,13 @@
   // sonst kaemen sie danach als zweite Meldung. Bei Konto-Stufen und Pause zaehlen nur harte Funde.
   const maybeOf = (list, acc) => ((!acc || acc.level === 'normal') && !paused() ? list.filter((f) => !loud(f) && f.action !== 'off') : []);
 
+  // Senden und Einfuegen pruefen bis engine.MAX_LONG Zeichen, mit einem Zeitbudget, das mit der
+  // Laenge waechst; der Live-Hinweis bleibt bei der kurzen Grenze.
+  const scanLong = (text) => DLX.engine.scan(text, Object.assign({}, eng, { long: true }));
   function check(text) {
-    const res = DLX.engine.scan(text, eng);
-    const dm = DLX.fingerprint.scan(text, eng.fp);
+    const res = scanLong(text);
+    // Ueber MAX_LONG ist der Text ohnehin nicht pruefbar: dort bleibt es beim festen Budget.
+    const dm = DLX.fingerprint.scan(text, eng.fp, null, DLX.engine.budgetFor(text.length, text.length <= DLX.engine.MAX_LONG));
     const all = withKi(text, Array.from(res.findings));
     let findings = counted(all);
     if (dm.hit) findings.push(docMatch());
@@ -846,6 +850,14 @@
       if (now - bypass.usedAt < GESTURE_MS) { remember(text); return; }
     }
     bypass = null;
+    if (veryLong(text)) {
+      stop(e);
+      if (!longBusy) {
+        const b = site.sendButtonIn(path) || site.findSendButton();
+        checkLongText({ kind: 'send', text, composer, sendBtn: b && b.getClientRects().length && site.sameBox(b, composer) ? b : null });
+      }
+      return;
+    }
     const r = check(text);
     // Teile ueber mehrere Nachrichten: nur starke Funde ueber die Grenze (Auflage 12).
     if (deobfOn() && tailList().length) {
@@ -1040,7 +1052,7 @@
     const fix = fixable ? await cleanDocs(per) : null;
     if (gone() || (pending && pending !== wait)) return;
     const lines = hit.length === 1 && hit[0].text ? DLX.code.linesOf(hit[0].text, hit[0].findings) : null;
-    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action, fix, loss: !!fix && hit.some((x) => x.kind === 'pdf'), lines, reason: long ? 'long' : null });
+    showDialog({ kind: 'doc', composer: site.findComposer(), files, deliver, findings, action, fix, loss: !!fix && fix.loss === true, lines, reason: long ? 'long' : null });
   }
   const UNREAD = () => ({ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: 'warn', sure: true });
   const FIXABLE = ['text', 'docx', 'pdf'];
@@ -1053,11 +1065,26 @@
     const deadline = Date.now() + DOC_TOTAL_MS;
     const find = async (t) => { const d = await DLX.stuecke.scan(t, detectPart, deadline); if (d.unscannable) throw new Error('fail'); return d.findings; };
     const files = [], expect = new Map();
+    let loss = false;
     try {
       for (const x of per) {
         if (!x.findings.length) { files.push(x.f); continue; }
-        const goal = DLX.engine.redact(x.text, x.findings, placeholder);
-        const body = x.kind === 'text' ? goal : x.kind === 'pdf' ? DLX.bereinigen.pdf(goal) : await DLX.bereinigen.docx(new Uint8Array(await x.f.arrayBuffer()), find, placeholder);
+        let goal = DLX.engine.redact(x.text, x.findings, placeholder);
+        let body;
+        if (x.kind === 'text') body = goal;
+        else if (x.kind === 'pdf') {
+          // Zuerst die Werte in der Original-PDF ueberdecken (Layout bleibt); geht das nicht sicher
+          // (jeder Fehler der Selbstkontrolle), die reine Textfassung wie bisher.
+          try {
+            const ranges = x.findings.filter((f) => !f.meta && f.end > f.start).map((f) => [f.start, f.end]);
+            const r = await D.pdfMask(new Uint8Array(await x.f.arrayBuffer()), x.text, ranges, find, Math.max(500, deadline - Date.now()));
+            body = r.bytes;
+            goal = r.text;
+          } catch (err) {
+            body = DLX.bereinigen.pdf(goal);
+            loss = true;
+          }
+        } else body = await DLX.bereinigen.docx(new Uint8Array(await x.f.arrayBuffer()), find, placeholder);
         const file = new File([body], x.f.name, { type: x.kind === 'pdf' ? 'application/pdf' : x.f.type });
         expect.set(file, goal);
         files.push(file);
@@ -1065,7 +1092,62 @@
     } catch (err) {
       return null;
     }
-    return { files, expect };
+    return { files, expect, loss };
+  }
+
+  // --- Sehr lange Texte (ueber engine.MAX_LONG, bis zur Grenze fuer Dokumente) ----------------
+  // Statt sofort "nicht pruefbar": Ereignis anhalten und den Text wie ein Dokument in Zeitscheiben
+  // pruefen (engine/stuecke.js, hoechstens DOC_TOTAL_MS, Warte-Leiste mit Abbrechen); die Seite
+  // bleibt bedienbar. Ohne Fund geht es weiter wie nach einem bestaetigten Senden: beim Senden genau
+  // ein click() auf den gemerkten Knopf (sonst sendet der Nutzer erneut, die Ausnahme gilt kurz), beim
+  // Einfuegen wird der Text eingesetzt. Fehler, Abbruch oder geaenderter Text: nichts geht weiter.
+  let longBusy = false;
+  const veryLong = (text) => text.length > DLX.engine.MAX_LONG && text.length <= DLX.datei.LIMITS.chars;
+  async function checkLongText(c) {
+    longBusy = true;
+    const wait = { kind: 'docwait', action: 'warn', composer: c.composer };
+    const waitTimer = setTimeout(() => { if (longBusy && !pending) { wait.shown = true; showDialog(wait); } }, DOC_WAIT_MS);
+    const gone = () => wait.shown === true && pending !== wait;
+    const deadline = Date.now() + DOC_TOTAL_MS;
+    let list = null, dm = { hit: false, timeout: false }, inj = [];
+    try {
+      const part = (t) => { if (gone()) return { findings: [], unscannable: true }; const r = DLX.engine.scan(t, eng); return { findings: Array.from(r.findings), unscannable: r.unscannable }; };
+      const d = await DLX.stuecke.scan(c.text, part, deadline);
+      if (!d.unscannable) list = d.findings;
+      if (eng.fp) dm = await DLX.fingerprint.scanLong(c.text, eng.fp, deadline);
+      if (c.kind === 'paste' && hiddenOn()) inj = injFindings(await INJ.checkLong({ text: c.text, html: c.html || '' }, deadline));
+    } catch (err) {
+      list = null;   // jeder Fehler = nicht pruefbar
+    } finally {
+      longBusy = false;
+      clearTimeout(waitTimer);
+    }
+    if (gone()) return;   // abgebrochen: nichts geht weiter
+    if (pending === wait) { pending = null; removeHost(); chrome.runtime.sendMessage({ t: 'cancelPending' }).catch(() => {}); }
+    if (pending) return;
+    // Auswertung wie check(): nicht pruefbar bleibt eine Meldung, eine Fingerabdruck-Sperre bleibt Sperre.
+    const acc = accountState();
+    let findings, maybe = [];
+    if (list === null || dm.timeout) {
+      findings = [{ id: 'unscannable', cat: 'unscannable', start: 0, end: 0, action: eng.fp && eng.fp.action === 'block' && (dm.timeout || dm.hit) ? 'block' : 'warn' }];
+    } else {
+      findings = counted(list);
+      maybe = maybeOf(list, acc);
+    }
+    if (dm.hit) findings.push(docMatch());
+    findings = scoped(findings, acc).concat(inj);
+    if (c.kind === 'paste' && fromSource(c.text)) findings = findings.concat({ id: 'clipboard_source', cat: 'source', start: 0, end: 0, action: cfg.sensitiveSourceAction === 'block' ? 'block' : 'warn' });
+    if (!findings.length) {
+      if (c.kind === 'paste') { if (c.target && c.target.isConnected) insertText(c.target, c.text); return; }
+      // Senden: nur wenn der Text im Feld noch genau der gepruefte ist.
+      if (!c.composer || !c.composer.isConnected || site.readText(c.composer) !== c.text) return;
+      bypass = { hash: textHash('send', c.text), until: Date.now() + BYPASS_MS };
+      if (c.sendBtn) clickRemembered(c); else failNote('noticeLongChecked');
+      return;
+    }
+    const action = DLX.engine.strictest(findings), account = acc ? acc.type : null;
+    showDialog(c.kind === 'send' ? { kind: 'send', composer: c.composer, text: c.text, findings, maybe, action, sendBtn: c.sendBtn, account }
+      : { kind: 'paste', target: c.target, composer: c.composer, text: c.text, findings, maybe, action, account });
   }
 
   function onInsert(e, dt) {
@@ -1077,6 +1159,13 @@
     const text = dt.getData('text/plain');
     if (!text) return;
     if (!gate(e) || passive(e)) return;
+    if (veryLong(text)) {
+      stop(e);
+      const p = e.composedPath();
+      const target = p.find((n) => n && n.nodeType === 1 && (n.isContentEditable || n.tagName === 'TEXTAREA' || n.tagName === 'INPUT')) || site.findComposer();
+      if (!longBusy) checkLongText({ kind: 'paste', text, html: dt.getData('text/html'), target, composer: site.composerIn(p) || site.findComposer() });
+      return;
+    }
     const r = check(text);
     if (fromSource(text)) {
       r.findings = r.findings.concat({ id: 'clipboard_source', cat: 'source', start: 0, end: 0, action: cfg.sensitiveSourceAction === 'block' ? 'block' : 'warn' });
@@ -1327,7 +1416,7 @@
   function redactIn(c, choice) {
     if (!c || !c.isConnected || !site.inComposer([c]) || pending) return;
     const text = site.readText(c);
-    const res = DLX.engine.scan(text, eng);
+    const res = scanLong(text);
     const findings = res.unscannable ? [] : withKi(text, Array.from(res.findings));
     if (findings.length) {
       const out = replaced(text, findings, choice);

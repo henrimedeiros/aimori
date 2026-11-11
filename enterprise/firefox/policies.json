@@ -93,6 +93,21 @@
           "blockedAiSites": [
             "deepseek"
           ],
+          "accountRules": {
+            "chatgpt": {
+              "workspaces": [
+                "Example AG"
+              ],
+              "business": "hint",
+              "personal": "block"
+            },
+            "m365copilot": {
+              "markers": [
+                "host"
+              ],
+              "business": "off"
+            }
+          },
           "dictionary": {
             "salt": "example-salt-2026",
             "hashes": [

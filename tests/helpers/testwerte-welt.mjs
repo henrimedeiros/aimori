@@ -144,6 +144,16 @@ export const WORLD_CASES = [
   ['ipv6', 'Server 2a00:1450:4001:82a::200e', 'Doku-Netz 2001:db8::1'],
   ['mac', 'MAC 00:1A:2B:3C:4D:5E', 'MAC 00:1A:2B-3C:4D:5E'],
   ['hostname_int', 'Freigabe \\\\fileserver01\\daten', 'Seite example.com'],
+  ['bearer_token', 'Authorization: Bearer ' + alnum(40), 'Bearer Zertifikatsverwaltungssystem'],
+  ['prose_password', 'Mein Passwort ist ' + 'Sommer' + '2026!x danke', 'Das Passwort ist 12-stellig und abgelaufen'],
+  ['openrouter_key', 'key ' + 'sk-or-v1-' + hex(64), 'key sk-or-v1-' + hex(20)],
+  ['replicate_token', 'token ' + 'r8_' + alnum(37), 'token r8_' + alnum(10)],
+  ['azdo_pat', 'PAT ' + alnum(76) + 'AZDO' + alnum(4), 'PAT ' + alnum(76) + 'AZDX' + alnum(4)],
+  ['crypto_privkey', 'private key: ' + hex(64), 'public key: ' + hex(64)],
+  // BIP-39-Testvektor (Entropie nur Nullen, oeffentlich dokumentiert); Gegenprobe mit falscher Pruefsumme.
+  ['crypto_seed', 'Seed: ' + 'abandon '.repeat(11) + 'about', 'Seed: ' + 'abandon '.repeat(11) + 'abandon'],
+  ['rf_ref', 'Referenz RF18 5390 0754 7034', 'Referenz RF19 5390 0754 7034'],
+  ['vin', 'Fahrgestellnummer 1HGCM82633A004352', 'Bestellung 1HGCM82633A004352'],
 ];
 
 // Zusaetzliche Testvektoren je Algorithmus (Bech32m BIP-350, weitere Formen).

@@ -22,11 +22,14 @@ Standardaktion: Schutzklasse hoch/mittel → `warn`, tief → `off`. Änderbar j
 | `btc_legacy` | Bitcoin-Adresse (Legacy) | finance | finanz | mittel | Base58Check (doppeltes SHA-256) |  |
 | `btc_bech32` | Bitcoin-Adresse (bech32) | finance | finanz | mittel | Bech32/Bech32m (BIP-173/350) |  |
 | `eth_addr` | Ethereum-Adresse | finance | finanz | mittel | Format (EIP-55 ohne Keccak nicht geprüft) | ja |
+| `rf_ref` | Zahlungsreferenz (RF) | finance | finanz | tief | ISO 11649 (ISO 7064 MOD 97-10) |  |
+| `crypto_seed` | Wallet-Wiederherstellungsphrase (BIP-39) | finance | finanz | hoch | 12/15/18/21/24 Wörter der englischen BIP-39-Liste in Folge + Prüfsumme (SHA-256) |  |
 | `email` | E-Mail-Adresse | contact | kontakt | mittel | Format (Anbieter-Präfix/Struktur) |  |
 | `phone_e164` | Internationale Telefonnummer | contact | kontakt | mittel | 8–15 Ziffern |  |
 | `birthdate` | Geburtsdatum | contact | kontakt | hoch | Schlüsselwort + gültiges Datum |  |
 | `mrz_td3` | Maschinenlesbare Zone (Pass) | travel | reise | hoch | ICAO 7-3-1 (Dokument, Geburt, Ablauf, Gesamt) |  |
 | `mrz_td1` | Maschinenlesbare Zone (Ausweis) | travel | reise | hoch | ICAO 7-3-1 (Dokumentnummer) |  |
+| `vin` | Fahrzeug-Identifizierungsnummer (FIN) | travel | reise | mittel | ISO 3779: 17 Zeichen ohne I/O/Q, Buchstaben und Ziffern | ja |
 | `aws_akid` | AWS-Zugriffsschlüssel-ID | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
 | `aws_secret` | AWS-Geheimschlüssel | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
 | `azure_storage` | Azure-Storage-/Cosmos-DB-Verbindungszeichenfolge | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
@@ -94,6 +97,12 @@ Standardaktion: Schutzklasse hoch/mittel → `warn`, tief → `off`. Änderbar j
 | `ipv6` | Öffentliche IPv6-Adresse | secrets | technik | tief | nur globale Unicast-Adressen |  |
 | `mac` | MAC-Adresse | secrets | technik | tief | EUI-48, einheitliches Trennzeichen |  |
 | `hostname_int` | Interner Hostname / UNC-Pfad | secrets | technik | tief | Format (Anbieter-Präfix/Struktur) |  |
+| `bearer_token` | Bearer-Token (Authorization-Kopfzeile) | secrets | technik | hoch | Wert nach „Bearer“: kein Platzhalter, Ziffer und Buchstabe, Entropie ≥ 3 Bit |  |
+| `prose_password` | Passwort im Fliesstext | secrets | technik | hoch | „Passwort ist …“: 3 von 4 Zeichenarten oder Ziffer + Buchstabe ab 8 Zeichen |  |
+| `openrouter_key` | OpenRouter-API-Schlüssel | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
+| `replicate_token` | Replicate-API-Token | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
+| `azdo_pat` | Azure-DevOps-Zugriffstoken | secrets | technik | hoch | Format (Anbieter-Präfix/Struktur) + Entropie ≥ 3 Bit/Zeichen |  |
+| `crypto_privkey` | Privater Schlüssel (Hex, z. B. Krypto-Wallet) | secrets | finanz | hoch | Schlüsselwort + 64 Hex-Zeichen, kein Füllwert |  |
 | `conf_marker` | Vertraulichkeits-Vermerk | marker | firma | mittel | Wendung überall; Einzelwort nur nach Schlüssel (z. B. Klassifizierung:), allein auf der Zeile oder in GROSSBUCHSTABEN |  |
 | `conf_label` | Vertraulichkeitsbezeichnung (Purview oder eigener Label-Name) | marker | firma | mittel | Purview-Metadaten (nicht öffentlich/allgemein) + Richtlinie labelNames |  |
 | `postal_address` | Postadresse | context | kontakt | mittel | Strasse + Hausnummer + PLZ + Ort; allein nur unsicher, sicher als Teil einer Identitäts-Kombi |  |
@@ -249,7 +258,7 @@ Standardaktion: Schutzklasse hoch/mittel → `warn`, tief → `off`. Änderbar j
 | `cm_figma_token` | Figma-Zugangstoken | community | technik | hoch | Format (Anbieter-Präfix/Struktur) |  |
 | `cm_rubygems_key` | RubyGems-API-Schlüssel | community | technik | hoch | Format (Anbieter-Präfix/Struktur) |  |
 
-Summe: 242 Datentypen in 60 Paketen.
+Summe: 251 Datentypen in 60 Paketen.
 
 Welche Länderpakete aktiv sind, wählt die Erweiterung automatisch nach Zeitzone und Sprachregion (nur lokal, siehe `docs/einstellungen.md`); Richtlinie und Benutzer können das überschreiben. Quellen der Prüfverfahren: siehe `docs/datentypen-quellen.md`.
 
@@ -257,10 +266,10 @@ Welche Länderpakete aktiv sind, wählt die Erweiterung automatisch nach Zeitzon
 
 | Paket | Land / Region | Datentypen |
 |---|---|---|
-| finance | weltweit: Finanzen | 16 |
+| finance | weltweit: Finanzen | 18 |
 | contact | weltweit: Kontakt | 3 |
-| travel | weltweit: Reisedokumente | 2 |
-| secrets | weltweit: Zugangsdaten und Technik | 67 |
+| travel | weltweit: Reisedokumente | 3 |
+| secrets | weltweit: Zugangsdaten und Technik | 73 |
 | marker | weltweit: Vertraulichkeits-Vermerke | 2 |
 | context | weltweit: Kontext-Risiken (Identität, Art. 9, Personal, Listen) | 7 |
 | CH | Schweiz | 7 |
@@ -318,4 +327,4 @@ Welche Länderpakete aktiv sind, wählt die Erweiterung automatisch nach Zeitzon
 | NG | Nigeria | 2 |
 | community | weltweit: Gemeinschafts-Muster (signierter Katalog, docs/muster-mitmachen.md) | 3 |
 
-Nicht als eigener Datentyp umgesetzt (Katalog weltweit, Stand 14.10.2026): `it_vat` (abgedeckt durch `it_iva`), Seed-Phrasen (`crypto_seed`, braucht die BIP-39-Wortliste als gepinnte Datei, Folgeschritt), Namen werden nie allein gemeldet, nur als Teil von `identity_combo` bzw. als Personenbezug für `art9_health`, `hr_record`, `art9_belief` (Paket context, `docs/kontext-risiken.md`); Ethnie, Sexualleben, Biometrie, Strafdaten und Sozialhilfe sind noch nicht umgesetzt. Neue Kartenarten (Discover, Diners, JCB, UnionPay, Maestro) melden nur mit dem Markennamen in der Nähe, damit zufällige Zahlen nicht als Karte gelten.
+Nicht als eigener Datentyp umgesetzt (Katalog weltweit, Stand 14.10.2026): `it_vat` (abgedeckt durch `it_iva`), Namen werden nie allein gemeldet, nur als Teil von `identity_combo` bzw. als Personenbezug für `art9_health`, `hr_record`, `art9_belief` (Paket context, `docs/kontext-risiken.md`); Ethnie, Sexualleben, Biometrie, Strafdaten und Sozialhilfe sind noch nicht umgesetzt. Neue Kartenarten (Discover, Diners, JCB, UnionPay, Maestro) melden nur mit dem Markennamen in der Nähe, damit zufällige Zahlen nicht als Karte gelten.

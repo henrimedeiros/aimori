@@ -6,5 +6,8 @@
   "aiSiteMode": "hint",
   "allowedAiSites": ["m365copilot"],
   "blockedAiSites": ["deepseek"],
-  "suggestedAiSite": "m365copilot"
+  "suggestedAiSite": "m365copilot",
+  "accountRules": {
+    "m365copilot": { "markers": ["host"], "business": "off" }
+  }
 }

@@ -889,7 +889,7 @@ async function handleOcr(msg) {
 // (Auflage 13); Zeitueberschreitung, geschlossener oder verlassener Tab schliessen
 // das Offscreen-Dokument (Auflage 18). Zurueck nur { text, partial } oder ein
 // fester Code; nichts wird gespeichert oder protokolliert (Auflage 19).
-const DOC_KINDS = ['pdf', 'docx'];
+const DOC_KINDS = ['pdf', 'docx', 'pptx', 'odf', 'rtf', 'doc', 'xls', 'ppt'];
 const DOC_FAILS = ['size', 'type', 'encrypted', 'empty', 'timeout', 'busy', 'fail'];
 let docJob = null;
 const rawBytes = (b64) => (b64.length / 4) * 3 - (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);

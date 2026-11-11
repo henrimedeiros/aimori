@@ -44,6 +44,7 @@ Recherchestand 2026-10-13. Muster und Prüfungen sind selbst nach diesen öffent
 | ZA ID/TIN, TR TCKN/VKN, IL Teudat Zehut, AE Emirates ID, SA ID/Iqama, NG NIN/BVN | Home Affairs, SARS; Nüfus, GİB; Rashut HaOchlusin; ICP; Absher (öffentlich dokumentiert); NIMC, NIBSS |
 | EHIC, EU-Führerschein | Beschluss S2 der Verwaltungskommission; Richtlinie 2006/126/EG |
 | Bitcoin Base58Check / Bech32(m), Ethereum | Bitcoin-Wiki (Base58Check); BIP-173, BIP-350; EIP-55 (nicht geprüft) |
+| Wallet-Wiederherstellungsphrase | BIP-39 (englische Wortliste `english.txt`, unverändert in `extension/engine/packs-world.js`, SHA-256 `2f5eed53…dbda` im Test; Prüfsumme nach BIP-39) |
 | IPv6, MAC | RFC 4291, RFC 3849 (Dokumentationspräfix); IEEE 802 EUI-48 |
 
 ## Testwerte in den Unit-Tests

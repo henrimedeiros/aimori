@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { load, EXT } from './helpers/load.mjs';
 import { WORLD_CASES, WORLD_EXTRA } from './helpers/testwerte-welt.mjs';
@@ -21,7 +22,6 @@ const ids = (text, cfg) => Array.from(DLX.engine.scan(text, cfg).findings, (f) =
 // eigener Detektor umgesetzt, mit Grund (docs/datentypen-quellen.md).
 const NICHT_EIGEN = {
   it_vat: 'abgedeckt durch it_iva (Praefix IT gilt ohne Kontextwort)',
-  crypto_seed: 'braucht die BIP-39-Wortliste als gepinnte Datei (Auflage 6/10) -> Folgeschritt',
   person_name: 'Namens-Heuristik gehoert zum Folgeschritt Kombi-Risiko', address_heur: 'Adress-Heuristik gehoert zum Folgeschritt Kombi-Risiko',
   ch_plz_ort: 'nur Verstaerker der Adress-Heuristik (Folgeschritt Kombi-Risiko)',
   art9_gesundheit: 'Art.-9-Folgeschritt', art9_icd: 'Art.-9-Folgeschritt', art9_religion: 'Art.-9-Folgeschritt', art9_politik: 'Art.-9-Folgeschritt', art9_ethnie: 'Art.-9-Folgeschritt',
@@ -33,9 +33,9 @@ test('jeder neue Datentyp hat einen Testfall und jeder Testfall einen Datentyp',
   const world = Array.from(src.matchAll(/\bD\('([a-z0-9_]+)'/g), (m) => m[1]).sort();
   assert.deepEqual(WORLD_CASES.map((c) => c[0]).sort(), world);
   for (const id of world) assert.ok(byId.has(id), id);
-  assert.equal(world.length, 133);
+  assert.equal(world.length, 142);
   for (const id of Object.keys(NICHT_EIGEN)) assert.ok(!byId.has(id), id);
-  assert.equal(det.length, 99 + 133 + 7);   // + 7 Typen im Paket context (tests/kontext.test.mjs, mit mass_table); 99 = 97 + 2 Code-Typen
+  assert.equal(det.length, 99 + 142 + 7);   // + 7 Typen im Paket context (tests/kontext.test.mjs, mit mass_table); 99 = 97 + 2 Code-Typen
 });
 
 for (const [id, pos, neg] of WORLD_CASES) {
@@ -57,7 +57,7 @@ test('Typen ohne Pruefziffer melden ohne Kontextwort nichts', () => {
   }
   // Ohne Kontextwort melden nur Typen mit Laenderpraefix bzw. eindeutiger Struktur und
   // Pruefziffer (Krypto, Token, USt mit Praefix, HETU, CURP/RFC, PAN, GSTIN, CN, SG).
-  const SICHER = 'btc_legacy btc_bech32 twilio hf_token npm_token es_dni es_nie es_vat pt_vat lu_tva se_vat dk_vat ' +
+  const SICHER = 'btc_legacy btc_bech32 twilio hf_token npm_token bearer_token prose_password openrouter_key replicate_token azdo_pat crypto_privkey crypto_seed es_dni es_nie es_vat pt_vat lu_tva se_vat dk_vat ' +
     'fi_hetu fi_vat ie_vat gb_vat pl_vat cz_dic sk_dph hu_vat ro_vat bg_vat hr_vat si_ddv mt_vat ee_kmkr lt_pvm lv_pvn mx_curp mx_rfc in_pan in_gstin sg_nric';
   const world = new Set(WORLD_CASES.map((c) => c[0]));
   assert.deepEqual(det.filter((d) => world.has(d.id) && !d.needsCtx && d.cls !== 'tief').map((d) => d.id).sort(), SICHER.split(' ').sort());
@@ -143,4 +143,51 @@ test('EU-USt-Dispatcher prueft jetzt alle EU-Laender', () => {
     assert.ok(ids('VAT ' + v, EU).includes('eu_vat_generic'), v);
     assert.ok(!ids('Teil ' + v.slice(0, -1) + (v.endsWith('1') ? '2' : '1'), EU).includes('eu_vat_generic') || /^(?:ES|IE|CY)/.test(v), 'ohne Kontext ungueltig: ' + v);
   }
+});
+
+test('Passwort im Fliesstext und Bearer-Token: Treffer nur bei echtem Wert', () => {
+  const hit = (id, text) => { const r = DLX.engine.scan(text, cfgFor(id)); return Array.from(r.findings).filter((f) => f.id === id).map((f) => text.slice(f.start, f.end)); };
+  const pw = (a, b) => a + b;   // Werte zur Laufzeit zusammengesetzt
+  assert.deepEqual(hit('prose_password', 'Das Passwort lautet ' + pw('Tr0ub4dor', '&3')), [pw('Tr0ub4dor', '&3')]);
+  assert.deepEqual(hit('prose_password', 'Das Passwort ist jetzt ' + pw('Winter#', '24ab') + '.'), [pw('Winter#', '24ab')], 'Satzpunkt gehoert nicht zum Wert');
+  assert.deepEqual(hit('prose_password', 'the password is "' + pw('hunter2', 'hunter') + '"'), [pw('hunter2', 'hunter')]);
+  assert.deepEqual(hit('prose_password', 'le mot de passe est ' + pw('Soleil', '2026') + '!'), [pw('Soleil', '2026')]);
+  for (const t of ['Das Passwort ist falsch.', 'Das Passwort ist abgelaufen, bitte neu setzen', 'password is required for login', 'The password is incorrect!',
+    'Passwort ist 12-stellig', 'the password is 8 characters long', 'Passwort ist mindestens zwölf Zeichen', 'password is Password', 'Passwort ist [Passwort]']) {
+    assert.deepEqual(hit('prose_password', t), [], t);
+  }
+  for (const t of ['Bearer of bad news and other Verantwortlichkeiten12', 'authorization: bearer abcdefghijklmnopqrstuvwxyz', 'Bearer <token>', 'Bearer ${ACCESS_TOKEN_VALUE_HERE}']) {
+    assert.deepEqual(hit('bearer_token', t), [], t);
+  }
+  assert.equal(hit('bearer_token', 'curl -H "authorization: bearer ' + 'q7Zk29LmXc81' + 'VbnT55RwpA0d3EJfHsYu"').length, 1, 'klein geschrieben');
+});
+
+test('Wiederherstellungsphrase (BIP-39): Wortliste unveraendert, Pruefsumme entscheidet, Lage der Phrase im Text', () => {
+  const list = Array.from(DLX.bip39);
+  assert.equal(list.length, 2048);
+  assert.equal(crypto.createHash('sha256').update(list.join('\n') + '\n').digest('hex'), '2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda', 'english.txt aus BIP-39');
+  const hit = (text) => { const r = DLX.engine.scan(text, cfgFor('crypto_seed')); return Array.from(r.findings).filter((f) => f.id === 'crypto_seed').map((f) => text.slice(f.start, f.end)); };
+  // Testvektoren aus BIP-39 (Trezor): 12, 18 und 24 Woerter.
+  const V12 = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
+  const V18 = 'letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter always';
+  const V24 = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote';
+  for (const v of [V12, V18, V24]) assert.deepEqual(hit('Backup: ' + v + '.'), [v]);
+  // Mitten im Satz (Woerter davor und danach, die auch in der Liste stehen), gross geschrieben, nummeriert, je Zeile.
+  // Listenwoerter direkt davor und danach gehoeren zum Fund: die echte Phrase liegt sicher ganz darin.
+  assert.deepEqual(hit('my seed phrase ' + V12 + ' backup, ok'), ['seed phrase ' + V12]);
+  assert.deepEqual(hit(V12.toUpperCase()), [V12.toUpperCase()]);
+  const numbered = V12.split(' ').map((w, i) => (i + 1) + '. ' + w).join('\n');
+  assert.equal(hit(numbered).length, 1, 'nummerierte Liste');
+  assert.equal(hit(V12.split(' ').join(',\n')).length, 1, 'ein Wort je Zeile');
+  // Kein Fund: falsche Pruefsumme, zu kurz, ein fremdes Wort dazwischen, gewoehnlicher Text.
+  assert.deepEqual(hit(V12.replace(/yellow$/, 'year')), []);
+  assert.deepEqual(hit(V12.split(' ').slice(0, 11).join(' ')), []);
+  assert.deepEqual(hit(V12.replace('sausage', 'sausages')), []);
+  assert.deepEqual(hit('please check that file again when you have some time later this week and then send your notes over'), []);
+  assert.deepEqual(hit('alle diese kurzen worte sind hier nur ein test ohne jeden wert und ohne sinn fuer uns'), []);
+  // Zufaellige Listenwoerter: hoechstens rund 1 von 16 Folgen besteht die Pruefsumme.
+  let seed = 11, pass = 0;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed >>> 21; };
+  for (let k = 0; k < 400; k++) if (hit(Array.from({ length: 12 }, () => list[rnd()]).join(' ')).length) pass++;
+  assert.ok(pass > 5 && pass < 60, pass + ' von 400');
 });

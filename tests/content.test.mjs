@@ -1204,8 +1204,10 @@ test('Fingerabdruecke mit action block: Zeitbudget oder Dateigrenze ueberschritt
   const fp = Object.assign({}, richtlinie(), { action: 'block' });
   const s = setup({ cfg: { documentFingerprints: fp } });
   await tick();
-  // Sehr langer Text aus lauter verschiedenen Woertern: das Zeitbudget der Fingerabdruecke reicht nicht.
-  s.composer.textContent = Array.from({ length: 300000 }, (_, i) => 'w' + i).join(' ');
+  // Text ueber der Grenze fuer lange Texte (5 Mio. Zeichen) aus lauter verschiedenen Woertern: das feste
+  // Zeitbudget der Fingerabdruecke reicht nicht.
+  s.composer.textContent = Array.from({ length: 650000 }, (_, i) => 'w' + i).join(' ');
+  assert.ok(s.composer.textContent.length > s.DLX.datei.LIMITS.chars);
   assert.equal(s.enter().defaultPrevented, true);
   await tick();
   const f = s.found().pop();
@@ -1223,9 +1225,9 @@ test('Fingerabdruecke mit action block: Zeitbudget oder Dateigrenze ueberschritt
 test('Fingerabdruck-Treffer mit action block bleibt Sperre, auch wenn der Haupt-Scan zu lang ist (Auflage Pflicht-Pruefung)', async () => {
   const s = setup({ cfg: { documentFingerprints: Object.assign({}, richtlinie(), { action: 'block' }) } });
   await tick();
-  // Ueber der Laengengrenze der Erkennung (200 000 Zeichen); Fuellwoerter ohne Fingerabdruecke.
-  s.composer.textContent = AUSZUG + ' ' + 'ja nein '.repeat(26000);
-  assert.ok(s.composer.textContent.length > s.DLX.engine.MAX_LEN);
+  // Ueber der Grenze fuer lange Texte (5 Mio. Zeichen); wenige ueberlange Fuellwoerter ohne Fingerabdruecke.
+  s.composer.textContent = AUSZUG + ' ' + ('x'.repeat(1000) + ' ').repeat(5001);
+  assert.ok(s.composer.textContent.length > s.DLX.datei.LIMITS.chars);
   assert.equal(s.enter().defaultPrevented, true);
   await tick();
   const f = s.found().pop();
@@ -1875,4 +1877,91 @@ test('Pruefung dauert: Hinweis mit Abbrechen statt Stille; Abbrechen beendet sie
   l2('Konto ' + IBAN);
   await pumpen(t, () => docMeldung(t));
   assert.deepEqual(typen(docMeldung(t)), ['iban'], 'der Fund ersetzt den Hinweis');
+});
+
+test('Senden: langer Text ueber 200 000 Zeichen wird ganz geprueft, Fund am Ende haelt an (bis 1 Mio. Zeichen)', async () => {
+  const s = setup();
+  await tick();
+  s.composer.textContent = 'Der Bericht zeigt die Zahlen im Verkauf. '.repeat(7500) + 'IBAN CH93 0076 2011 6238 5295 7';
+  assert.ok(s.composer.textContent.length > s.DLX.engine.MAX_LEN && s.composer.textContent.length < s.DLX.engine.MAX_LONG);
+  assert.equal(s.enter().defaultPrevented, true);
+  await tick();
+  const f = s.found().pop();
+  assert.equal(f.mode, 'send');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.items)).map((i) => i.id), ['iban'], 'IBAN gefunden statt "nicht pruefbar"');
+  // Ueber 5 Mio. Zeichen: weiter "nicht pruefbar", nie still durchgelassen.
+  const l = setup();
+  await tick();
+  l.composer.textContent = 'Der Bericht zeigt die Zahlen im Verkauf. '.repeat(125000);
+  assert.ok(l.composer.textContent.length > l.DLX.datei.LIMITS.chars);
+  assert.equal(l.enter().defaultPrevented, true);
+  await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(l.found().pop().items)).map((i) => i.id), ['unscannable']);
+});
+
+// --- Sehr lange Texte (ueber 1 Mio. bis 5 Mio. Zeichen): Pruefung in Zeitscheiben -------------------
+const SATZ = 'Der Bericht zeigt die Zahlen im Verkauf. ';
+const sehrLang = (ende = '') => SATZ.repeat(26000) + ende;   // rund 1,07 Mio. Zeichen
+const sendeMeldung = (s) => s.found().filter((m) => m.mode === 'send' || m.mode === 'paste').pop();
+
+test('Sehr langer Text beim Senden: ohne Fund genau ein Klick auf den Senden-Knopf, die Sende-Geste danach geht durch', async () => {
+  const s = setup({ host: 'claude.ai', layout: 'claude-de' });
+  await tick();
+  s.composer.textContent = sehrLang();
+  assert.ok(s.composer.textContent.length > s.DLX.engine.MAX_LONG && s.composer.textContent.length < s.DLX.datei.LIMITS.chars);
+  assert.equal(s.enter().defaultPrevented, true, 'angehalten, bis die Pruefung fertig ist');
+  assert.equal(s.enter().defaultPrevented, true, 'waehrend der Pruefung bleibt Senden angehalten');
+  await pumpen(s, () => s.send.clicks > 0);
+  assert.equal(s.send.clicks, 1, 'genau ein Klick');
+  assert.equal(sendeMeldung(s), undefined, 'keine Meldung, kein "nicht pruefbar"');
+  assert.equal(s.enter().defaultPrevented, false, 'der gepruefte Text geht durch');
+});
+
+test('Sehr langer Text beim Senden: Fund am Ende haelt an (Meldung mit Datentyp), kein Klick', async () => {
+  const s = setup({ host: 'claude.ai', layout: 'claude-de' });
+  await tick();
+  s.composer.textContent = sehrLang('IBAN ' + IBAN);
+  assert.equal(s.enter().defaultPrevented, true);
+  await pumpen(s, () => sendeMeldung(s));
+  const m = sendeMeldung(s);
+  assert.deepEqual([m.mode, JSON.parse(JSON.stringify(m.items)).map((i) => i.id)], ['send', ['iban']]);
+  assert.equal(s.send.clicks || 0, 0);
+});
+
+test('Sehr langer Text beim Senden: Text waehrend der Pruefung geaendert = kein Klick, neues Senden prueft neu; ohne Knopf sendet der Nutzer erneut', async () => {
+  const s = setup({ host: 'claude.ai', layout: 'claude-de' });
+  await tick();
+  s.composer.textContent = sehrLang();
+  assert.equal(s.enter().defaultPrevented, true);
+  s.composer.textContent = sehrLang(' Nachtrag IBAN ' + IBAN);
+  for (let i = 0; i < 400; i++) { s.advance(1); await settle(); }
+  assert.equal(s.send.clicks || 0, 0, 'kein Klick fuer einen anderen Text');
+  assert.equal(s.enter().defaultPrevented, true, 'der neue Text wird neu geprueft');
+  await pumpen(s, () => sendeMeldung(s));
+  assert.deepEqual(JSON.parse(JSON.stringify(sendeMeldung(s).items)).map((i) => i.id), ['iban']);
+  // Seite ohne erkannten Senden-Knopf: kein Klick moeglich, die naechste Sende-Geste geht durch.
+  const o = setup();
+  await tick();
+  o.composer.textContent = sehrLang();
+  assert.equal(o.enter().defaultPrevented, true);
+  for (let i = 0; i < 400; i++) { o.advance(1); await settle(); }
+  assert.equal(sendeMeldung(o), undefined);
+  assert.equal(o.enter().defaultPrevented, false);
+});
+
+test('Sehr langer Text beim Einfuegen: ohne Fund eingesetzt, mit Fund Meldung und nichts eingesetzt', async () => {
+  const paste = (s, t) => s.fire('paste', s.composer, { clipboardData: { files: [], items: [], types: ['text/plain'], getData: (k) => (k === 'text/plain' ? t : '') } });
+  const s = setup();
+  await tick();
+  const sauber = sehrLang();
+  assert.equal(paste(s, sauber).defaultPrevented, true);
+  await pumpen(s, () => s.composer.textContent.length > 0);
+  assert.equal(s.composer.textContent.length, sauber.length, 'gepruefter Text steht im Feld');
+  assert.equal(sendeMeldung(s), undefined);
+  const f = setup();
+  await tick();
+  assert.equal(paste(f, sehrLang('Mail max.muster@example.com')).defaultPrevented, true);
+  await pumpen(f, () => sendeMeldung(f));
+  assert.deepEqual([sendeMeldung(f).mode, JSON.parse(JSON.stringify(sendeMeldung(f).items)).map((i) => i.id)], ['paste', ['email']]);
+  assert.equal(f.composer.textContent, '', 'nichts eingesetzt');
 });

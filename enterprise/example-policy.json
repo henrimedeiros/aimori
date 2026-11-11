@@ -45,6 +45,10 @@
   "documentFingerprints": { "salt": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2", "shingle": 8, "sample": 4, "minMatches": 4, "action": "warn", "data": ["AAAAAQAAAAI="] },
   "allowedAiSites": ["chatgpt", "copilot", "m365copilot"],
   "blockedAiSites": ["deepseek"],
+  "accountRules": {
+    "chatgpt": { "workspaces": ["Example AG"], "business": "hint", "personal": "block" },
+    "m365copilot": { "markers": ["host"], "business": "off" }
+  },
   "dictionary": {
     "salt": "example-salt-2026",
     "hashes": [

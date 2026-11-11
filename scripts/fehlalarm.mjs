@@ -405,16 +405,19 @@ for (const [art, gen] of Object.entries(ARTEN_KONTEXT)) {
 
 // Trefferquote: jeder Testwert muss seinen Datentyp liefern (beliebige Stufe);
 // "sicher" zaehlt zusaetzlich, ob er in der Warnleiste landet.
-const tq = { n: 0, ok: 0, sicher: 0, fehlend: [] };
+const tq = { n: 0, ok: 0, sicher: 0, sollSicher: 0, fehlend: [] };
+// Typen, die allein immer nur als Hinweis melden (alone: 'unsure', z. B. entropy_secret), zaehlen nicht zum Ziel "sicher".
+const NUR_HINWEIS = new Set(Array.from(DLX.engine.allDetectors()).filter((d) => d.alone === 'unsure').map((d) => d.id));
 const WORLD_IDS = new Set(WORLD_CASES.map((c) => c[0]));
 for (const [id, text] of POSITIVE.concat(WORLD_CASES.map(([i, pos]) => [i, pos]))) {
   tq.n++;
+  if (!NUR_HINWEIS.has(id)) tq.sollSicher++;
   // Laenderpakete Phase 2/3: nur das eigene Paket aktiv (gleich gebaute Nummern anderer
   // Laender ueberdecken sich sonst), Klasse tief per Regel eingeschaltet.
   const world = WORLD_IDS.has(id);
   const fs = DLX.engine.scan(text, { packs: world ? [PACK_OF[id]] : CFG.packs, rules: world ? { [id]: 'warn' } : { br_cep: 'warn' } }).findings;
   const f = Array.from(fs).find((x) => x.id === id);
-  if (f) { tq.ok++; if (stageOf(f) === 'sicher') tq.sicher++; } else tq.fehlend.push(id);
+  if (f) { tq.ok++; if (stageOf(f) === 'sicher' && !NUR_HINWEIS.has(id)) tq.sicher++; } else tq.fehlend.push(id);
 }
 result.trefferquote = tq;
 const umg = UMGEHUNG.map(([text, id, want]) => {
@@ -434,7 +437,7 @@ for (const [art, r] of Object.entries(result.kontext)) {
   if (r.flagged.sicher || (FRAGEN.includes(art) && r.flagged.unsicher)) verstoesse.push(`Kontext ${art}: ${r.flagged.sicher} sicher / ${r.flagged.unsicher} unsicher gemeldet`);
 }
 for (const u of umg) if (u.got !== u.want) verstoesse.push(`Grenzfall ${u.id}: erwartet ${u.want}, erhalten ${u.got}`);
-if (tq.sicher !== tq.n) verstoesse.push(`Testwerte sicher ${tq.sicher}/${tq.n}`);
+if (tq.sicher !== tq.sollSicher) verstoesse.push(`Testwerte sicher ${tq.sicher}/${tq.sollSicher}`);
 if (tq.ok !== tq.n) verstoesse.push(`Trefferquote ${tq.ok}/${tq.n}, fehlend: ${tq.fehlend.join(', ')}`);
 result.ziel = { zufall: ZIEL_ZUFALL, codeLog: ZIEL_CODE_LOG, codeLogRate: cl.s / cl.n, erreicht: verstoesse.length === 0, verstoesse };
 

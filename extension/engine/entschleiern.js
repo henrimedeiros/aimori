@@ -15,7 +15,8 @@
   // total deckt die Hoechstlaenge der Engine (200 000 Zeichen) mehrfach ab; tokens = erfolgreich dekodierte
   // Stuecke, cands = gepruefte Kandidaten je Ebene. Wird eine Grenze erreicht, meldet variants()
   // truncated und engine.scan wertet den Text als nicht pruefbar (Pflicht-Pruefung 16.10.2026).
-  const LIMITS = Object.freeze({ total: 1000000, tokens: 50, cands: 12000, tokMin: 16, tokMax: 4096, depth: 2, revRun: 64, printable: 0.9 });
+  // totalLong: dieselbe Reserve fuer lange Texte beim Senden und Einfuegen (engine.MAX_LONG).
+  const LIMITS = Object.freeze({ total: 1000000, totalLong: 5000000, tokens: 50, cands: 12000, tokMin: 16, tokMax: 4096, depth: 2, revRun: 64, printable: 0.9 });
 
   // --- Hilfen ----------------------------------------------------------------
   // Variante aufbauen: push(text, a, b) haengt Zeichen mit Originalbereich an.
@@ -284,13 +285,14 @@
   // tick(): wirft bzw. meldet Zeitueberschreitung (engine.scan). Ergebnis: Liste
   // der Varianten, zusammen hoechstens LIMITS.total Zeichen; was darueber liegt,
   // wird weggelassen und als truncated gemeldet.
-  function variants(text, tick) {
+  function variants(text, tick, long) {
     const out = [];
     const st = { truncated: false };
+    const cap = long ? LIMITS.totalLong : LIMITS.total;
     let total = 0;
     const take = (v) => {
       if (!v) return;
-      if (total + v.s.length > LIMITS.total) { st.truncated = true; return; }
+      if (total + v.s.length > cap) { st.truncated = true; return; }
       total += v.s.length;
       out.push(v);
     };

@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { ROOT, EXT, load as loadExt, ENGINE_FILES as EF } from './helpers/load.mjs';
 import { build, STORE_ID, NESTED_DECIMAL_DEFAULT } from '../scripts/build-admx.mjs';
@@ -106,11 +107,12 @@ test('Deploy-Trockenlauf: Registry-Werte passen zur ADMX-Struktur', { skip: !WIN
 });
 
 test('Deploy lehnt schema-widrige Richtlinie ab', { skip: !WIN }, () => {
-  const bad = path.join(ROOT, 'scripts', 'e2e', 'tmp', 'bad-policy.json');
-  fs.mkdirSync(path.dirname(bad), { recursive: true });
+  // Im Temp-Ordner des Systems: der Quelltext-Test liest parallel alle Dateien des Repos.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dlx-policy-'));
+  const bad = path.join(dir, 'bad-policy.json');
   fs.writeFileSync(bad, JSON.stringify({ language: 'xx', unknownKey: true, rules: { iban: 'delete' } }));
   assert.throws(() => plan(bad), (e) => /Richtlinie ungueltig/.test(String(e.stderr)) && /unknownKey/.test(String(e.stderr)));
-  fs.rmSync(bad);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 // KI-Antworten pruefen und Zwischenablage-Schutz (Pflicht-Pruefung 16.10.2026): neue Schluessel in allen Vorlagen.

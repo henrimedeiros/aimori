@@ -38,10 +38,11 @@ test('Beispieldateien: TXT, CSV, PDF, DOCX, XLSX mit IBAN/AHV loesen aus, sauber
   }
 });
 
-test('Art: PDF und DOCX per Endung oder MIME-Typ, alte Formate nicht', () => {
+test('Art: PDF und DOCX per Endung oder MIME-Typ, alte Formate mit eigenem Leser, Unbekanntes nicht', () => {
   for (const f of beispieldateien()) assert.equal(DLX.datei.kindOf(f.name, ''), f.ext === 'txt' || f.ext === 'csv' ? 'text' : f.ext, f.name);
   assert.equal(DLX.datei.kindOf('x', 'application/pdf'), 'pdf');
-  assert.equal(DLX.datei.kindOf('alt.doc', 'application/msword'), null);
+  assert.equal(DLX.datei.kindOf('alt.doc', 'application/msword'), 'doc');
+  assert.equal(DLX.datei.kindOf('alt.wps', 'application/vnd.ms-works'), null);
 });
 
 test('Stuecke: IBAN genau auf der Stueckgrenze zaehlt einmal, Ueberlappung doppelt nichts (Auflage 7)', async () => {
@@ -177,8 +178,12 @@ test('SW: Tab verlassen oder geschlossen bricht ab und schliesst das Offscreen-D
 
 test('Quelltext: Leser byte-gleich dem geprueften Stand, keine neuen Rechte, kein Netz (Auflagen 1, 10, 16, 19)', () => {
   const sha = crypto.createHash('sha1').update('blob ' + fs.statSync(path.join(EXT, 'engine/datei.js')).size + '\0').update(fs.readFileSync(path.join(EXT, 'engine/datei.js'))).digest('hex');
-  // Stand vom 16.10.2026 (cc713456) mit genau einer Aenderung vom 30.10.2026: Grenzen chars 5000000 und ms 30000 fuer lange Dokumente.
-  assert.equal(sha, '3fd3b874e88268c3854e76b5f4fddb162e9bc766', 'engine/datei.js = geprueften Stand (git-Blob)');
+  // Stand vom 16.10.2026 (cc713456) mit der Aenderung vom 30.10.2026 (Grenzen chars 5000000 und ms 30000 fuer lange
+  // Dokumente) und der vom 11.11.2026 (PPTX, OpenDocument, PDF-Filter ASCIIHex/ASCII85/RunLength/LZW und Ketten,
+  // Kurzform <w:br/>/<w:tab/>; Design-Review Dateiformate und lange Texte 11.11.2026, Tests in tests/datei-formate.test.mjs)
+  // sowie PDF: Werte in der Originaldatei ueberdecken (pdfMask), Luecke/Fortsetzung nach Zeichenbreiten, Seitenbaum
+  // (Design-Review PDF-Layout 11.11.2026, Tests in tests/pdf-layout.test.mjs).
+  assert.equal(sha, '88ea850a7400abda8b551e2f9e6a086dbc24db64', 'engine/datei.js = geprueften Stand (git-Blob)');
   assert.deepEqual([DLX.datei.LIMITS.chars, DLX.datei.LIMITS.ms, DLX.datei.LIMITS.bytes], [5000000, 30000, 20 * 1024 * 1024]);
   const m = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
   const js = m.content_scripts.flatMap((c) => c.js);
